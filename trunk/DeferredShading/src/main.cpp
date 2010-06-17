@@ -72,15 +72,13 @@ void init(int argc, char *argv[]){
   glEnable(GL_DEPTH_TEST);
   //glEnable(GL_ALPHA_TEST);
   
-	glEnable(GL_TEXTURE);
+	//glEnable(GL_TEXTURE);
  // glEnable(GL_TEXTURE_1D);
-  glEnable(GL_TEXTURE_2D);
+  //glEnable(GL_TEXTURE_2D);
 
   // disables cursor
   //   glutSetCursor(GLUT_CURSOR_NONE);
-  e = glGetError();
   createScenes();
-  e = glGetError();
 }
 
 
@@ -142,13 +140,10 @@ void mouseActive(int x, int y){
 
 void display()
 {
-  e = glGetError();
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    e = glGetError();
   render();
   //glFlush();
   glutSwapBuffers();
-  e = glGetError();
 }
 
 void renderAxis(){
@@ -218,66 +213,32 @@ void render(){
   glLoadIdentity();
   gluLookAt(x,y,z, 0, 0, 0, 1, 0, 0);
 
-  //renderAxis();
-
   rtScene->configure();
-/*
-  glCullFace(GL_BACK);
-  //glEnable(GL_CULL_FACE);
- //glEnable(GL_DEPTH_TEST);
-  glDisable(GL_BLEND);
-  //glDepthFunc(GL_LEQUAL);
-  glEnable(GL_DEPTH_TEST);
-  glDisable(GL_TEXTURE_2D);
-  glColor4f(1,1,1,1);
-  glClearColor(.8,.8,.8,1.);
-  glClearDepth(1.0);
-  glColorMask(true, true, true, true);
-  glDepthMask(true);
-  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
 
-
-  glColorMask(false, false, false, false);
-  glDepthMask(true);
-
-  
-  //renderScreenQuad();
-  rtScene->render();
-  glutSolidTeapot(60);
-
-
-
-  glColorMask(true, true, true, true);
-  glDepthMask(false);
-*/
-
-  //glCullFace(GL_BACK);
-  //glCullFace(GL_FRONT);
-  //glDisable(GL_CULL_FACE);
-  //glEnable(GL_COLOR_MATERIAL);
-
-
-
- 
+  /// GEOMETRY STAGE
   kernelGeometry->setActive(true);
-
-  //p.configure();
-  //p.render();
   glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-  glEnable(GL_DEPTH_TEST);
-    rtScene->render();
 
-  //glColorMaterial(GL_FRONT, GL_AMBIENT);
-  //glColor3f(.2,0,0);
-  //glColorMaterial(GL_FRONT, GL_DIFFUSE);
-  //glColor3f(.8,0,0);
-  //glColorMaterial(GL_FRONT, GL_SPECULAR);
-  //glColor3f(1,0,0);
+  rtScene->render();
 
-  //glutSolidTeapot(60);
+  glCullFace(GL_FRONT);
+  glutSolidTeapot(60);
+  glCullFace(GL_BACK);
 
   kernelGeometry->setActive(false);
-  kernelGeometry->renderOutput(KernelGeometry::Position);
+  kernelGeometry->renderOutput(KernelGeometry::Normal);
+  /// GEOMETRY STAGE END
 
   /**/
 }
+//glEnable(GL_COLOR_MATERIAL);
+//p.configure();
+//p.render();
+//glColorMaterial(GL_FRONT, GL_AMBIENT);
+//glColor3f(.2,0,0);
+//glColorMaterial(GL_FRONT, GL_DIFFUSE);
+//glColor3f(.8,0,0);
+//glColorMaterial(GL_FRONT, GL_SPECULAR);
+//glColor3f(1,0,0);
+
+//glutSolidTeapot(60);

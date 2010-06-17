@@ -3,10 +3,9 @@ varying vec3 normal;
 
 void main()
 {
-//   gl_FragColor = vec4(normalize(normal), 1.0);
-//   gl_FragData[1] = pos;
-//   gl_FragData[0] = vec4(normalize(normal), 1.0);
-//   gl_FragData[2] = gl_FrontMaterial.diffuse;
-//   gl_FragData[3] = gl_FrontMaterial.specular;
+   gl_FragData[0] = pos;
+   gl_FragData[1] = vec4(normalize(normal), 1.0);
+   gl_FragData[2] = gl_FrontMaterial.diffuse;
+   gl_FragData[3] = gl_FrontMaterial.specular;
 }
 

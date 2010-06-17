@@ -82,11 +82,11 @@ void KernelBase::setActive( bool op )
   if(op)
   {
     m_fbo->setActive(true);
-    //m_shader->setActive(true);
+    m_shader->setActive(true);
     activateTextures();
   }else 
   {
-    //m_shader->setActive(false);
+    m_shader->setActive(false);
     m_fbo->setActive(false);
   }
 }

@@ -8,4 +8,5 @@ void main()
 
    pos = gl_Position;
    normal = gl_NormalMatrix*gl_Normal;
+//   normal = gl_Normal;
 }
