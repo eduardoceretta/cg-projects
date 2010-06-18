@@ -42,6 +42,18 @@ GLuint KernelBase::addInputFloat( char* name, GLfloat value )
   return loc;
 }
 
+
+GLuint KernelBase::addInputMatrix4( char* name, const GLfloat* value )
+{
+  GLuint loc = m_shader->getUniformLocation(name);
+  glUniformMatrix4fv(loc, 1,GL_FALSE, value);
+
+  return loc;
+}
+
+
+
+
 GLuint KernelBase::addOutput(int index, GLuint textureId){
 	GLuint id = m_fbo->attachToColorBuffer(bufferType::Texture, index, textureId);
 	m_outputTextures.push_back(id);
@@ -66,6 +78,40 @@ void KernelBase::renderQuad(){
     glTexCoord2f(1,1); glVertex3f(1,1,0); 
     glTexCoord2f(0,1); glVertex3f(0,1,0); 
   glEnd();
+}
+
+void KernelBase::renderShader()
+{
+  glPushAttrib(GL_ENABLE_BIT);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, 1, 0, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glEnable(GL_TEXTURE);
+    glEnable(GL_TEXTURE_1D);
+    glEnable(GL_TEXTURE_2D);
+
+    m_shader->setActive(true);
+      activateTextures();
+      glColor3f(1,1,1);
+      glBegin(GL_QUADS);
+        glTexCoord2f(0,0); glVertex3f(0,0,0);
+        glTexCoord2f(1,0); glVertex3f(1,0,0);
+        glTexCoord2f(1,1); glVertex3f(1,1,0);
+        glTexCoord2f(0,1); glVertex3f(0,1,0);
+      glEnd();
+    m_shader->setActive(false);
+   
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+  glPopAttrib();
 }
 
 void KernelBase::step(){
@@ -121,5 +167,3 @@ void KernelBase::renderOutput( int texIndex /*= 0*/ )
   glPopMatrix();
   glPopAttrib();
 }
-
-
