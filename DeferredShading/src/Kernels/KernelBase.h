@@ -15,14 +15,11 @@ public:
 	KernelBase(char* vert, char* frag, int width, int height);
 	~KernelBase();
 	
+  void renderShader();
   void renderOutput(int texIndex = 0);
   void setActive(bool op);
   void step();
 	GLuint getOutputTexture(int index);
-  
-  
-	FrameBufferObject* m_fbo;
-
 protected:
   void renderQuad();
 
@@ -30,10 +27,11 @@ protected:
 	GLuint addInputTexture(GLenum textureDimension, char* name, GLuint id);
 	GLuint addInputVec3(char* name, Vector3 value);
 	GLuint addInputFloat(char* name, GLfloat value);
+  GLuint addInputMatrix4(char* name, const GLfloat* value);
 	GLuint addOutput(int index, GLuint textureId = -1);
 	
 
-	
+  FrameBufferObject* m_fbo;
 	Shader* m_shader;
   std::vector<std::pair<GLenum, GLuint>> m_inputTextures;
 	std::vector<GLuint> m_outputTextures;

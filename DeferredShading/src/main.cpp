@@ -7,6 +7,7 @@
 
 #include "Objects\Scene.h"
 #include "Kernels\KernelGeometry.h"
+#include "Kernels\KernelShade.h"
 
 #include "main.h"
 
@@ -16,10 +17,13 @@ int lastMousePosY = 0;
 int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
+bool enabled = false;
+
 //Camera Position
 float camAlpha = 0.0;
 float camBeta = 40.0;
 float camR = 300.0;
+float camInc = 5.0;
 
 //Camera Attributes
 float nearPlane = 0.1f;
@@ -29,8 +33,11 @@ float fov = 60.0f;
 //Global Objects
 Scene* rtScene;
 KernelGeometry* kernelGeometry;
+KernelShade* kernelShade;
 
- GLenum e;
+//Debug
+GLenum e;
+
 int main(int argc, char *argv[]){
 	init(argc, argv);
 	glewInit();	
@@ -94,12 +101,12 @@ void reshape(int w, int h){
 }
 
 void keyboardSpecial(int key, int x, int y){
-	/*	
-	if( key == GLUT_KEY_LEFT ) angleY+=ANGLE_STEP;
-	else if( key == GLUT_KEY_RIGHT ) angleY-=ANGLE_STEP;
-	else if( key == GLUT_KEY_UP ) angleX+=ANGLE_STEP;
-	else if( key == GLUT_KEY_DOWN ) angleX-=ANGLE_STEP;
-	*/
+
+	if( key == GLUT_KEY_LEFT ) camBeta = (int)(camBeta + camInc)%360;
+	else if( key == GLUT_KEY_RIGHT )  camBeta = (int)(camBeta - camInc)%360;
+	else if( key == GLUT_KEY_UP ) camAlpha = (int)(camAlpha - camInc)%360;
+	else if( key == GLUT_KEY_DOWN )camAlpha = (int)(camAlpha + camInc)%360;
+
   //cout << key<<endl;
 }
 
@@ -109,6 +116,13 @@ void keyboard(unsigned char key, int x, int y){
     case 27://ESC
       exit(42);
     break;
+    case 'q':
+    case 'Q':
+      enabled = !enabled;
+      if(enabled)
+        cout << "Shader ON"<<endl;
+      else cout << "Shader OFF"<<endl;
+      break;
   }
   //cout << (int)key<<endl;
 }
@@ -124,15 +138,15 @@ void mouseButtons(int button, int state, int x, int y){
 
 void mouseActive(int x, int y){
 	if(mouseButton == GLUT_LEFT_BUTTON && mouseState == GLUT_DOWN){
-		float angleX = (x - lastMousePosX);
-		float angleY = (y - lastMousePosY);
+		float angleX = (x - lastMousePosX)*.5;
+		float angleY = (y - lastMousePosY)*.5;
 
 
-		camAlpha = ((int)(camAlpha + angleX))%360;
-		camBeta = ((int)(camBeta + angleY))%360;
+		camAlpha = ((int)(camAlpha + angleY))%360;
+		camBeta = ((int)(camBeta + angleX))%360;
 	}
 	else if(mouseButton == GLUT_RIGHT_BUTTON && mouseState == GLUT_DOWN){
-		camR += (y - lastMousePosY)/50.0;
+		camR += (y - lastMousePosY)/2.0;
 	}
 	lastMousePosX = x;
 	lastMousePosY = y;
@@ -191,43 +205,101 @@ void renderScreenQuad()
   glPopMatrix();
   glMatrixMode(GL_MODELVIEW);
 }
-#include"Light/PointLight.h"
+
+#include "Light/PointLight.h"
 PointLight p;
+PointLight p2;
 void createScenes()
 {
   rtScene = new Scene("./resources/scenes/cavalo.rt4");
   //rtScene->setLightEnabled(false);
-  p.setPosition(Vector3(0,10,0));
-  p.setAmbientColor(Color(.2, .2, .2));
+
+  p.setAmbientColor(Color(0.0,0.0,0.0));
   p.setDiffuseColor(Color(.8,.8,.8));
-  p.setSpecularColor(Color(1,1,1));
+  p.setSpecularColor(Color(.8,.8,.8));
+  p.setPosition(Vector3(0,100,0));
+
+  p2.setAmbientColor(Color(0.0,0.0,0.0));
+  p2.setDiffuseColor(Color(.8,.8,.8));
+  p2.setSpecularColor(Color(.8,.8,.8));
+  p2.setPosition(Vector3(100,0,0));
+  GLfloat amb [] = {0.2,0.2,0.2,1};
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
+  
+
 
   kernelGeometry = new KernelGeometry(appWidth, appHeight);
+  kernelShade = new KernelShade(appWidth, appHeight, 
+      kernelGeometry->getTexIdPosition(), 
+      kernelGeometry->getTexIdNormal(), 
+      kernelGeometry->getTexIdDiffuse(), 
+      kernelGeometry->getTexIdSpecular(), 
+      rtScene->getLightsTexId(),
+      rtScene->getLightsTexSize());
 }
+
+
 
 void render(){
   float x = camR*sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
   float y = camR*sin(DEG_TO_RAD(camAlpha));
   float z = camR*cos(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
+
+  float nextAlpha =  min(camAlpha + camInc,360.0f);
+
+  float ux = sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(nextAlpha)) - x;
+  float uy = sin(DEG_TO_RAD(nextAlpha)) - y;
+  float uz = cos(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(nextAlpha)) - z;
   
   glLoadIdentity();
-  gluLookAt(x,y,z, 0, 0, 0, 1, 0, 0);
+  gluLookAt(x,y,z, 0, 0, 0, ux, uy, uz);
+
+  GLfloat lightModelViewMatrix[16];
+  glGetFloatv(GL_MODELVIEW_MATRIX, lightModelViewMatrix);
+
 
   rtScene->configure();
 
-  /// GEOMETRY STAGE
-  kernelGeometry->setActive(true);
-  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+  
+  if(enabled)kernelGeometry->setActive(true);
+  if(enabled)glClearColor(.8, .8, .8, -1.0);
+  if(enabled)glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
 
-  rtScene->render();
+  if(!enabled)
+  {
+    p.configure();
+    p2.configure();
+    p.render();
+    p2.render();
+  }else 
+  {
+    glDisable(GL_LIGHTING);
+  }
+
+  //rtScene->render();
 
   glCullFace(GL_FRONT);
+  glEnable(GL_COLOR_MATERIAL);
+  glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT);
+  glColor3f(1,1,1);
+  glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+  glColor3f(1,0,0);
+  glColorMaterial(GL_FRONT_AND_BACK, GL_SPECULAR);
+  glColor3f(1,1,1);
+  glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 10.0);
   glutSolidTeapot(60);
   glCullFace(GL_BACK);
+  glutSolidSphere(60, 30, 30);
 
-  kernelGeometry->setActive(false);
-  kernelGeometry->renderOutput(KernelGeometry::Normal);
-  /// GEOMETRY STAGE END
+  if(enabled)kernelGeometry->setActive(false);
+  //if(enabled)kernelGeometry->renderOutput(KernelGeometry::Specular);
+
+  if(enabled) kernelShade->renderShader(lightModelViewMatrix);
+
+  /*
+  LIGHT 0. 0. 130.     80. 250. 250.
+  LIGHT 250. 0. 0.     150. 1. 10.
+
 
   /**/
 }

@@ -191,6 +191,10 @@
 					RelativePath="..\..\src\Kernels\KernelGeometry.cpp"
 					>
 				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelShade.cpp"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="GraphBasis"
@@ -287,6 +291,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\Kernels\KernelGeometry.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelShade.h"
 					>
 				</File>
 			</Filter>

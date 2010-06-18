@@ -181,7 +181,8 @@ void Scene::calcTextures()
   
   GLfloat* lData = new GLfloat[mLights.size()*sizeof(struct lightStruct)];
   for( unsigned int i = 0; i < mLights.size(); ++i)
-    memcpy(&lData[i*sizeof(struct lightStruct)], mLights[i].getLightStruct(), sizeof(struct lightStruct));
+    memcpy(&lData[i*sizeof(struct lightStruct)/sizeof(GLfloat)], mLights[i].getLightStruct(), sizeof(struct lightStruct));
+
   int lightArraySize = mLights.size()*sizeof(struct lightStruct)/(4*sizeof(GLfloat));
   int lightArrayAbsoluteSize = mLights.size()*sizeof(struct lightStruct)/(sizeof(GLfloat));
 
