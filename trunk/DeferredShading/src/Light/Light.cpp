@@ -39,12 +39,6 @@ Light :: Light()
    }
    ambient[3] = 1;
 
-   shi = 0.0;
-
-//   constAtenuation = 2.0;
-//   linAtenuation = 1.0;
-//   quadAtenuation = .5;
-
    constAtenuation = 1.0;
    linAtenuation = 0.0;
    quadAtenuation = .0;
@@ -79,7 +73,6 @@ void Light :: configure()
       glLightfv(myLightNum, GL_AMBIENT,  ambient);
       glLightfv(myLightNum, GL_DIFFUSE,  diffuse);
       glLightfv(myLightNum, GL_SPECULAR, specular);
-
       glLightf(myLightNum, GL_CONSTANT_ATTENUATION, constAtenuation);
       glLightf(myLightNum, GL_LINEAR_ATTENUATION, linAtenuation);
       glLightf(myLightNum, GL_QUADRATIC_ATTENUATION, quadAtenuation);
@@ -140,18 +133,6 @@ void Light :: setDiffuseColor(Color c)
 Color Light :: getDiffuseColor() const
 {
    return Color(diffuse[0],diffuse[1],diffuse[2]);
-}
-
-
-void Light :: setShineValue(double shine)
-{
-   shi = shine;
-   modified = true;
-}
-
-double Light :: getShineValue() const
-{
-   return shi;
 }
 
 

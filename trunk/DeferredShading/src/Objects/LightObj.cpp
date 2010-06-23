@@ -3,6 +3,7 @@
 \**********************************************************/
 
 #include <iostream>
+#include <cmath>
 
 #include "Objects/LightObj.h"
 
@@ -36,12 +37,31 @@ int LightObj :: getMyLightNumber() const
 
 void LightObj :: readFromStr(char buffer[])
 {
-   int r = sscanf( buffer, "%f %f %f %f %f %f\n", &mPos.x, &mPos.y, &mPos.z,
-      &mDiffuse.r, &mDiffuse.g, &mDiffuse.b);
-   mDiffuse *= 1.0/255;
-   mSpecular = mDiffuse;
-   assert(r == 6);
-//   cout << "Light num, pos, Diffuse, Specular:\n"<<myLightNum << endl << mPos  << mDiffuse << mSpecular <<endl;
+  float type = (float)Point; 
+  mSpotExponent = 0.0f;
+  mSpotAngle = 180.0f;
+  mSpotDir = Vector3(0,0,0);
+  int r = sscanf( buffer, 
+    "%f %f %f \
+    %f %f %f \
+    %f %f %f \
+    %f \
+    %f \
+    %f \
+    %f %f %f \n", 
+      &mPos.x, &mPos.y, &mPos.z,
+      &mDiffuse.r, &mDiffuse.g, &mDiffuse.b, 
+      &mSpecular.r, &mSpecular.g, &mSpecular.b,
+      &type,
+      &mSpotExponent,
+      &mSpotAngle,
+      &mSpotDir.x, &mSpotDir.y, &mSpotDir.z);
+   
+  mDiffuse *= 1.0/255;
+  mSpecular *= 1.0/255;
+  mType = (LightType)(int) floor(type + .5);
+  assert(r >= 9);
+  //cout << "Light num, pos, Diffuse, Specular, Type, SpotExponent, SpotAngle, SpotDir:\n"<< myLightNum << endl << mPos  << mDiffuse << mSpecular <<endl << mType << endl << mSpotExponent << endl << mSpotAngle << endl << mSpotDir<<endl;
 }
 
 void LightObj :: configure()
@@ -74,7 +94,7 @@ struct lightStruct * LightObj::getLightStruct()
   mLightStruct->diffuse[0] = mDiffuse.r;
   mLightStruct->diffuse[1] = mDiffuse.g;
   mLightStruct->diffuse[2] = mDiffuse.b;
-  mLightStruct->spotExponent = 0.0;
+  mLightStruct->spotExponent = mSpotExponent;
   mLightStruct->specular[0] = mSpecular.r;
   mLightStruct->specular[1] = mSpecular.g;
   mLightStruct->specular[2] = mSpecular.b;
@@ -82,11 +102,11 @@ struct lightStruct * LightObj::getLightStruct()
   mLightStruct->pos[0] = mPos.x;
   mLightStruct->pos[1] = mPos.y;
   mLightStruct->pos[2] = mPos.z;
-  mLightStruct->type = 1.0;
-  mLightStruct->spotDir[0] = 1;
-  mLightStruct->spotDir[1] = 0;
-  mLightStruct->spotDir[2] = 1;
-  mLightStruct->spotAngle = 3.1415;
+  mLightStruct->type = (float)(int)mType;
+  mLightStruct->spotDir[0] = mSpotDir.x;
+  mLightStruct->spotDir[1] = mSpotDir.y;
+  mLightStruct->spotDir[2] = mSpotDir.z;
+  mLightStruct->spotAngle = DEG_TO_RAD(mSpotAngle);
   return mLightStruct;
 }
 

@@ -1,6 +1,5 @@
 varying vec4 pos;
 varying vec3 normal;
-varying vec4 lightPos;
 
 void main()
 {
