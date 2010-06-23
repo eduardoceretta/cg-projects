@@ -40,7 +40,7 @@ struct lightStruct
 class LightObj
 {
    static int lightNum;
-
+   enum LightType {Directional = 0, Point = 1, Spot = 2 };
 
    protected:
       PointLight mPLight;
@@ -50,6 +50,11 @@ class LightObj
       Vector3 mPos;
       Color mSpecular;
       Color mDiffuse;
+
+      LightType mType;
+      Vector3 mSpotDir;
+      float mSpotExponent;
+      float mSpotAngle;
 
       int myLightNum;
 

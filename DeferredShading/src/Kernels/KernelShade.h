@@ -2,7 +2,6 @@
 #define _KERNEL_SHADE_H_
 
 #include "Kernels/KernelBase.h"
-#include "SpacePartition/UniformGrid.h"
 #include "GraphBasis/FrameBufferObject.h"
 
 class KernelShade : public KernelBase {

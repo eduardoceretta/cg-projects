@@ -26,7 +26,6 @@ class Light
       GLfloat ambient[4];
       GLfloat specular[4];
       GLfloat diffuse[4];
-      GLfloat shi;
 
       double constAtenuation;
       double linAtenuation;
@@ -54,9 +53,6 @@ class Light
 
       void setDiffuseColor(Color c);
       Color getDiffuseColor() const;
-
-      void setShineValue(double shine);
-      double getShineValue() const;
 
       void lightTurnedOn(bool op); //Luz Ligada ou desligada
       bool lightIsTurnedOn() const;
