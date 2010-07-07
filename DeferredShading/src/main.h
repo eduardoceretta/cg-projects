@@ -8,8 +8,8 @@
 #define APP_INITIAL_WIDTH 800
 #define APP_INITIAL_HEIGHT 600
 
-int appWidth = APP_INITIAL_WIDTH;
-int appHeight = APP_INITIAL_HEIGHT;
+extern int appWidth;
+extern int appHeight;
 
 int main(int argc, char *argv[]);
 

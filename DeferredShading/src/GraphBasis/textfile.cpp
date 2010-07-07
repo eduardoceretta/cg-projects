@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "textfile.h"
 
 
@@ -45,7 +46,7 @@ char *textFileRead(char *fn) {
 		}
 		else{
 			printf("Could not open file: %s\n",fn);
-
+      assert(false);
 		}
 	}
 	return content;

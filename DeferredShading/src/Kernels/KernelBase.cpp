@@ -7,7 +7,7 @@ KernelBase::KernelBase(){
 KernelBase::KernelBase(char* vert, char* frag, int width, int height){
 	m_shader = new Shader(vert, frag);
 	m_fbo = new FrameBufferObject(width, height);
-  m_fbo->attachToDepthBuffer(BufferType::RenderBufferObject);
+  //m_fbo->attachToDepthBuffer(BufferType::RenderBufferObject);
 }
 
 KernelBase::~KernelBase(){
@@ -65,11 +65,13 @@ GLuint KernelBase::getOutputTexture(int index){
 }
 
 void KernelBase::activateTextures(){
+
   for(int i=0; i<m_inputTextures.size(); i++){
 		glActiveTextureARB(GL_TEXTURE0 + i);
 		glBindTexture(m_inputTextures.at(i).first, m_inputTextures.at(i).second);
 	}
 }
+
 
 void KernelBase::renderQuad(){
   glBegin(GL_QUADS);
@@ -91,7 +93,7 @@ void KernelBase::renderShader()
     glPushMatrix();
     glLoadIdentity();
 
-    glEnable(GL_TEXTURE);
+
     glEnable(GL_TEXTURE_1D);
     glEnable(GL_TEXTURE_2D);
 
@@ -136,10 +138,8 @@ void KernelBase::setActive( bool op )
     m_fbo->setActive(false);
   }
 }
-
 void KernelBase::renderOutput( int texIndex /*= 0*/ )
 {
-  glPushAttrib(GL_ENABLE_BIT);
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
@@ -148,9 +148,9 @@ void KernelBase::renderOutput( int texIndex /*= 0*/ )
   glPushMatrix();
   glLoadIdentity();
 
-  glEnable(GL_TEXTURE);
   glEnable(GL_TEXTURE_2D);
-  glActiveTextureARB(GL_TEXTURE0);
+
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, getOutputTexture(texIndex));
   glColor3f(1,1,1);
   glBegin(GL_QUADS);
@@ -160,10 +160,8 @@ void KernelBase::renderOutput( int texIndex /*= 0*/ )
     glTexCoord2f(0,1); glVertex3f(0,1,0);
   glEnd();
   glBindTexture(GL_TEXTURE_2D, 0);
-
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
   glMatrixMode(GL_MODELVIEW);
   glPopMatrix();
-  glPopAttrib();
 }

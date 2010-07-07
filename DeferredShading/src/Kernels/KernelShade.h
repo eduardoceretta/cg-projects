@@ -7,7 +7,6 @@
 class KernelShade : public KernelBase {
 
 public:
-  KernelShade();
 
   KernelShade(int width, int height, GLuint positionTexId, GLuint normalTexId, GLuint diffuseTexId, GLuint specularTexId,GLuint lightTexId, int lightTexSize);
 	~KernelShade();
@@ -15,9 +14,13 @@ public:
   void renderShader(const GLfloat * lightModelViewMatrix);
   void step(const GLfloat * lightModelViewMatrix);
   void setActive( bool op , const GLfloat * lightModelViewMatrix);
+  GLuint getTexIdColor() const;
+
   
 private:
   GLuint m_lightModeleViewMatrixLoc;
+  GLuint m_texIdColor;
+
 };
 
 

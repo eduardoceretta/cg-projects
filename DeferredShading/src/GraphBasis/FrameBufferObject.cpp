@@ -216,7 +216,7 @@ void FrameBufferObject::setActive(bool active)
    mActive = active;
    if(mActive)
    {
-      glPushAttrib(GL_ENABLE_BIT);
+      glPushAttrib(GL_ALL_ATTRIB_BITS); 
       glDisable(GL_ALPHA_TEST);
       glDisable(GL_BLEND);
 

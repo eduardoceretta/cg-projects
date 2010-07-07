@@ -34,7 +34,7 @@ GLint Shader::getUniformLocation(char* name){
 void Shader::LoadFiles(char* vertexShaderFile, char* fragShaderFile){
 	
 	char *vs = NULL,*fs = NULL;
-	
+	glewInit();
 	m_shaderVert = glCreateShaderObjectARB(GL_VERTEX_SHADER_ARB);
 	m_shaderFrag = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);	
 

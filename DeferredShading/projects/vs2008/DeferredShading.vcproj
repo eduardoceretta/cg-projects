@@ -184,6 +184,14 @@
 				Name="Kernels"
 				>
 				<File
+					RelativePath="..\..\src\Kernels\KernelAntiAliasing.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelAntiAliasingN.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\Kernels\KernelBase.cpp"
 					>
 				</File>
@@ -205,6 +213,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\GraphBasis\FrameBufferObject.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\GraphBasis\GLFont.cpp"
 					>
 				</File>
 				<File
@@ -294,6 +306,14 @@
 				Name="Kernels"
 				>
 				<File
+					RelativePath="..\..\src\Kernels\KernelAntiAliasing.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelAntiAliasingN.h"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\Kernels\KernelBase.h"
 					>
 				</File>
@@ -315,6 +335,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\GraphBasis\FrameBufferObject.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\GraphBasis\GLFont.h"
 					>
 				</File>
 				<File

@@ -5,12 +5,19 @@
 
 #include "GraphBasis\Vector3.h"
 #include "GraphBasis\Shader.h"
+#include "GraphBasis/GLFont.h"
 
 #include "Objects\Scene.h"
 #include "Kernels\KernelGeometry.h"
 #include "Kernels\KernelShade.h"
+#include "Kernels\KernelAntiAliasing.h"
+#include "Kernels\KernelAntiAliasingN.h"
 
 #include "main.h"
+
+
+int appWidth = APP_INITIAL_WIDTH;
+int appHeight = APP_INITIAL_HEIGHT;
 
 //Interface control
 int lastMousePosX = 0;
@@ -18,7 +25,11 @@ int lastMousePosY = 0;
 int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
-bool enabled = false;
+bool enabled = true;
+bool enabled2 = true;
+int numTimes = 1;
+
+bool polygonModeFill = true;
 
 //Camera Position
 float camAlpha = 0.0;
@@ -35,6 +46,8 @@ float fov = 60.0f;
 Scene* rtScene;
 KernelGeometry* kernelGeometry;
 KernelShade* kernelShade;
+KernelAntiAliasing* kernelAntiAliasing;
+KernelAntiAliasingN* kernelAntiAliasingN;
 
 //Debug
 GLenum e;
@@ -64,7 +77,7 @@ void init(int argc, char *argv[]){
 	glutMouseFunc(mouseButtons);
 	glutReshapeFunc(reshape);
   
-  glClearColor(0.8, 0.8, 0.8, 1.0);
+  glClearColor(.8, .8, 1.0, 1.0);
 
   glShadeModel(GL_SMOOTH);
   glPolygonMode(GL_FRONT, GL_FILL);
@@ -102,7 +115,7 @@ void reshape(int w, int h){
 }
 
 
-static bool filled = true;
+
 void keyboardSpecial(int key, int x, int y){
 
 	if( key == GLUT_KEY_LEFT ) camBeta = (int)(camBeta + camInc)%360;
@@ -113,12 +126,12 @@ void keyboardSpecial(int key, int x, int y){
   switch(key)
   {
   case 10: //F10
-    if(filled)
+    if(polygonModeFill)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     else
        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    filled = !filled;
+    polygonModeFill = !polygonModeFill;
     break;
   }
 
@@ -138,6 +151,21 @@ void keyboard(unsigned char key, int x, int y){
         cout << "Shader ON"<<endl;
       else cout << "Shader OFF"<<endl;
       break;
+    case 'A':
+    case 'a':
+      enabled2 = !enabled2;
+      if(enabled2)
+        cout << "AntiAliasing ON"<<endl;
+      else cout << "AntiAliasing OFF"<<endl;
+      break;
+    case '+':
+      numTimes++;
+      cout << "Antialising " <<numTimes << "x"<<endl;
+    break;
+    case '-':
+      numTimes = max(numTimes-1,1);
+      cout << "Antialising " <<numTimes << "x"<<endl;
+    break;
   }
   //cout << (int)key<<endl;
 }
@@ -228,9 +256,11 @@ PointLight p;
 PointLight p2;
 SpotLight sp2;
 DirectionalLight d;
+
 void createScenes()
 {
   rtScene = new Scene("./resources/scenes/cavalo.rt4");
+  rtScene->configure();
   //rtScene->setLightEnabled(false);
 
   p.setAmbientColor(Color(0.0,0.0,0.0));
@@ -263,17 +293,25 @@ void createScenes()
 
 
   kernelGeometry = new KernelGeometry(appWidth, appHeight);
-  kernelShade = new KernelShade(appWidth, appHeight, 
+    
+  kernelShade = new KernelShade(appWidth, appHeight,
       kernelGeometry->getTexIdPosition(), 
       kernelGeometry->getTexIdNormal(), 
       kernelGeometry->getTexIdDiffuse(), 
       kernelGeometry->getTexIdSpecular(), 
       rtScene->getLightsTexId(),
       rtScene->getLightsTexSize());
+
+  kernelAntiAliasing = new KernelAntiAliasing(appWidth, appHeight,
+    kernelGeometry->getTexIdNormal());
+
+  kernelAntiAliasingN = new KernelAntiAliasingN(appWidth, appHeight,
+    kernelShade->getTexIdColor(),
+    kernelAntiAliasing->getTexIdFactor());
 }
 
 
-
+GLFont fontRender;
 void render(){
   float x = camR*sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
   float y = camR*sin(DEG_TO_RAD(camAlpha));
@@ -291,32 +329,35 @@ void render(){
   GLfloat lightModelViewMatrix[16];
   glGetFloatv(GL_MODELVIEW_MATRIX, lightModelViewMatrix);
 
-
   rtScene->configure();
 
-  
   if(enabled)kernelGeometry->setActive(true);
-  if(enabled)glClearColor(.8, .8, .8, -1.0);
+  //if(enabled)glClearColor(.0, 0., 0., -1.0);
+  if(enabled)glClearColor(.8, .8, 1.0, -1.0);
   if(enabled)glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
 
   if(!enabled)
   {
-    p.configure();
     //p2.configure();
-    sp2.configure();
-      d.configure();
+	  //p2.render();
+	p.configure();
+	p.render();
 
-    p.render();
-    //p2.render();
+    d.configure();
+	d.render();
+
+    sp2.configure();
     sp2.render();
-    d.render();
+    
+	   
 
   }else 
   {
     glDisable(GL_LIGHTING);
   }
 
-  //rtScene->render();
+ //rtScene->render();
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
   glPushMatrix();
 
   //glScalef(10.,1.,10.);
@@ -333,6 +374,10 @@ void render(){
   glCullFace(GL_FRONT);
   glutSolidTeapot(60);
   glCullFace(GL_BACK);
+  glBlendFunc (GL_SRC_ALPHA_SATURATE, GL_ONE);
+  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+  glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 
   glutSolidSphere(60, 30, 30);
   //glutSolidSphere(60, 500, 500);
@@ -346,15 +391,56 @@ void render(){
   //glEnd();
 
   glPopMatrix();
+  
   if(enabled)kernelGeometry->setActive(false);
-  //if(enabled)kernelGeometry->renderOutput(KernelGeometry::Specular);
+  //if(enabled)kernelGeometry->renderOutput(KernelGeometry::Normal);
 
-  if(enabled) kernelShade->renderShader(lightModelViewMatrix);
+  if(enabled)kernelShade->step(lightModelViewMatrix);
+  if(enabled && !enabled2)kernelShade->renderOutput(0);
+  //if(enabled)kernelShade->renderShader(lightModelViewMatrix);
 
-  /*
-  LIGHT 0. 0. 130.     80. 250. 250.
-  LIGHT 250. 0. 0.     150. 1. 10.
+  if(enabled && enabled2)
+  {
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, 1, 0, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+   
+    kernelAntiAliasing->step();
+    for(int i=0;i<numTimes; ++i)
+      kernelAntiAliasingN->step();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+  }
+  if(enabled && enabled2)kernelAntiAliasingN->renderOutput(0);
 
 
-  /**/
+
+
+  fontRender.initText();
+
+  if(enabled)
+  {
+	  fontRender.print(10,appHeight*.75+55,"(Q) Shader ON", Color(0., 0., 0.));
+	  if(enabled2)
+	  {
+		  char alias[60];
+		  sprintf(alias, "(A) AntiAliasing %dx ON", numTimes);
+		  fontRender.print(10,appHeight*.75+85,alias, Color(0.,0.,0.));
+	  }
+	  else fontRender.print(10,appHeight*.75+85,"(A) AntiAliasing OFF", Color(0., 0., 0.));
+  }
+  else fontRender.print(10,appHeight*.75+55,"(Q) Shader OFF", Color(0., 0., 0.));
+
+  
+
+  fontRender.endText();
+    glPopAttrib();
 }
