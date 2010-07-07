@@ -7,7 +7,9 @@ KernelGeometry::KernelGeometry()
 
 KernelGeometry::KernelGeometry(int width, int height)
 : KernelBase("./resources/Shaders/geometry.vert", "./resources/Shaders/geometry.frag", width, height){
-	//Output
+  m_fbo->attachToDepthBuffer(BufferType::RenderBufferObject);
+  
+  //Output
   m_texIdPosition = addOutput(0);
   m_texIdNormal = addOutput(1);
   m_texIdDiffuse = addOutput(2);

@@ -139,13 +139,14 @@ void Scene :: configure()
     {
       lightIt->configure();
     }
-
+/*
     vector<Mesh> :: iterator meshIt;
     for( meshIt = mMeshes.begin(); meshIt!=mMeshes.end(); ++meshIt)
     {
       mMaterials[meshIt->getMaterialIndex()].configure();
       meshIt->configure();
     }
+	*/
   }
 }
 
@@ -160,7 +161,7 @@ void Scene :: render()
       for( lightIt = mLights.begin(); lightIt!=mLights.end(); ++lightIt)
         lightIt->render();
     }
-
+/*
     vector<Mesh> :: iterator meshIt;
     for( meshIt = mMeshes.begin(); meshIt!=mMeshes.end(); ++meshIt)
     {
@@ -170,7 +171,7 @@ void Scene :: render()
         else mMaterials[meshIt->getMaterialIndex()].mDiffuse.setColor();
         meshIt->render();
       glPopAttrib();
-    }
+    }*/
   glPopAttrib();
 }
 

@@ -42,6 +42,7 @@ struct material
 
 void main()
 {
+
   ambient = defaultAmbientMaterial;
   diffuse = vec3(0, 0, 0);
   specular = vec3(0, 0, 0);
@@ -93,12 +94,13 @@ void main()
         calcPointLight(i, normal, ambient, diffuse, specular);
 //            ambient = diffuse = specular = vec3(0,0,1); //DEBUG
       }
-      /**/
+
     }
-    /**/
+
   }
   vec3 intensity = ambient + diffuse;
-  gl_FragColor = vec4(intensity + specular, 1.0);
+//  gl_FragColor = vec4(intensity + specular, 1.0);
+  gl_FragData[0] = vec4(intensity + specular, 1.0);
   /**/
 }
 
