@@ -9,7 +9,6 @@
 
 #include <iostream>
 #include <string.h>
-#include "Manager\Manager.h"
 #include "GraphBasis/Frames.h"
 #include "GraphBasis\GLFont.h"
 Frames :: Frames()

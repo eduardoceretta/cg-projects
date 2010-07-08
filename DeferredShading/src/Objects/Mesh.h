@@ -38,5 +38,6 @@ class Mesh
       void render();
    protected:
        void calcVBO();
+       void applyScaleTranslateToVertexes() ;
 };
 
