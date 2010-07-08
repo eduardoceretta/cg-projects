@@ -47,7 +47,12 @@ void Scene :: readFromFile(string rt4FileName)
 	{
 	   fscanf(file, "%s", buffer);
 //	   cout << buffer <<endl;
-	   if(!strcmp(buffer, "RT"))
+     if(buffer[0] == '#') 
+     {
+       /* Ignore Coment */
+       fscanf(file, "%*[^\n]s");
+     }
+    else if(!strcmp(buffer, "RT"))
 	   {
 			/* Ignore File Version Information */
          fscanf(file, "%*[^\n]s");
@@ -139,14 +144,14 @@ void Scene :: configure()
     {
       lightIt->configure();
     }
-/*
+
     vector<Mesh> :: iterator meshIt;
     for( meshIt = mMeshes.begin(); meshIt!=mMeshes.end(); ++meshIt)
     {
       mMaterials[meshIt->getMaterialIndex()].configure();
       meshIt->configure();
     }
-	*/
+	
   }
 }
 
@@ -161,17 +166,17 @@ void Scene :: render()
       for( lightIt = mLights.begin(); lightIt!=mLights.end(); ++lightIt)
         lightIt->render();
     }
-/*
+
     vector<Mesh> :: iterator meshIt;
     for( meshIt = mMeshes.begin(); meshIt!=mMeshes.end(); ++meshIt)
     {
       glPushAttrib(GL_LIGHTING_BIT);
-        if(m_lightEnabled)  
+        //if(m_lightEnabled)  
           mMaterials[meshIt->getMaterialIndex()].render();
-        else mMaterials[meshIt->getMaterialIndex()].mDiffuse.setColor();
+        //else mMaterials[meshIt->getMaterialIndex()].mDiffuse.setColor();
         meshIt->render();
       glPopAttrib();
-    }*/
+    }
   glPopAttrib();
 }
 
@@ -240,4 +245,14 @@ bool Scene::isLightEnabled() const
 void Scene::setLightEnabled(bool val) 
 { 
   m_lightEnabled = val; 
+}
+
+int Scene::getNumLights()
+{
+  return mLights.size();
+}
+
+unsigned int Scene::getSceneNumTriangles()
+{
+  return Triangle::getMaxNumTriangles();
 }

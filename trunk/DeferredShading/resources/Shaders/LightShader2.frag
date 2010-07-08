@@ -54,19 +54,20 @@ void main()
   {
     for(int i=0;i<numLights;++i)
     {
-      if(gl_LightSource[i].position.w==0.0)
+      int ii = int(mod(float(i), float(gl_MaxLights)));
+      if(gl_LightSource[ii].position.w==0.0)
       {
-        calcDirLight(i, n, diffuse,specular);
+        calcDirLight(ii, n, diffuse,specular);
       }
-      else if(gl_LightSource[i].spotCutoff==180.0)
+      else if(gl_LightSource[ii].spotCutoff==180.0)
       {
-        calcPointLight(i, n,ecPos3, diffuse,specular);
+        calcPointLight(ii, n,ecPos3, diffuse,specular);
       }
       else
       {
-        calcSpotLight(i, n, ecPos3, diffuse,specular);
+        calcSpotLight(ii, n, ecPos3, diffuse,specular);
       }
-      amb += gl_FrontMaterial.ambient * gl_LightSource[i].ambient;
+      amb += gl_FrontMaterial.ambient * gl_LightSource[ii].ambient;
     }
 
     intensity = specular +  diffuse + amb;

@@ -44,6 +44,8 @@ class Scene
 
       GLuint getLightsTexId();
       GLfloat getLightsTexSize();
+      int getNumLights();
+      	    unsigned int getSceneNumTriangles();
 
       bool isLightEnabled() const;
       void setLightEnabled(bool val);
@@ -51,7 +53,7 @@ class Scene
 protected:
       void readFromStr(char buffer[]);
       void readFromFile(string rt4FileName);
-	    unsigned int getSceneNumTriangles();
+
 
       void calcTextures();
 };

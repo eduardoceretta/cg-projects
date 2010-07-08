@@ -6,6 +6,7 @@
 #include "GraphBasis\Vector3.h"
 #include "GraphBasis\Shader.h"
 #include "GraphBasis/GLFont.h"
+#include "GraphBasis/Frames.h"
 
 #include "Objects\Scene.h"
 #include "Kernels\KernelGeometry.h"
@@ -24,6 +25,8 @@ int lastMousePosX = 0;
 int lastMousePosY = 0;
 int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
+
+Frames fps;
 
 typedef enum {Vertex, Pixel, Deferred} LightModel;
 LightModel lightModel = Vertex;
@@ -265,6 +268,7 @@ PointLight p;
 SpotLight sp2;
 DirectionalLight d;
 
+
 void createScenes()
 {
   rtScene = new Scene("./resources/scenes/cavalo.rt4");
@@ -299,7 +303,6 @@ void createScenes()
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
   
 
-
   kernelGeometry = new KernelGeometry(appWidth, appHeight);
     
   kernelShade = new KernelShade(appWidth, appHeight,
@@ -325,6 +328,7 @@ void createScenes()
 
 
 void render(){
+  float fpsec = fps.getFrames();
   float x = camR*sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
   float y = camR*sin(DEG_TO_RAD(camAlpha));
   float z = camR*cos(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
@@ -341,13 +345,13 @@ void render(){
   GLfloat lightModelViewMatrix[16];
   glGetFloatv(GL_MODELVIEW_MATRIX, lightModelViewMatrix);
 
-  //rtScene->configure();
+ 
 
   if(lightModel==Pixel)
   {
     pixelShading->setActive(true);
     GLuint loc = pixelShading->getUniformLocation("numLights");
-    glUniform1i(loc, 3);
+    glUniform1i(loc, rtScene->getNumLights());
   }
 
   if(lightModel==Deferred)
@@ -355,11 +359,14 @@ void render(){
     kernelGeometry->setActive(true);
     glClearColor(.8, .8, 1.0, -1.0);
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    rtScene->setLightEnabled(false);
     glDisable(GL_LIGHTING);
   }else
   {
-    //p2.configure();
-	  //p2.render();
+    //rtScene->setLightEnabled(true);
+ /*   p2.configure();
+	  p2.render();*/
+
     p.configure();
     p.render();
 
@@ -370,15 +377,16 @@ void render(){
     sp2.render();
   }
 
- //rtScene->render();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
 
 
-  glPushMatrix();
+  //glPushMatrix();
 
   //glScalef(10.,1.,10.);
-  
+  rtScene->configure();
+  rtScene->render();
+
   glEnable(GL_COLOR_MATERIAL);
   glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT);
   glColor3f(1,1,1);
@@ -387,34 +395,37 @@ void render(){
   glColorMaterial(GL_FRONT_AND_BACK, GL_SPECULAR);
   glColor3f(1,1,1);
   glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 10.0);
-  
-  glCullFace(GL_FRONT);
-  glutSolidTeapot(60);
-  glCullFace(GL_BACK);
-  glBlendFunc (GL_SRC_ALPHA_SATURATE, GL_ONE);
-  glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-  glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-  glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+  ////
+  ////glCullFace(GL_FRONT);
+  ////for(int i=0;i<NL;++i)
+  ////{
+  ////  pp[i].configure();
+  ////  pp[i].render();
+  ////}
 
-  glutSolidSphere(60, 30, 30);
-  //glutSolidSphere(60, 500, 500);
-  
+
+
+  //glutSolidTeapot(60);
+  //glutSolidSphere(60, 30, 30);
+  ////glutSolidSphere(60, 500, 500);
+  //
   //glBegin(GL_QUADS);
-  //  glNormal3f(0,-1,0);
-  //  glVertex3f(-1000,300,-1000);
-  //  glVertex3f(1000 ,300,-1000);
-  //  glVertex3f(1000 ,300,1000);
-  //  glVertex3f(-1000,300,1000);
+  //  glNormal3f(0,0,1);
+  //  glVertex3f(-301,-301,-300);
+  //  glVertex3f(300,-301,-300);
+  //  glVertex3f(300 ,300,-301);
+  //  glVertex3f(-301,300,-301);
   //glEnd();
 
-  glPopMatrix();
+  //glPopMatrix();
   if(lightModel==Pixel)
     pixelShading->setActive(false);
   
   if(lightModel==Deferred)
   {
     kernelGeometry->setActive(false);
-    //kernelGeometry->renderOutput(KernelGeometry::Normal);
+    //kernelGeometry->renderOutput(KernelGeometry::Diffuse);
+    
     kernelShade->step(lightModelViewMatrix);
     if(!enabledAntialias)
       kernelShade->renderOutput(0);
@@ -430,6 +441,7 @@ void render(){
 
 
       kernelAntiAliasing->step();
+      //kernelAntiAliasing->renderOutput(0);
       for(int i=0;i<antialiasNumTimes; ++i)
         kernelAntiAliasingN->step();
 
@@ -439,6 +451,7 @@ void render(){
       glPopMatrix();
       kernelAntiAliasingN->renderOutput(0);
     }
+    /**/
   }
     //kernelShade->renderShader(lightModelViewMatrix);
 
@@ -447,30 +460,40 @@ void render(){
 
   fontRender.initText();
 
-  fontRender.print(10,appHeight*.05+15, "(1) Vertex Shading", Color(0., 0., 0.));
-  fontRender.print(10,appHeight*.05+35, "(2) Pixel Shading", Color(0., 0., 0.));
-  fontRender.print(10,appHeight*.05+55, "(3) Deferred Shading", Color(0., 0., 0.));
+  fontRender.print(10,appHeight*.05, "(1) Vertex Shading", Color(0., 0., 0.));
+  fontRender.print(10,appHeight*.05+25, "(2) Pixel Shading", Color(0., 0., 0.));
+  fontRender.print(10,appHeight*.05+50, "(3) Deferred Shading", Color(0., 0., 0.));
   fontRender.print(10,appHeight*.05+75, "  (A) AntiAliasing", Color(0., 0., 0.));
-  fontRender.print(10,appHeight*.05+95, "    (+) + AntiAliasing", Color(0., 0., 0.));
-  fontRender.print(10,appHeight*.05+115,"    (-) - AntiAliasing", Color(0., 0., 0.));
+  fontRender.print(10,appHeight*.05+100, "    (+) + AntiAliasing", Color(0., 0., 0.));
+  fontRender.print(10,appHeight*.05+125,"    (-) - AntiAliasing", Color(0., 0., 0.));
+  char a[100];
 
+  sprintf(a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
+  fontRender.print(appWidth*.80,appHeight*.05,a, Color(0., 0., 0.));
+  
+  sprintf(a,"%d Lights", rtScene->getNumLights());
+  fontRender.print(appWidth*.80,appHeight*.05 + 25,a, Color(0., 0., 0.));
+
+
+  sprintf(a,"%.2f FPS", fpsec);
+  fontRender.print(appWidth*.85,appHeight*.85+55,a, Color(0., 0., 0.));
   switch(lightModel)
   {
     case Vertex:
-      fontRender.print(10,appHeight*.75+55,"Vertex Shading ON", Color(0., 0., 0.));
+      fontRender.print(10,appHeight*.85+55,"Vertex Shading ON", Color(0., 0., 0.));
       break;
     case Pixel:
-      fontRender.print(10,appHeight*.75+55,"Pixel Shading ON", Color(0., 0., 0.));
+      fontRender.print(10,appHeight*.85+55,"Pixel Shading ON", Color(0., 0., 0.));
       break;
     case Deferred:
-      fontRender.print(10,appHeight*.75+55,"Deferred Shading ON", Color(0., 0., 0.));
+      fontRender.print(10,appHeight*.85+55,"Deferred Shading ON", Color(0., 0., 0.));
       if(enabledAntialias)
       {
         char alias[60];
         sprintf(alias, "AntiAliasing %dx ON", antialiasNumTimes);
-        fontRender.print(10,appHeight*.75+85,alias, Color(0.,0.,0.));
+        fontRender.print(10,appHeight*.85+85,alias, Color(0.,0.,0.));
       }
-      else fontRender.print(10,appHeight*.75+85,"AntiAliasing OFF", Color(0., 0., 0.));
+      else fontRender.print(10,appHeight*.85+85,"AntiAliasing OFF", Color(0., 0., 0.));
       break;
   }
 
