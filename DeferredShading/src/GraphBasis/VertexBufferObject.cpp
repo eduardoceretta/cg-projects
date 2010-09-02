@@ -44,9 +44,8 @@ bool VertexBufferObject :: sIsSupported()
 //////////////////
 VertexBufferObject::VertexBufferObject(GLenum primitive)
 :mPrimitive(primitive)
-,mActive(false)
-,mModified(0)
-,mCalculed(false)
+,mCalculated(false)
+,mHasIndices(false)
 ,mvboId(0)
 ,mvboIndicesId(0)
 ,mVBOBuffersTotalSize(0)
@@ -54,6 +53,7 @@ VertexBufferObject::VertexBufferObject(GLenum primitive)
    mSupported = sIsSupported();
 
    assert(mSupported);
+   // printf("VBO suportado\n");
 }
 
 VertexBufferObject :: ~VertexBufferObject()
@@ -69,51 +69,44 @@ VertexBufferObject :: ~VertexBufferObject()
 void VertexBufferObject :: clear()
 {
    mVBOBuffers.clear();
-   mvboIndicesId = 0;
-   mVBOBuffersTotalSize = 0;
+   mCalculated = false;
+  
+   glDeleteBuffersARB(1, &mvboId);
+   if(mHasIndices == true)
+   {
+      glDeleteBuffersARB(1, &mvboIndicesId);
+   }
 }
 
 
 void VertexBufferObject :: calcVBO()
 {
-   if(!mCalculed)
+   if(mCalculated==true)
+      return;
+  
+   vector<VBOBuffer> :: iterator it;
+   mVBOBuffersTotalSize = 0;
+   for(it = mVBOBuffers.begin(); it != mVBOBuffers.end(); ++it)
    {
-      if(mModified>0)
-      {
-         glDeleteBuffersARB(1, &mvboId);
-         if(mvboIndicesId)
-         {
-            glDeleteBuffersARB(1, &mvboIndicesId);
-            mvboIndicesId = 0;
-         }
-      }
-
-      glGenBuffersARB(1, &mvboId);
-
-      vector<VBOBuffer> :: iterator it;
-      mVBOBuffersTotalSize = 0;
-      for(it = mVBOBuffers.begin(); it != mVBOBuffers.end(); ++it)
-      {
-         it->offset = mVBOBuffersTotalSize;
-         mVBOBuffersTotalSize += it->sizeInBytes();
-      }
-
-      glBindBufferARB(GL_ARRAY_BUFFER_ARB, mvboId);
-      glBufferDataARB(GL_ARRAY_BUFFER_ARB, mVBOBuffersTotalSize, 0, GL_STATIC_DRAW_ARB); // Alocates space for the memory block
-
-      for(it = mVBOBuffers.begin(); it != mVBOBuffers.end(); ++it)
-         glBufferSubDataARB(GL_ARRAY_BUFFER_ARB, it->offset, it->sizeInBytes(), it->data);
-
-      if(mvboIndicesId)
-      {
-         glGenBuffersARB(1, &mvboIndicesId);
-         glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, mvboIndicesId);
-         glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, mVBOIndexBuffer.sizeInBytes(), mVBOIndexBuffer.data, GL_STATIC_DRAW_ARB);
-      }
-
-      mModified++;
-      mCalculed = true;
+      it->offset = mVBOBuffersTotalSize;
+      mVBOBuffersTotalSize += it->sizeInBytes();
    }
+
+   glGenBuffersARB(1, &mvboId);
+   glBindBufferARB(GL_ARRAY_BUFFER_ARB, mvboId);
+   glBufferDataARB(GL_ARRAY_BUFFER_ARB, mVBOBuffersTotalSize, 0, GL_STATIC_DRAW_ARB); // Alocates space for the memory block
+
+   for(it = mVBOBuffers.begin(); it != mVBOBuffers.end(); ++it)
+      glBufferSubDataARB(GL_ARRAY_BUFFER_ARB, it->offset, it->sizeInBytes(), it->data); //substitui os dados do buffer data
+      
+   if(mHasIndices == true)
+   {
+      glGenBuffersARB(1, &mvboIndicesId);
+      glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, mvboIndicesId);
+      glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, mVBOIndexBuffer.sizeInBytes(), mVBOIndexBuffer.data, GL_STATIC_DRAW_ARB);
+   }
+
+   mCalculated = true;
 }
 
 void VertexBufferObject :: configure()
@@ -133,7 +126,7 @@ void VertexBufferObject :: render()
       it->setPointer();
    }
 
-   if(mvboIndicesId)
+   if(mHasIndices == true)
       glDrawElements(mPrimitive, mVBOIndexBuffer.n, mVBOIndexBuffer.type, 0);
    else
       glDrawArrays(mPrimitive, 0, mVBOBuffers.begin()->n);
@@ -141,7 +134,7 @@ void VertexBufferObject :: render()
    for(it = mVBOBuffers.begin(); it != mVBOBuffers.end(); ++it)
       glDisableClientState(it->clientState);
 
-   if(mvboIndicesId)
+   if(mHasIndices == true)
       glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
    glBindBufferARB(GL_ARRAY_BUFFER_ARB, 0);
 }
@@ -149,6 +142,8 @@ void VertexBufferObject :: render()
 
 void VertexBufferObject :: setVBOBuffer(GLenum clientState, GLenum type, int n, void* data)
 {
+   mCalculated = false;
+   
    if(clientState == GL_INDEX_ARRAY)
    {
       setVBOIndexBuffer(type, n, data);
@@ -162,16 +157,15 @@ void VertexBufferObject :: setVBOBuffer(GLenum clientState, GLenum type, int n, 
    buff.data = data;
 
    mVBOBuffers.push_back(buff);
-   mCalculed = false;
 }
 
 void VertexBufferObject :: setVBOIndexBuffer(GLenum type, int n, void* data)
 {
+   mHasIndices = true;
    mVBOIndexBuffer.clientState = GL_INDEX_ARRAY;
    mVBOIndexBuffer.type = type;
    mVBOIndexBuffer.n = n;
    mVBOIndexBuffer.data = data;
-   mCalculed = false;
 }
 
 

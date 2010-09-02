@@ -1,5 +1,7 @@
 /**********************************************************\
             Nome:Eduardo Ceretta Dalla Favera
+            
+            adaptacao: cesar Tadeu Pozzer
 \**********************************************************/
 
 #pragma once
@@ -14,11 +16,15 @@
 
 typedef struct vbobuffer
 {
-   void* data;
+   void* data; //vetor de dados
+
    GLenum type;
-   int n;
-   int offset;
-   GLenum clientState;
+   int n;      ///numero total de Elementos do VBO (vertices, cores, normais, indices, etc)
+   int offset; //calculado na funcao calcVBO()
+   GLenum clientState; //GL_NORMAL_ARRAY, GL_COLOR_ARRAY, GL_SECONDARY_COLOR_ARRAY, GL_VERTEX_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_INDEX_ARRAY:
+
+
+
 
    vbobuffer()
       :data(NULL)
@@ -33,7 +39,8 @@ typedef struct vbobuffer
       switch(clientState)
       {
          case GL_NORMAL_ARRAY:
-         case GL_COLOR_ARRAY:
+         case GL_COLOR_ARRAY:  //assume cores em RGB e vertices em 3D
+
 //         case GL_SECONDARY_COLOR_ARRAY:
          case GL_VERTEX_ARRAY:
             return n*sizeof(type)*3;
@@ -46,6 +53,7 @@ typedef struct vbobuffer
       }
    }
 
+   //chamada na funcao render() do VBO
    void setPointer()
    {
       switch(clientState)
@@ -53,11 +61,12 @@ typedef struct vbobuffer
          case GL_NORMAL_ARRAY:
             glNormalPointer(type, 0, (GLvoid*)offset);
          break;
-         case GL_COLOR_ARRAY:
-//         case GL_SECONDARY_COLOR_ARRAY:
+         case GL_COLOR_ARRAY: //assume cores em RGB
+
             glColorPointer(3, type,  0, (GLvoid*)offset);
          break;
-         case GL_VERTEX_ARRAY:
+         case GL_VERTEX_ARRAY: //assume que sejam vertices em 3D
+
             glVertexPointer(3, type,  0, (GLvoid*)offset);
          break;
          case GL_TEXTURE_COORD_ARRAY:
@@ -84,22 +93,27 @@ class VertexBufferObject
    static bool sIsSupported();
 
    bool mSupported;
-   bool mActive;
+   bool mHasIndices;  //indica se esta sendo usado o vetor de indices
 
-   GLuint mvboIndicesId;
+
+   GLuint mvboId;        //ID do ARRAY_BUFFER
+   GLuint mvboIndicesId; //ID do ELEMENT_ARRAY_BUFFER - depende de mHasIndices
+
 
    GLenum mPrimitive;
 
    int mVBOBuffersTotalSize;
 
-   int  mModified;
-   bool mCalculed;
+   bool mCalculated;
+
+
 
    vector<VBOBuffer> mVBOBuffers;
    VBOBuffer mVBOIndexBuffer;
 
 public:
-   GLuint mvboId;
+
+
    VertexBufferObject(GLenum primitive = GL_TRIANGLES);
    ~VertexBufferObject();
 
@@ -112,61 +126,6 @@ public:
 
    void setVBOBuffer(GLenum clientState, GLenum type, int n, void* data);
    void setVBOIndexBuffer(GLenum type, int n, void* data);
-private:
+
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-//*Example
-
-//   GLfloat vertices[] = {1,1,1,  -1,1,1,  -1,-1,1,  1,-1,1,        // v0-v1-v2-v3
-//                      1,1,1,  1,-1,1,  1,-1,-1,  1,1,-1,        // v0-v3-v4-v5
-//                      1,1,1,  1,1,-1,  -1,1,-1,  -1,1,1,        // v0-v5-v6-v1
-//                      -1,1,1,  -1,1,-1,  -1,-1,-1,  -1,-1,1,    // v1-v6-v7-v2
-//                      -1,-1,-1,  1,-1,-1,  1,-1,1,  -1,-1,1,    // v7-v4-v3-v2
-//                      1,-1,-1,  -1,-1,-1,  -1,1,-1,  1,1,-1};   // v4-v7-v6-v5
-//
-//   GLfloat normals[] = {0,0,1,  0,0,1,  0,0,1,  0,0,1,             // v0-v1-v2-v3
-//                     1,0,0,  1,0,0,  1,0,0, 1,0,0,              // v0-v3-v4-v5
-//                     0,1,0,  0,1,0,  0,1,0, 0,1,0,              // v0-v5-v6-v1
-//                     -1,0,0,  -1,0,0, -1,0,0,  -1,0,0,          // v1-v6-v7-v2
-//                     0,-1,0,  0,-1,0,  0,-1,0,  0,-1,0,         // v7-v4-v3-v2
-//                     0,0,-1,  0,0,-1,  0,0,-1,  0,0,-1};        // v4-v7-v6-v5
-//
-//   GLfloat colors[] = {1,1,1,  1,1,0,  1,0,0,  1,0,1,              // v0-v1-v2-v3
-//                    1,1,1,  1,0,1,  0,0,1,  0,1,1,              // v0-v3-v4-v5
-//                    1,1,1,  0,1,1,  0,1,0,  1,1,0,              // v0-v5-v6-v1
-//                    1,1,0,  0,1,0,  0,0,0,  1,0,0,              // v1-v6-v7-v2
-//                    0,0,0,  0,0,1,  1,0,1,  1,0,0,              // v7-v4-v3-v2
-//                    0,0,1,  0,0,0,  0,1,0,  0,1,1};             // v4-v7-v6-v5
-//
-//
-//   GLubyte indices[] = {0,1,2,3,
-//                     4,5,6,7,
-//                     8,9,10,11,
-//                     12,13,14,15,
-//                     16,17,18,19,
-//                     20,21,22,23};
-//
-//
-//   vbo = new VertexBufferObject(GL_QUADS);
-//   vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, sizeof(vertices)/sizeof(GLfloat)/3, vertices); sizeof(vertices)/sizeof(GLfloat)/3 == 24
-//   vbo->setVBOBuffer( GL_COLOR_ARRAY, GL_FLOAT, sizeof(colors)/sizeof(GLfloat)/3, colors);
-//   vbo->setVBOBuffer( GL_COLOR_ARRAY, GL_FLOAT, sizeof(normals)/sizeof(GLfloat)/3, normals);
-//   vbo->setVBOIndexBuffer( GL_UNSIGNED_BYTE, sizeof(indices)/sizeof(GLubyte), indices); //Not necessary
-//   vbo->calcVBO();
-
-//...
-
-//vbo->render();
