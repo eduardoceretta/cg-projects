@@ -1,12 +1,20 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
+#include <assert.h>
+#include <iostream>
 #include "GraphBasis/GraphBasisDefines.h"
 
 
 #define APP_NAME "DeferredShading"
 #define APP_INITIAL_WIDTH 800
 #define APP_INITIAL_HEIGHT 600
+
+#ifdef NDEBUG
+  #define MyAssert(str, expression)     ((void)0)  
+#else
+  #define MyAssert(str, expression) if(!(expression)){std::cout<<(str)<<std::endl;assert(expression);}
+#endif
 
 extern int appWidth;
 extern int appHeight;

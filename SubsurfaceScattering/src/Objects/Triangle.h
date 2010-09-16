@@ -9,9 +9,12 @@
 
 using namespace std;
 
+class MeshFileBase;
+
 class Triangle
 {
     static unsigned int sTriangleNum;
+
 
     unsigned int mMaterialIndex;
     int mMyTriangleNum;
@@ -26,11 +29,7 @@ public:
    unsigned int getGlobalIndex();
    static unsigned int getMaxNumTriangles();
 
-static vector<Triangle> readFromFile(unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale);
-protected:
-    static vector<Triangle> readUmFile(unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale);
-    static vector<Triangle> readMshFile(unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale);
-
+  static vector<Triangle> readFromFile(unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale);
 
 };
 

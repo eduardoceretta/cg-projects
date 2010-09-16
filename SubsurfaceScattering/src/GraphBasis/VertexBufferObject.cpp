@@ -3,6 +3,7 @@
 \**********************************************************/
 #include <GL/glew.h>
 #include <iostream>
+#include <main.h>
 #include "GraphBasis/VertexBufferObject.h"
 
 using namespace std;
@@ -168,7 +169,67 @@ void VertexBufferObject :: setVBOIndexBuffer(GLenum type, int n, void* data)
    mVBOIndexBuffer.data = data;
 }
 
+void VertexBufferObject::writeToFile( FILE * fp )
+{
+  MyAssert("Invalid File Pointer.", fp);
 
+  vector<VBOBuffer> :: iterator it;
+  int totalSize = sizeof(int)+ sizeof(bool);
+  
+  if(mHasIndices)
+    totalSize += sizeof(VBOBuffer) +mVBOIndexBuffer.sizeInBytes();
+  
+  for(it = mVBOBuffers.begin(); it != mVBOBuffers.end(); ++it )
+    totalSize += sizeof(VBOBuffer) + it->sizeInBytes();
+  
+  
+  fwrite(&totalSize, sizeof(int), 1, fp);
+  fwrite(&mHasIndices, sizeof(bool), 1, fp);
+
+  if(mHasIndices)
+  {
+    fwrite(&mVBOIndexBuffer, sizeof(VBOBuffer), 1, fp);
+    fwrite(mVBOIndexBuffer.data, mVBOIndexBuffer.sizeInBytes(), 1, fp);
+  }
+
+  for(it = mVBOBuffers.begin(); it != mVBOBuffers.end(); ++it)
+  {
+    fwrite(&(*it), sizeof(VBOBuffer), 1, fp);
+    fwrite(it->data, it->sizeInBytes(), 1, fp);
+  }
+}
+
+void VertexBufferObject::readFromFile( FILE * fp )
+{
+  MyAssert("Invalid File Pointer.", fp);
+
+  int totalSize = -1;
+  fread(&totalSize, sizeof(int), 1, fp);
+  totalSize -= sizeof(int);
+  fread(&mHasIndices, sizeof(bool), 1, fp);
+  totalSize -= sizeof(bool);
+
+  if(mHasIndices)
+  {
+    fread(&mVBOIndexBuffer, sizeof(VBOBuffer), 1, fp);
+    fread(mVBOIndexBuffer.data, mVBOIndexBuffer.sizeInBytes(), 1, fp);
+    totalSize -= sizeof(VBOBuffer) + mVBOIndexBuffer.sizeInBytes();
+  }
+
+  while(totalSize > 0)
+  {
+    VBOBuffer buff;
+    fread(&buff, sizeof(VBOBuffer), 1, fp);
+    buff.data = malloc(buff.sizeInBytes());
+
+    fread(buff.data, buff.sizeInBytes(), 1, fp);
+    mVBOBuffers.push_back(buff);
+
+    totalSize -= sizeof(VBOBuffer) + buff.sizeInBytes();
+  }
+
+  mCalculated = false;
+}
 
 
 

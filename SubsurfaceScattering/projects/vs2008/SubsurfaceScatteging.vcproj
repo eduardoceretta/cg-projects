@@ -300,12 +300,36 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="MeshLoaders"
+				>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MeshFileBase.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MsbMeshFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MshMeshFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\UmMeshFile.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\src\main.h"
+				>
+			</File>
 			<Filter
 				Name="Kernels"
 				>
@@ -431,6 +455,26 @@
 				</File>
 				<File
 					RelativePath="..\..\src\Objects\Triangle.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="MeshLoaders"
+				>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MeshFileBase.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MsbMeshFile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MshMeshFile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\UmMeshFile.h"
 					>
 				</File>
 			</Filter>
