@@ -122,6 +122,9 @@ public:
    void configure();
    void render();
 
+   GLenum getPrimitive() const;
+   void setPrimitive(GLenum val);
+
    void setVBOBuffer(GLenum clientState, GLenum type, int n, void* data);
    void setVBOIndexBuffer(GLenum type, int n, void* data);
 

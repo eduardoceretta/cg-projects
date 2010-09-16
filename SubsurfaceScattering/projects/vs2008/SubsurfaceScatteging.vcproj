@@ -184,23 +184,11 @@
 				Name="Kernels"
 				>
 				<File
-					RelativePath="..\..\src\Kernels\KernelAntiAliasing.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\Kernels\KernelAntiAliasingN.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\src\Kernels\KernelBase.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\src\Kernels\KernelGeometry.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\Kernels\KernelShade.cpp"
+					RelativePath="..\..\src\Kernels\KernelFresnel.cpp"
 					>
 				</File>
 			</Filter>
@@ -334,23 +322,11 @@
 				Name="Kernels"
 				>
 				<File
-					RelativePath="..\..\src\Kernels\KernelAntiAliasing.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\Kernels\KernelAntiAliasingN.h"
-					>
-				</File>
-				<File
 					RelativePath="..\..\src\Kernels\KernelBase.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\src\Kernels\KernelGeometry.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\Kernels\KernelShade.h"
+					RelativePath="..\..\src\Kernels\KernelFresnel.h"
 					>
 				</File>
 			</Filter>
