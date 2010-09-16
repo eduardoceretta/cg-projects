@@ -110,6 +110,17 @@ void VertexBufferObject :: calcVBO()
    mCalculated = true;
 }
 
+GLenum VertexBufferObject::getPrimitive() const
+{
+  return mPrimitive;
+}
+
+void VertexBufferObject::setPrimitive( GLenum val )
+{
+  mPrimitive = val;
+}
+
+
 void VertexBufferObject :: configure()
 {
 }
@@ -230,21 +241,4 @@ void VertexBufferObject::readFromFile( FILE * fp )
 
   mCalculated = false;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -33,7 +33,7 @@ protected:
 
   FrameBufferObject* m_fbo;
 	Shader* m_shader;
-  std::vector<std::pair<GLenum, GLuint>> m_inputTextures;
+  std::vector<std::pair<GLenum, GLuint> > m_inputTextures;
 	std::vector<GLuint> m_outputTextures;
 };
 
