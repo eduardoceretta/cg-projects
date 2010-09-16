@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+#include "main.h"
 #include "Objects/Scene.h"
 
 using namespace std;
@@ -35,7 +36,7 @@ void Scene :: readFromFile(string rt4FileName)
 	char buffer[1024];
 
 	file = fopen(rt4FileName.c_str(), "rt");
-	assert(file);
+  MyAssert("File Not Found: " + rt4FileName, file);
 
 	int numScene = 0;
 	int numCamera = 0;

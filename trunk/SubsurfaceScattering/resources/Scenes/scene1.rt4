@@ -37,15 +37,17 @@ LIGHT 100. 100. 100.   204 204. 204.   255. 255. 255.
 
 
 
-MESH 1  0. -100. 0.     600. 600. 600.  resources/Models/buddha_high.msh
+# MESH 1  0. -100. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 # MESH 1  0. 0. 0.     1 1 1  resources/Models/sphere.msh
 # MESH 0  -200. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 # MESH 2  -100. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 # MESH 6  100. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 # MESH 3  200. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
-# MESH 1  300. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 
+MESH 1  100. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msb
 # MESH 5  0. 0. 0.     600. 600. 600.  resources/Models/dragon_high.msh
+# MESH 5  0. 0. 0.     600. 600. 600.  resources/Models/dragon_high.msb
+# MESH 5  0. 0. 0.     600. 600. 600.  resources/Models/floor.um
 # MESH 2  0. 0. -200.     600. 600. 600.  resources/Models/dragon_high.msh
 # MESH 1  0. 0. -100.     600. 600. 600.  resources/Models/dragon_high.msh
 # MESH 4  0. 0. 100.     600. 600. 600.  resources/Models/dragon_high.msh
