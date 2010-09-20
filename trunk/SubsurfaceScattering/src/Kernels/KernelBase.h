@@ -18,6 +18,7 @@ public:
   void renderShader();
   void renderOutput(int texIndex = 0);
   void setActive(bool op);
+  void setShaderActive(bool op);
   void step();
 	GLuint getOutputTexture(int index);
 protected:

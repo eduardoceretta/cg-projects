@@ -51,7 +51,8 @@ void GLFont::endText()
 
    glMatrixMode(GL_PROJECTION);
    glPopMatrix();
-
+   
+   glMatrixMode(GL_MODELVIEW);
    glPopAttrib();
    glPopMatrix();
 }
