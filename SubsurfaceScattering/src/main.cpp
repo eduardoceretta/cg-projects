@@ -8,6 +8,8 @@
 #include "GraphBasis/GLFont.h"
 #include "GraphBasis/Frames.h"
 
+#include "Kernels/KernelFresnel.h"
+
 #include "Objects\Scene.h"
 
 #include "main.h"
@@ -40,6 +42,13 @@ float fov = 60.0f;
 //Global Objects
 Scene* rtScene;
 GLFont fontRender;
+
+//Kernels
+KernelFresnel *kernelFresnel;
+
+//Program Options
+typedef enum {Regular, SubSurfaceScattering} OptionsState;
+OptionsState optionsState = Regular;
 
 //Debug
 GLenum e;
@@ -136,8 +145,12 @@ void keyboard(unsigned char key, int x, int y){
       exit(42);
     break;
     case '1':
+      optionsState = Regular;
+      cout << "Shader Off" << endl;
     break;
     case '2':
+      optionsState = SubSurfaceScattering;
+      cout << "Shader On" << endl;
     break;
     case '3':
     break;
@@ -243,8 +256,9 @@ void createScenes()
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
   
 
-  /*kernelGeometry = new KernelGeometry(appWidth, appHeight);
-    
+  kernelFresnel = new KernelFresnel(appWidth, appHeight);
+
+/*    
   kernelShade = new KernelShade(appWidth, appHeight,
       kernelGeometry->getTexIdPosition(), 
       kernelGeometry->getTexIdNormal(), 
@@ -285,8 +299,47 @@ void render(){
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   //glPushMatrix();
 
-  rtScene->configure();
-  rtScene->render();
+  switch(optionsState)
+  {
+    case Regular:
+    break;
+    case SubSurfaceScattering:
+      kernelFresnel->setActive(true);
+      glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    break;
+  }
+
+  
+  glBegin(GL_POINTS);
+    glColor3f(1, 0, 0);
+    glTexCoord1d(0);
+    glVertex3f(0, 0, -10); 
+    glColor3f(0, 1, 0);
+    glTexCoord1d(1);
+    glVertex3f(100, 0, -10);
+    glColor3f(0, 0, 1);
+    glTexCoord1d(2);
+    glVertex3f(100, 100, -10);
+    glColor3f(1, 0, 1);
+    glTexCoord1d(3);
+    glVertex3f(0, 100, -10);
+  glEnd();
+  
+  //rtScene->configure();
+  //rtScene->render();
+
+  //glutSolidTeapot(60);
+
+  switch(optionsState)
+  {
+    case Regular:
+    break;
+    case SubSurfaceScattering:
+      kernelFresnel->setActive(false);
+      kernelFresnel->renderOutput(KernelFresnel::VertexNeighbor);
+    break;
+   }
 
   //glEnable(GL_COLOR_MATERIAL);
   //glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT);

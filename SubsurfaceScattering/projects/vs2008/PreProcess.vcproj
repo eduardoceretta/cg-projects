@@ -192,14 +192,6 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\src\GraphBasis\Frames.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\GraphBasis\GLFont.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\src\GraphBasis\Matrix3.cpp"
 					>
 				</File>
@@ -296,16 +288,20 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="PreProcess"
+				>
+				<File
+					RelativePath="..\..\src\PreProcess\PreProcessor.cpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath="..\..\src\preprocess_main.h"
-				>
-			</File>
 			<Filter
 				Name="GraphBasis"
 				>
@@ -315,14 +311,6 @@
 				</File>
 				<File
 					RelativePath="..\..\src\GraphBasis\FrameBufferObject.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\GraphBasis\Frames.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\GraphBasis\GLFont.h"
 					>
 				</File>
 				<File
@@ -430,6 +418,14 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="PreProcess"
+				>
+				<File
+					RelativePath="..\..\src\PreProcess\PreProcessor.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -439,18 +435,6 @@
 			<Filter
 				Name="Shaders"
 				>
-				<File
-					RelativePath="..\..\resources\Shaders\geometry.frag"
-					>
-				</File>
-				<File
-					RelativePath="..\..\resources\Shaders\geometry.vert"
-					>
-				</File>
-				<File
-					RelativePath="..\..\resources\Shaders\vertice.vert"
-					>
-				</File>
 			</Filter>
 		</Filter>
 	</Files>

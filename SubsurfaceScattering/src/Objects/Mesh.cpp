@@ -98,3 +98,8 @@ void Mesh :: render()
       mVbo->render();
    glPopMatrix();
 }
+
+VertexBufferObject* Mesh::getVbo() const
+  {
+  return mVbo;
+  }

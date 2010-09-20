@@ -138,6 +138,17 @@ void KernelBase::setActive( bool op )
     m_fbo->setActive(false);
   }
 }
+void KernelBase::setShaderActive( bool op )
+{
+  if(op)
+  {
+    m_shader->setActive(true);
+    activateTextures();
+  }else 
+  {
+    m_shader->setActive(false);
+  }
+}
 void KernelBase::renderOutput( int texIndex /*= 0*/ )
 {
   glMatrixMode(GL_PROJECTION);

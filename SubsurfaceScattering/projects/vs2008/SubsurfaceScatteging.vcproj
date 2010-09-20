@@ -464,15 +464,11 @@
 				Name="Shaders"
 				>
 				<File
-					RelativePath="..\..\resources\Shaders\geometry.frag"
+					RelativePath="..\..\resources\Shaders\fresnel.frag"
 					>
 				</File>
 				<File
-					RelativePath="..\..\resources\Shaders\geometry.vert"
-					>
-				</File>
-				<File
-					RelativePath="..\..\resources\Shaders\vertice.vert"
+					RelativePath="..\..\resources\Shaders\fresnel.vert"
 					>
 				</File>
 			</Filter>

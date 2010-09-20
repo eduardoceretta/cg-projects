@@ -56,8 +56,8 @@ void Shader::LoadFiles(char* vertexShaderFile, char* fragShaderFile){
 		std::cout << "==================\n";
 		std::cout << "Log for shader files: " << vertexShaderFile << ", " << fragShaderFile << "\n";
 
-		printInfoLog(m_shaderVert);
-		printInfoLog(m_shaderFrag);
+		//printInfoLog(m_shaderVert);
+		//printInfoLog(m_shaderFrag);
 		
 		
 		m_shaderProg = glCreateProgramObjectARB();

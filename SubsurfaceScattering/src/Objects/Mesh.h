@@ -18,6 +18,8 @@ class Mesh
 
    protected:
       VertexBufferObject* mVbo;
+
+
       bool mCalculated;
 
       int mMaterialIndex;
@@ -32,6 +34,7 @@ class Mesh
       void readFromStr(char buffer[]);
 
       int getMaterialIndex();
+      VertexBufferObject* getVbo() const;
 
       void configure();
       void render();
