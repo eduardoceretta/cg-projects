@@ -12,16 +12,15 @@ using namespace std;
 
 class UmMeshFile : public MeshFileBase
 {
+  string m_fileName;
 public:
   UmMeshFile(void);
   ~UmMeshFile(void);
 
-  virtual void readFileTriangles(string fileName, unsigned int materialIndex = 0, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
-  virtual VertexBufferObject* readFileToVBO(unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale);
+  virtual void readFile(string fileName,Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
   void writeBinaryFile(string fileName);
 
 protected:
-  void calcTriangles(string fileName);
-  void calcTrianglesArrays();
-  void calcVBO();
+  void calcTriangles();
+  virtual void calcVBO();
 };

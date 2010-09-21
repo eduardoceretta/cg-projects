@@ -38,7 +38,8 @@ void Mesh :: readFromStr(char buffer[])
    string fileName(buffer);
 
    MeshLoader m;
-   mVbo = m.readFileToVBO(mMaterialIndex, fileName, mPos, mScale);
+   m.readFile(fileName, mPos, mScale);
+   mVbo = m.getVbo();
 
    assert(r == 8);
 
@@ -77,6 +78,6 @@ void Mesh :: render()
 }
 
 VertexBufferObject* Mesh::getVbo() const
-  {
+{
   return mVbo;
-  }
+}

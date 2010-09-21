@@ -12,18 +12,16 @@ using namespace std;
 
 class MshMeshFile : public MeshFileBase
 {
-
+  string m_fileName;
 public:
   MshMeshFile(void);
   ~MshMeshFile(void);
 
-  virtual VertexBufferObject* readFileToVBO(unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale);
-  virtual void readFileTriangles(string fileName, unsigned int materialIndex = 0, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
+  virtual void readFile(string fileName, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
   
   void writeBinaryFile(string fileName);
 protected:
-   void calcVBO();
-   void calcTriangles(string fileName);
-   void calcTrianglesArrays();
+   virtual void calcVBO();
+   void calcTriangles();
 };
 

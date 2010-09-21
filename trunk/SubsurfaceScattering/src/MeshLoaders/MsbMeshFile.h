@@ -12,12 +12,13 @@ using namespace std;
 
 class MsbMeshFile : public MeshFileBase
 {
+  string m_fileName;
 public:
   MsbMeshFile(void);
   ~MsbMeshFile(void);
 
-  virtual VertexBufferObject* readFileToVBO(unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale);
-  virtual void readFileTriangles(string fileName, unsigned int materialIndex = 0, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
+  virtual void readFile(string fileName, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
 protected:
+  virtual void calcVBO();
   
 };
