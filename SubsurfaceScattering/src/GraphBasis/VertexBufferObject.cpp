@@ -223,6 +223,7 @@ void VertexBufferObject::readFromFile( FILE * fp )
   if(mHasIndices)
   {
     fread(&mVBOIndexBuffer, sizeof(VBOBuffer), 1, fp);
+    mVBOIndexBuffer.data = malloc(mVBOIndexBuffer.sizeInBytes());
     fread(mVBOIndexBuffer.data, mVBOIndexBuffer.sizeInBytes(), 1, fp);
     totalSize -= sizeof(VBOBuffer) + mVBOIndexBuffer.sizeInBytes();
   }

@@ -14,23 +14,22 @@ UmMeshFile::~UmMeshFile(void)
 {
 }
 
-VertexBufferObject* UmMeshFile::readFileToVBO( unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale )
+void UmMeshFile::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Vector3 scale /*= Vector3(1,1,1)*/ )
 {
-  readFileTriangles(fileName, materialIndex, pos, scale);
-  calcVBO();
-  writeBinaryFile (fileName);
-
-  return m_vbo;
+  m_pos = pos;
+  m_scale = scale;
+  m_fileName = fileName;
+  calcTriangles();
 }
-
 
 void UmMeshFile::calcVBO()
 {
   m_vbo = new VertexBufferObject();
-
   m_vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, m_numVertices, m_vertices);
   m_vbo->setVBOBuffer( GL_NORMAL_ARRAY, GL_FLOAT, m_numVertices, m_normals);
+  m_vbo->setVBOIndexBuffer(GL_UNSIGNED_INT, m_numTriangles*3, m_indexes);
   m_vbo->calcVBO();
+  writeBinaryFile(m_fileName);
 }
 
 void UmMeshFile::writeBinaryFile(string fileName)
@@ -45,108 +44,81 @@ void UmMeshFile::writeBinaryFile(string fileName)
   cout << "File " << sub+".msb" << " write successfully! " <<endl;
 }
 
-void UmMeshFile::readFileTriangles( string fileName, unsigned int materialIndex /*= 0*/, Vector3 pos /*= Vector3(0,0,0)*/, Vector3 scale /*= Vector3(1,1,1)*/ )
-{
-  m_pos = pos;
-  m_scale = scale;
-  m_materialIndex = materialIndex;
-  calcTriangles(fileName);
-  calcTrianglesArrays();
-}
 
-void UmMeshFile::calcTriangles( string fileName )
+void UmMeshFile::calcTriangles()
 {
   FILE *file;
-  file = fopen(fileName.c_str(), "rt");
-  MyAssert("File Not Found: " + fileName, file);
+  file = fopen(m_fileName.c_str(), "rt");
+  MyAssert("File Not Found: " + m_fileName, file);
 
-  int numVertex, num_Triangles;
+  int numVertex, numTriangles;
 
   fscanf(file, "%d\n", &numVertex);
   printf("Reading %d Vertices...\n", numVertex);
 
-  Vector3 * vList = new Vector3[numVertex];
-  Vector3 * nList = new Vector3[numVertex];
+  GLfloat * vList = new GLfloat[numVertex];
+  GLfloat * nList = new GLfloat[numVertex];
 
   for(int i = 0; i < numVertex; ++i)
   {
-    nList[i] = Vector3(0,0,0);
-    fscanf(file, "%f %f %f\n", &vList[i].x, &vList[i].y, &vList[i].z); 
+    fscanf(file, "%f %f %f\n", &vList[i*3], &vList[i*3+1], &vList[i*3+2]); 
 
-    vList[i].x*=m_scale.x;
-    vList[i].y*=m_scale.y;
-    vList[i].z*=m_scale.z;
+    vList[i*3]*=m_scale.x;
+    vList[i*3+1]*=m_scale.y;
+    vList[i*3+2]*=m_scale.z;
 
     //vList[i].x+=pos.x;
     //vList[i].y+=pos.y;
     //vList[i].z+=pos.z;
+
+    nList[i*3] = 0;
+    nList[i*3+1] = 0;
+    nList[i*3+2] = 0;
   }
 
-  fscanf(file, "\n%d\n", &num_Triangles);
-  printf("Reading %d Triangles...\n", num_Triangles);
+  fscanf(file, "\n%d\n", &numTriangles);
+  printf("Reading %d Triangles...\n", numTriangles);
+  unsigned int * iList = new unsigned int[numTriangles*3];
 
-  Vector3 * tList = new Vector3[num_Triangles];
-
-  for(int i = 0; i < num_Triangles; ++i)
+  for(int i = 0; i < numTriangles; ++i)
   {
-    int t1, t2, t3;
-    fscanf(file, "%d %d %d\n", &t1, &t2, &t3);
+    unsigned int t1, t2, t3;
+    fscanf(file, "%u %u %u\n", &t1, &t2, &t3);
 
-    nList[t1] += (vList[t2] - vList[t1]) ^ (vList[t3] - vList[t2]);
-    nList[t2] += (vList[t2] - vList[t1]) ^ (vList[t3] - vList[t2]);
-    nList[t3] += (vList[t2] - vList[t1]) ^ (vList[t3] - vList[t2]);
+    Vector3 v1(vList[t1*3], vList[t1*3+1], vList[t1*3+2]);
+    Vector3 v2(vList[t2*3], vList[t2*3+1], vList[t2*3+2]);
+    Vector3 v3(vList[t3*3], vList[t3*3+1], vList[t3*3+2]);
+    Vector3 normal = (v2 - v1) ^ (v3 - v1);
 
-    tList[i] = Vector3(t1,t2,t3);
+    nList[t1*3] += normal.x;
+    nList[t1*3+1] += normal.y;
+    nList[t1*3+2] += normal.z;
+    nList[t2*3] += normal.x;
+    nList[t2*3+1] += normal.y;
+    nList[t2*3+2] += normal.z;
+    nList[t3*3] += normal.x;
+    nList[t3*3+1] += normal.y;
+    nList[t3*3+2] += normal.z;
+
+    iList[i*3] = t1;
+    iList[i*3+1] = t2;
+    iList[i*3+2] = t3;
   }
 
   for(int i = 0; i < numVertex; ++i)
   {
-    nList[i] = nList[i].unitary();
-  }
-
-  m_triangles.reserve(num_Triangles);
-  for(int i = 0; i < num_Triangles; ++i)
-  {
-    Vector3 t = tList[i];
-    int t1 = t.x, t2 = t.y, t3 = t.z;
-
-    Triangle rt(m_materialIndex, vList[t1], vList[t2], vList[t3], nList[t1], nList[t2], nList[t3] );
-    m_triangles.push_back(rt);
+    Vector3 normal(nList[i*3], nList[i*3+1], nList[i*3+2]);
+    normal = normal.unitary();
+    nList[i*3] = normal.x;
+    nList[i*3+1] = normal.y;
+    nList[i*3+2] = normal.z;
   }
 
   fclose(file);
 
-  delete[] vList;
-  delete[] nList;
-  delete[] tList;
-}
-
-void UmMeshFile::calcTrianglesArrays()
-{
-  m_numVertices = m_triangles.size()*3;
-  m_vertices = new GLfloat[m_numVertices*3];
-  m_normals = new GLfloat[m_numVertices*3];
-
-  for(int i = 0; i < m_numVertices/3; ++i)
-  {
-    int index = i*9;
-    m_normals[index] = m_triangles[i].n1.x;
-    m_vertices[index++] = m_triangles[i].v1.x;
-    m_normals[index] = m_triangles[i].n1.y;
-    m_vertices[index++] = m_triangles[i].v1.y;
-    m_normals[index] = m_triangles[i].n1.z;
-    m_vertices[index++] = m_triangles[i].v1.z;
-    m_normals[index] = m_triangles[i].n2.x;
-    m_vertices[index++] = m_triangles[i].v2.x;
-    m_normals[index] = m_triangles[i].n2.y;
-    m_vertices[index++] = m_triangles[i].v2.y;
-    m_normals[index] = m_triangles[i].n2.z;
-    m_vertices[index++] = m_triangles[i].v2.z;
-    m_normals[index] = m_triangles[i].n3.x;
-    m_vertices[index++] = m_triangles[i].v3.x;
-    m_normals[index] = m_triangles[i].n3.y;
-    m_vertices[index++] = m_triangles[i].v3.y;
-    m_normals[index] = m_triangles[i].n3.z;
-    m_vertices[index++] = m_triangles[i].v3.z;
-  }
+  m_numVertices = numVertex;
+  m_numTriangles = numTriangles;
+  m_vertices = vList;
+  m_normals = nList;
+  m_indexes = iList;
 }
