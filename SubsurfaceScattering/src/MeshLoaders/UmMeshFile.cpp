@@ -14,11 +14,48 @@ UmMeshFile::~UmMeshFile(void)
 {
 }
 
-VertexBufferObject* UmMeshFile::readFile( unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale )
+VertexBufferObject* UmMeshFile::readFileToVBO( unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale )
+{
+  readFileTriangles(fileName, materialIndex, pos, scale);
+  calcVBO();
+  writeBinaryFile (fileName);
+
+  return m_vbo;
+}
+
+
+void UmMeshFile::calcVBO()
+{
+  m_vbo = new VertexBufferObject();
+
+  m_vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, m_numVertices, m_vertices);
+  m_vbo->setVBOBuffer( GL_NORMAL_ARRAY, GL_FLOAT, m_numVertices, m_normals);
+  m_vbo->calcVBO();
+}
+
+void UmMeshFile::writeBinaryFile(string fileName)
+{
+  int index = fileName.find_last_of(".");
+  MyAssert("Invalid FileName: " + fileName, index!=string::npos);
+  string sub = fileName.substr(0, index);
+
+  FILE * fp = fopen((sub+".msb").c_str(),"wb");
+  m_vbo->writeToFile(fp);
+  fclose(fp);
+  cout << "File " << sub+".msb" << " write successfully! " <<endl;
+}
+
+void UmMeshFile::readFileTriangles( string fileName, unsigned int materialIndex /*= 0*/, Vector3 pos /*= Vector3(0,0,0)*/, Vector3 scale /*= Vector3(1,1,1)*/ )
 {
   m_pos = pos;
   m_scale = scale;
+  m_materialIndex = materialIndex;
+  calcTriangles(fileName);
+  calcTrianglesArrays();
+}
 
+void UmMeshFile::calcTriangles( string fileName )
+{
   FILE *file;
   file = fopen(fileName.c_str(), "rt");
   MyAssert("File Not Found: " + fileName, file);
@@ -36,9 +73,9 @@ VertexBufferObject* UmMeshFile::readFile( unsigned int materialIndex, string fil
     nList[i] = Vector3(0,0,0);
     fscanf(file, "%f %f %f\n", &vList[i].x, &vList[i].y, &vList[i].z); 
 
-    vList[i].x*=scale.x;
-    vList[i].y*=scale.y;
-    vList[i].z*=scale.z;
+    vList[i].x*=m_scale.x;
+    vList[i].y*=m_scale.y;
+    vList[i].z*=m_scale.z;
 
     //vList[i].x+=pos.x;
     //vList[i].y+=pos.y;
@@ -73,7 +110,7 @@ VertexBufferObject* UmMeshFile::readFile( unsigned int materialIndex, string fil
     Vector3 t = tList[i];
     int t1 = t.x, t2 = t.y, t3 = t.z;
 
-    Triangle rt(materialIndex, vList[t1], vList[t2], vList[t3], nList[t1], nList[t2], nList[t3] );
+    Triangle rt(m_materialIndex, vList[t1], vList[t2], vList[t3], nList[t1], nList[t2], nList[t3] );
     m_triangles.push_back(rt);
   }
 
@@ -82,90 +119,34 @@ VertexBufferObject* UmMeshFile::readFile( unsigned int materialIndex, string fil
   delete[] vList;
   delete[] nList;
   delete[] tList;
-
-  calcVBO();
-  //applyScaleTranslateToVertexes();
-  writeBinaryFile (fileName);
-
-  return m_vbo;
 }
 
-
-void UmMeshFile::calcVBO()
+void UmMeshFile::calcTrianglesArrays()
 {
-  m_vbo = new VertexBufferObject();
+  m_numVertices = m_triangles.size()*3;
+  m_vertices = new GLfloat[m_numVertices*3];
+  m_normals = new GLfloat[m_numVertices*3];
 
-  int n = m_triangles.size()*3;
-  GLfloat* vertices = new GLfloat[n*3];
-  GLfloat* normals = new GLfloat[n*3];
-
-  for(int i = 0; i < n/3; ++i)
+  for(int i = 0; i < m_numVertices/3; ++i)
   {
     int index = i*9;
-    normals[index] = m_triangles[i].n1.x;
-    vertices[index++] = m_triangles[i].v1.x;
-    normals[index] = m_triangles[i].n1.y;
-    vertices[index++] = m_triangles[i].v1.y;
-    normals[index] = m_triangles[i].n1.z;
-    vertices[index++] = m_triangles[i].v1.z;
-    normals[index] = m_triangles[i].n2.x;
-    vertices[index++] = m_triangles[i].v2.x;
-    normals[index] = m_triangles[i].n2.y;
-    vertices[index++] = m_triangles[i].v2.y;
-    normals[index] = m_triangles[i].n2.z;
-    vertices[index++] = m_triangles[i].v2.z;
-    normals[index] = m_triangles[i].n3.x;
-    vertices[index++] = m_triangles[i].v3.x;
-    normals[index] = m_triangles[i].n3.y;
-    vertices[index++] = m_triangles[i].v3.y;
-    normals[index] = m_triangles[i].n3.z;
-    vertices[index++] = m_triangles[i].v3.z;
-  }
-
-  m_vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, n, vertices);
-  m_vbo->setVBOBuffer( GL_NORMAL_ARRAY, GL_FLOAT, n, normals);
-  m_vbo->calcVBO();
-}
-
-void UmMeshFile::applyScaleTranslateToVertexes() 
-{
-  vector<Triangle> :: iterator tIt;
-  for(tIt = m_triangles.begin(); tIt != m_triangles.end(); ++tIt){
-    //tIt->v1.x *= m_scale.x;
-    //tIt->v1.y *= m_scale.y;
-    //tIt->v1.z *= m_scale.z;
-
-    //tIt->v2.x *= m_scale.x;
-    //tIt->v2.y *= m_scale.y;
-    //tIt->v2.z *= m_scale.z;
-
-    //tIt->v3.x *= m_scale.x;
-    //tIt->v3.y *= m_scale.y;
-    //tIt->v3.z *= m_scale.z;
-
-    tIt->v1.x += m_pos.x;
-    tIt->v1.y += m_pos.y;
-    tIt->v1.z += m_pos.z;
-
-    tIt->v2.x += m_pos.x;
-    tIt->v2.y += m_pos.y;
-    tIt->v2.z += m_pos.z;
-
-    tIt->v3.x += m_pos.x;
-    tIt->v3.y += m_pos.y;
-    tIt->v3.z += m_pos.z;
+    m_normals[index] = m_triangles[i].n1.x;
+    m_vertices[index++] = m_triangles[i].v1.x;
+    m_normals[index] = m_triangles[i].n1.y;
+    m_vertices[index++] = m_triangles[i].v1.y;
+    m_normals[index] = m_triangles[i].n1.z;
+    m_vertices[index++] = m_triangles[i].v1.z;
+    m_normals[index] = m_triangles[i].n2.x;
+    m_vertices[index++] = m_triangles[i].v2.x;
+    m_normals[index] = m_triangles[i].n2.y;
+    m_vertices[index++] = m_triangles[i].v2.y;
+    m_normals[index] = m_triangles[i].n2.z;
+    m_vertices[index++] = m_triangles[i].v2.z;
+    m_normals[index] = m_triangles[i].n3.x;
+    m_vertices[index++] = m_triangles[i].v3.x;
+    m_normals[index] = m_triangles[i].n3.y;
+    m_vertices[index++] = m_triangles[i].v3.y;
+    m_normals[index] = m_triangles[i].n3.z;
+    m_vertices[index++] = m_triangles[i].v3.z;
   }
 }
-
-void UmMeshFile::writeBinaryFile(string fileName)
-{
-  int index = fileName.find_last_of(".");
-  MyAssert("Invalid FileName: " + fileName, index!=string::npos);
-  string sub = fileName.substr(0, index);
-
-  FILE * fp = fopen((sub+".msb").c_str(),"wb");
-  m_vbo->writeToFile(fp);
-  fclose(fp);
-  cout << "File " << sub+".msb" << " write successfully! " <<endl;
-}
-
