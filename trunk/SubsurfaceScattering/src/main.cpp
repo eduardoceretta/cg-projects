@@ -326,8 +326,8 @@ void render(){
     glVertex3f(0, 100, -10);
   glEnd();
   
-  //rtScene->configure();
-  //rtScene->render();
+  rtScene->configure();
+  rtScene->render();
 
   //glutSolidTeapot(60);
 

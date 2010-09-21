@@ -9,16 +9,13 @@
 using namespace std;
 
 class VertexBufferObject;
-class MeshFileBase;
 
 class Mesh
 {
    static int sMeshNum;
-   static MeshFileBase* sMeshLoaders[];
 
    protected:
       VertexBufferObject* mVbo;
-
 
       bool mCalculated;
 

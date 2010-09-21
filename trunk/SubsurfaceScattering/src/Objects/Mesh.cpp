@@ -6,23 +6,12 @@
 
 #include "Objects/Mesh.h"
 #include "GraphBasis\VertexBufferObject.h"
-
+#include "MeshLoaders\MeshLoader.h"
 
 using namespace std;
 
 int Mesh :: sMeshNum = 0;
 
-#include "MeshLoaders\MeshFileBase.h"
-#include "MeshLoaders\MshMeshFile.h"
-#include "MeshLoaders\MsbMeshFile.h"
-#include "MeshLoaders\UmMeshFile.h"
-
-MeshFileBase* Mesh :: sMeshLoaders[] = 
-{
-  new MshMeshFile(),
-  new UmMeshFile(),
-  new MsbMeshFile(),
-};
 
 ///////////////////
 //~ Mesh
@@ -48,20 +37,8 @@ void Mesh :: readFromStr(char buffer[])
    
    string fileName(buffer);
 
-   int index = fileName.find_last_of(".");
-   MyAssert("Invalid FileName: " + fileName, index!=string::npos);
-   string sub = fileName.substr(index, string::npos);
-
-   bool knownFileType = false;
-   for(int i=0;i<sizeof(sMeshLoaders)/sizeof(MeshFileBase*); ++i)  
-     if(sMeshLoaders[i]->isValidFileType(sub))
-     {
-       mVbo = sMeshLoaders[i]->readFile(mMaterialIndex, fileName, mPos, mScale);
-       knownFileType = true;
-       break;
-     }
-
-   MyAssert("Unknown File Type:" + fileName, knownFileType && mVbo);
+   MeshLoader m;
+   mVbo = m.readFileToVBO(mMaterialIndex, fileName, mPos, mScale);
 
    assert(r == 8);
 

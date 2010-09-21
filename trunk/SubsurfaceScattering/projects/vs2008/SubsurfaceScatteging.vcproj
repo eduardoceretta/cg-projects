@@ -296,6 +296,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\src\MeshLoaders\MeshLoader.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\MeshLoaders\MsbMeshFile.cpp"
 					>
 				</File>
@@ -439,6 +443,10 @@
 				>
 				<File
 					RelativePath="..\..\src\MeshLoaders\MeshFileBase.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MeshLoader.h"
 					>
 				</File>
 				<File

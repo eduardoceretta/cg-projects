@@ -14,7 +14,7 @@ MsbMeshFile::~MsbMeshFile(void)
 {
 }
 
-VertexBufferObject* MsbMeshFile::readFile( unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale )
+VertexBufferObject* MsbMeshFile::readFileToVBO( unsigned int materialIndex, string fileName, Vector3 pos, Vector3 scale )
 {
   m_pos = pos;
   m_scale = scale;
@@ -32,4 +32,10 @@ VertexBufferObject* MsbMeshFile::readFile( unsigned int materialIndex, string fi
   m_vbo->calcVBO();
 
   return m_vbo;
+}
+
+void MsbMeshFile::readFileTriangles( string fileName, unsigned int materialIndex /*= 0*/, Vector3 pos /*= Vector3(0,0,0)*/, Vector3 scale /*= Vector3(1,1,1)*/ )
+{
+  readFileToVBO( materialIndex, fileName, pos, scale );
+  cout << "Info From VBO(msb file) Not Implemented!" << endl;
 }
