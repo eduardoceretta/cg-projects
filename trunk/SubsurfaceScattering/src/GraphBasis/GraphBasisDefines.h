@@ -19,6 +19,7 @@
 #define RAD_TO_DEG(a) ((float)(a)*(180.0/PI))
 #define DEG_TO_RAD(a) ((float)(a)*PI/180.0)
 
+#define EULER 2.71828183f
 template <typename T>
 inline T abs(T x)
 {
