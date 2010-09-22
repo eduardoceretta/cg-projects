@@ -14,10 +14,8 @@
 
 int main(int argc, char *argv[]){
   MeshLoader m;
-  char c[] = "0 0 0 0 1 1 1 ./resources/Models/dragon_high.msh\n";
-  
   m.readFile("./resources/Models/dragon_high.msh");
-  PreProcessor preProcessor(m.getVertexes(), m.getNormals(), m.getNumVertices());
+  PreProcessor preProcessor(m.getVertexes(), m.getNormals(), m.getNumVertices(), m.getIndexes(), m.getNumTriangles());
   
 }
 
