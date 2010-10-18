@@ -51,14 +51,20 @@ void PreProcessor::setNeighborDistance( float val )
 void PreProcessor::calcNeighborhood()
 {
   m_vertexInfo = new VertexInfo[m_numVertices];
-  m_vertexNeighbor = new vector<int>[m_numVertices];
+  m_vertexNeighbor = new vector<float>[m_numVertices];
+
+  long long mean = 0;
+
   for(int i=0;i<m_numVertices;++i)
   {
-    m_vertexInfo[i].index = i;
+    //m_vertexInfo[i].index = i;
+    m_vertexInfo[i].indexF = (float)i;
     m_vertexInfo[i].vertex = Vector3(m_vertices[i*3], m_vertices[i*3+1], m_vertices[i*3+2]);
     m_vertexInfo[i].normal = Vector3(m_normals[i*3], m_normals[i*3+1], m_normals[i*3+2]);
-    m_vertexInfo[i].neighborFileIndex = i==0? 0 : 
-                      m_vertexInfo[i-1].neighborFileIndex + m_vertexInfo[i-1].numNeighbors;
+    //m_vertexInfo[i].neighborFileIndex = i==0? 0 : m_vertexInfo[i-1].neighborFileIndex + m_vertexInfo[i-1].numNeighbors;
+    m_vertexInfo[i].neighborFileIndexF = i==0? 0.0f : 
+                    m_vertexInfo[i-1].neighborFileIndexF + m_vertexInfo[i-1].numNeighborsF;
+
     for(int j=0;j<m_numVertices;++j)
     {
       if(i==j) continue;
@@ -66,11 +72,21 @@ void PreProcessor::calcNeighborhood()
       float d =  ~(m_vertexInfo[i].vertex - vertex);
       if(d < m_neighborDistance)
       {
-        m_vertexNeighbor[i].push_back(j);
+        m_vertexNeighbor[i].push_back((float)j);
       }
     }
-    m_vertexInfo[i].numNeighbors = m_vertexNeighbor[i].size();
+    //m_vertexInfo[i].numNeighbors = m_vertexNeighbor[i].size();
+    m_vertexInfo[i].numNeighborsF = (float) m_vertexNeighbor[i].size();
+    mean += m_vertexNeighbor[i].size();
+    if(i%(m_numVertices/10) == 0)
+    {
+      printf("\b\b\b%02d%%",(int)((((float)i)/m_numVertices)*100 + 1));
+      //cout <<  " !!!" << (((float)m_vertexNeighbor[i].size())/m_numVertices)*100 <<endl;
+    }
   }
+  cout << endl;
+  cout << "Media de neighbors por vertice:" << (float)mean/m_numVertices <<endl;
+  cout << "Media de neighbors por vertice(%):" << ((((float)mean/m_numVertices)/m_numVertices)*100) <<endl;
 }
 
 void PreProcessor::calcArea()
@@ -82,7 +98,7 @@ void PreProcessor::calcArea()
     {
       if(m_indexes[j*3] == i || m_indexes[j*3+1] == i || m_indexes[j*3+2] == i ) 
       {
-        Vector3 cross =  (m_vertexInfo[j*3+2].vertex - m_vertexInfo[j*3].vertex) ^  (m_vertexInfo[j*3+1].vertex - m_vertexInfo[j*3].vertex);
+        Vector3 cross =  (m_vertexInfo[m_indexes[j*3+2]].vertex - m_vertexInfo[m_indexes[j*3]].vertex) ^  (m_vertexInfo[m_indexes[j*3+1]].vertex - m_vertexInfo[m_indexes[j*3]].vertex);
         area+= abs((cross.x + cross.y + cross.z)/2);
       }
     }
@@ -116,7 +132,6 @@ void PreProcessor::calcLightTerms()
   float zv = lu*(1 + (4 * A)/3);
 
 
-
   //Calc Optimizers 
   float zrzr = zr*zr;
   float zvzv = zv*zv;
@@ -131,12 +146,12 @@ void PreProcessor::calcLightTerms()
   {
     m_vertexInfo[i].Q = Vector3(0,0,0);
     m_vertexInfo[i].q = 0;
-    vector<int>::iterator neighborIt =  m_vertexNeighbor[i].begin();
+    vector<float>::iterator neighborIt =  m_vertexNeighbor[i].begin();
     for(; neighborIt!=m_vertexNeighbor[i].end();++neighborIt)
     {
       // Dipole Aproximation
       // Dipole Aproximation
-      float r =  ~(m_vertexInfo[*neighborIt].vertex - m_vertexInfo[i].vertex); 
+      float r =  ~(m_vertexInfo[(int)*neighborIt].vertex - m_vertexInfo[i].vertex); 
       float rr = r*r;
       
       float dr = sqrt(rr+zrzr);
@@ -147,41 +162,54 @@ void PreProcessor::calcLightTerms()
 
       m_vertexR[i].push_back(Rd);
 
-      // Fresnel Term
-      // Fresnel Term
-      float cosOi = wi * m_vertexInfo[*neighborIt].normal;
-      float sinOi = sin(acos(cosOi));
 
-      float sqrt_1_nsinOi2 = sqrt(1. - (n * sinOi)*(n * sinOi));
-      
-      float rs =  pow(
-                    (n1 * cosOi - n2 * sqrt_1_nsinOi2) /
-                    (n1 * cosOi + n2 * sqrt_1_nsinOi2)
-                  , 2);
-      
-      float rp =  pow(
-                    (n1 * sqrt_1_nsinOi2 - n2 * cosOi) /
-                    (n1 * sqrt_1_nsinOi2 + n2 * cosOi)
-                  , 2);
-      
-      float fr = (rs + rp) / 2.;
-      
-      float ft = 1. - fr;
+      float cosOi = wi * m_vertexInfo[(int)*neighborIt].normal;
+      if(cosOi < 0) // NO Contribuition 
+      {
+        continue;
+        //Q
+        //Q
+        m_vertexInfo[i].Q += Vector3(0,0,0);
 
-      //Q
-      //Q
+        //q
+        //q
+        m_vertexInfo[i].q += 0;
+      }else 
+      {
+        float sinOi = sin(acos(cosOi));
 
-      m_vertexInfo[i].Q += m_vertexInfo[*neighborIt].normal *
-                            ft * (Rd / PI) * m_vertexInfo[*neighborIt].area;
+        float sqrt_1_nsinOi2 = sqrt(1. - (n * sinOi)*(n * sinOi));
+        
+        float rs =  pow(
+                      (n1 * cosOi - n2 * sqrt_1_nsinOi2) /
+                      (n1 * cosOi + n2 * sqrt_1_nsinOi2)
+                    , 2);
+        
+        float rp =  pow(
+                      (n1 * sqrt_1_nsinOi2 - n2 * cosOi) /
+                      (n1 * sqrt_1_nsinOi2 + n2 * cosOi)
+                    , 2);
+        // Fresnel Term
+        // Fresnel Term
+        float fr = (rs + rp) / 2.;
 
-      //q
-      //q
-      m_vertexInfo[i].q += ft * (Rd / PI) * m_vertexInfo[*neighborIt].area
-                               * cosOi; // ni dot wi
+        float ft = 1. - fr;
+
+        //Q
+        //Q
+        m_vertexInfo[i].Q += m_vertexInfo[(int)*neighborIt].normal *
+                              ft * (Rd / PI) * m_vertexInfo[(int)*neighborIt].area;
+
+        //q
+        //q
+        m_vertexInfo[i].q += ft * (Rd / PI) * m_vertexInfo[(int)*neighborIt].area
+                                 * cosOi; // ni dot wi
+      }
     }
       
-    m_vertexInfo[i].RFileIndex = i==0? 0 : 
-              m_vertexInfo[i-1].RFileIndex + m_vertexInfo[i-1].numNeighbors;
+    //m_vertexInfo[i].RFileIndex = i==0? 0 : m_vertexInfo[i-1].RFileIndex + m_vertexInfo[i-1].numNeighbors;
+    m_vertexInfo[i].RFileIndexF = i==0? 0.0f : 
+      m_vertexInfo[i-1].RFileIndexF + m_vertexInfo[i-1].numNeighborsF;
   }
 }
 
@@ -232,32 +260,36 @@ void PreProcessor::setN( float n1, float n2 )
 
 void PreProcessor::writeTextures( string fileName )
 {
+  int sizeofVertexInfo = sizeof(VertexInfo);
   int vertexInfoSize = m_numVertices*sizeof(VertexInfo);
   int vertexNeighborSize = 0;
   int vertexRSize = 0;
   for(int i = 0; i<m_numVertices; ++i)
   {
-    vertexNeighborSize += m_vertexInfo[i].numNeighbors*sizeof(int);
-    vertexRSize += m_vertexInfo[i].numNeighbors*sizeof(float);
+    vertexNeighborSize += ((int)m_vertexInfo[i].numNeighborsF)*sizeof(int);
+    
+    vertexRSize += ((int)m_vertexInfo[i].numNeighborsF)*sizeof(float);
   }
 
   FILE *fp;
   fp = fopen(fileName.c_str(), "wb");
   MyAssert("Invalid FileName: " + fileName, fp);
-
+  
+  fwrite(&m_numVertices, sizeof(int), 1, fp);
+  fwrite(&sizeofVertexInfo, sizeof(int), 1, fp);
   fwrite(&vertexInfoSize, sizeof(int), 1, fp);
   fwrite(&vertexNeighborSize, sizeof(int), 1, fp);
   fwrite(&vertexRSize, sizeof(int), 1, fp);
   
   fwrite(m_vertexInfo, sizeof(VertexInfo), m_numVertices, fp );
 
-  int * neighbors = new int[vertexNeighborSize/sizeof(int)];
-  int * Rs = new int[vertexRSize/sizeof(float)];
+  float *neighbors = new float[vertexNeighborSize/sizeof(float)];
+  int *Rs = new int[vertexRSize/sizeof(float)];
   int j = 0;
   int k = 0;
   for(int i = 0; i<m_numVertices; ++i)
   {
-    vector<int>::iterator it(m_vertexNeighbor[i].begin());
+    vector<float>::iterator it(m_vertexNeighbor[i].begin());
     for(; it != m_vertexNeighbor[i].end();++it)
     {
       neighbors[j] = *it;
@@ -271,7 +303,23 @@ void PreProcessor::writeTextures( string fileName )
       k++;
     }
   }
-  fwrite(neighbors, sizeof(int), vertexNeighborSize, fp );
-  fwrite(Rs, sizeof(float), vertexRSize, fp );
+  fwrite(neighbors, sizeof(float), vertexNeighborSize/sizeof(float), fp );
+  fwrite(Rs, sizeof(float), vertexRSize/sizeof(float), fp );
   fclose(fp);
+}
+
+void PreProcessor::calc()
+{
+  cout << "Start Calculating Neighborhood..."<<endl;
+  calcNeighborhood();
+  cout << "Done."<<endl;
+  
+  cout << "Start Calculating Triangles Area..."<<endl;
+  calcArea();
+  cout << "Done."<<endl;
+
+ 
+  cout << "Start Calculating LighTerms..."<<endl;
+  calcLightTerms(); // Calc`s R, Q, q
+  cout << "Done."<<endl;
 }

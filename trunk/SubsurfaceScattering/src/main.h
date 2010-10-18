@@ -10,6 +10,9 @@
 #define APP_INITIAL_WIDTH 800
 #define APP_INITIAL_HEIGHT 600
 
+#define REFRACTIVE_INDEX_N1 1.0f
+#define REFRACTIVE_INDEX_N2 1.3f
+
 #ifdef NDEBUG
   #define MyAssert(str, expression)     ((void)0)  
 #else

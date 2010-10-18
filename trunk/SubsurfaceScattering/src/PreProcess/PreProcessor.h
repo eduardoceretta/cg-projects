@@ -15,17 +15,22 @@ extern Vector3 g_lightDirection;
 
 typedef struct 
 {
-  int index;
+  //int index;
+  float indexF;
   Vector3 vertex;
   Vector3 normal;
 
   float area; // One third of the triangle's area that contains this vertex
 
-  int numNeighbors;
+  //int numNeighbors;
+  float numNeighborsF;
+  
 
-  int neighborFileIndex;
+  //int neighborFileIndex;
+  float neighborFileIndexF;
 
-  int RFileIndex;
+  //int RFileIndex;
+  float RFileIndexF;
   Vector3 Q; // One Directional light g_lightDirection
   float q; // One Directional light g_lightDirection
 }VertexInfo;
@@ -49,7 +54,7 @@ protected:
 
   //OUTPUT
   VertexInfo * m_vertexInfo;
-  vector<int> * m_vertexNeighbor;
+  vector<float> * m_vertexNeighbor;
   vector<float> * m_vertexR;
 
 public:
@@ -71,6 +76,8 @@ public:
   float getN2() const;
   float getN1() const;
   void setN(float n1, float n2);
+
+  void calc();
 
   void writeTextures(string fileName);
 
