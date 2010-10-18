@@ -208,17 +208,22 @@ void renderAxis(){
 
 
 
-void renderScreenQuad()
+void renderScreenQuad(GLuint id = 0)
 {
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
-  glViewport(0, 0,  appWidth , appHeight);
   gluOrtho2D(0, 1, 0, 1);
 
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
   glLoadIdentity();
+  if(id != 0)
+  {
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, id);
+  }
     glBegin(GL_QUADS);
       glTexCoord2d(0,0);
       glVertex2d(0,0);
@@ -238,6 +243,11 @@ void renderScreenQuad()
       //glTexCoord2d(0,1);
       //glVertex3d(-1000,1000,-100);
     glEnd();
+  if(id != 0)
+  {
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+  }
   glPopMatrix();
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
@@ -245,6 +255,105 @@ void renderScreenQuad()
 }
 
 
+
+typedef struct
+{
+  int max_tex_size;
+  int sizeofVertexInfo;
+  int numVertices;
+  int vertexInfoSize, vertexInfoW, vertexInfoH;
+  int vertexNeighborSize, vertexNeighborIndexW, vertexNeighborIndexH;
+  int vertexRSize, vertexNeighborRW, vertexNeighborRH;
+
+  float *vertexInfo, *vertexNeighborIndex, *vertexNeighborR;
+
+  GLuint vertexInfoTexId , vertexNeighborIndexTexId, vertexNeighborRTexId;
+}StexFileInfo;
+StexFileInfo stexFileInfo;
+
+StexFileInfo createTexturesFromPreProcess(string fileName)
+{
+  StexFileInfo ret;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &ret.max_tex_size);
+
+  FILE *fp;
+  fp = fopen(fileName.c_str(), "rb");
+  MyAssert("Invalid FileName: " + fileName, fp);
+
+  fread(&ret.numVertices, sizeof(int), 1, fp);
+  fread(&ret.sizeofVertexInfo, sizeof(int), 1, fp);
+  fread(&ret.vertexInfoSize, sizeof(int), 1, fp);
+  fread(&ret.vertexNeighborSize, sizeof(int), 1, fp);
+  fread(&ret.vertexRSize, sizeof(int), 1, fp);
+
+  ret.vertexInfoW = ret.vertexNeighborIndexW = ret.vertexNeighborRW = ret.max_tex_size;
+  ret.vertexInfoH = (ret.vertexInfoSize/sizeof(float)/4)/ret.max_tex_size + 1;
+  ret.vertexNeighborIndexH = (ret.vertexNeighborSize/sizeof(float)/4)/ret.max_tex_size + 1;
+  ret.vertexNeighborRH = (ret.vertexRSize/sizeof(float)/4)/ret.max_tex_size + 1;
+
+  ret.vertexInfo = new float[ret.vertexInfoW * ret.vertexInfoH * 4];
+  fread(ret.vertexInfo, sizeof(float), ret.vertexInfoSize, fp );
+
+  ret.vertexNeighborIndex = new float[ret.vertexNeighborIndexW * ret.vertexNeighborIndexH * 4];
+  fread(ret.vertexNeighborIndex, sizeof(float), ret.vertexNeighborSize, fp );
+
+  ret.vertexNeighborR = new float[ret.vertexNeighborRW * ret.vertexNeighborRH * 4];
+  fread(ret.vertexNeighborR, sizeof(float), ret.vertexRSize, fp );
+
+  fclose(fp);
+
+  glGenTextures(1, &ret.vertexInfoTexId);
+  glBindTexture(GL_TEXTURE_2D, ret.vertexInfoTexId);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, ret.vertexInfoW, ret.vertexInfoH, 0, GL_RGBA, GL_FLOAT, ret.vertexInfo);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+
+  glGenTextures(1, &ret.vertexNeighborIndexTexId);
+  glBindTexture(GL_TEXTURE_2D, ret.vertexNeighborIndexTexId);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, ret.vertexNeighborIndexW, ret.vertexNeighborIndexH, 0, GL_RGBA, GL_FLOAT, ret.vertexNeighborIndex);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+
+  glGenTextures(1, &ret.vertexNeighborRTexId);
+  glBindTexture(GL_TEXTURE_2D, ret.vertexNeighborRTexId);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, ret.vertexNeighborRW, ret.vertexNeighborRH, 0, GL_RGBA, GL_FLOAT, ret.vertexNeighborR);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  return ret;
+}
 
 void createScenes()
 {
@@ -254,9 +363,13 @@ void createScenes()
 
   GLfloat amb [] = {0.2,0.2,0.2,1};
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
-  
+  string path = "./resources/Models/";
+  string fileName = "dragon_low";
 
-  kernelFresnel = new KernelFresnel(appWidth, appHeight);
+  stexFileInfo = createTexturesFromPreProcess(path+fileName+".stex");
+
+  kernelFresnel = new KernelFresnel(stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH, stexFileInfo.vertexInfoTexId
+                                      ,stexFileInfo.numVertices, stexFileInfo.sizeofVertexInfo);
 
 /*    
   kernelShade = new KernelShade(appWidth, appHeight,
@@ -302,16 +415,21 @@ void render(){
   switch(optionsState)
   {
     case Regular:
+       renderScreenQuad(kernelFresnel->getTexIdFresnel());
     break;
     case SubSurfaceScattering:
+
       kernelFresnel->setActive(true);
-      glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+      /*glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);*/
       glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+      
+      glViewport(0, 0,  stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH); //Render the texture as full screen
+      renderScreenQuad();
     break;
   }
 
   
-  glBegin(GL_POINTS);
+ /* glBegin(GL_POINTS);
     glColor3f(1, 0, 0);
     glTexCoord1d(0);
     glVertex3f(0, 0, -10); 
@@ -327,7 +445,7 @@ void render(){
   glEnd();
   
   rtScene->configure();
-  rtScene->render();
+  rtScene->render();*/
 
   //glutSolidTeapot(60);
 
@@ -337,9 +455,11 @@ void render(){
     break;
     case SubSurfaceScattering:
       kernelFresnel->setActive(false);
-      kernelFresnel->renderOutput(KernelFresnel::VertexNeighbor);
+      kernelFresnel->renderOutput(KernelFresnel::Fresnel);
     break;
    }
+
+
 
   //glEnable(GL_COLOR_MATERIAL);
   //glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT);

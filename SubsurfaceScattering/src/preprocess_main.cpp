@@ -14,8 +14,16 @@
 
 int main(int argc, char *argv[]){
   MeshLoader m;
-  m.readFile("./resources/Models/dragon_high.msh");
+  string path = "./resources/Models/";
+  string fileName = "dragon_low";
+  m.readFile(path+fileName+".msh");
   PreProcessor preProcessor(m.getVertexes(), m.getNormals(), m.getNumVertices(), m.getIndexes(), m.getNumTriangles());
-  
+  preProcessor.setCa(1.0);
+  preProcessor.setCs(1.0);
+  preProcessor.setG(.5);
+  preProcessor.setN(REFRACTIVE_INDEX_N1, REFRACTIVE_INDEX_N2);
+  preProcessor.setNeighborDistance(.01);// So far so good
+  preProcessor.calc();
+  preProcessor.writeTextures(path+fileName+".stex");
 }
 

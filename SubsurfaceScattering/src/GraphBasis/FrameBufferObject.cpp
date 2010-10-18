@@ -21,7 +21,6 @@ FrameBufferObject::FrameBufferObject(int width, int height)
 ,mWidth(width)
 ,mHeight(height)
 {
-	
    mSupported = true;
    /*GLenum err = glewInit();
    if (GLEW_OK != err)
@@ -43,6 +42,14 @@ FrameBufferObject::FrameBufferObject(int width, int height)
    {
       mSupported = false;
       cout << "Video card does NOT support GL_EXT_framebuffer_object." << endl;
+   }
+
+   int max_size; 
+   glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE_EXT, &max_size);
+   if(width > max_size || height > max_size)
+   {
+     mSupported = false;
+     cout << "Video card does NOT support sizes bigger than "<< max_size << "." << endl;
    }
 
 

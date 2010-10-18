@@ -7,20 +7,22 @@
 #include "Kernels/KernelBase.h"
 #include "GraphBasis/FrameBufferObject.h"
 
+#include "main.h"
+
 class KernelFresnel : public KernelBase {
 
 public:
-  enum textures {VertexInfo = 0, VertexNeighbor};
+  enum textures {Fresnel = 0, VertexNeighbor};
   KernelFresnel();
 
-  KernelFresnel(int width, int height, float refractionIndex1 = 1.0, float refractionIndex2 = 1.5);
+  KernelFresnel(int width, int height, GLuint vertexInfoTexId, int numVertices, int sizeofVertexInfo, float refractionIndex1 = REFRACTIVE_INDEX_N1, float refractionIndex2 = REFRACTIVE_INDEX_N2);
 	~KernelFresnel();
 
-  GLuint getTexIdVertexInfo() const;
+  GLuint getTexIdFresnel() const;
   GLuint getTexIdVertexNeighbor() const;
 
 private:
-  GLuint m_texIdVertexInfo;
+  GLuint m_texIdFresnel;
   GLuint m_texIdVertexNeighbor;
 };
 
