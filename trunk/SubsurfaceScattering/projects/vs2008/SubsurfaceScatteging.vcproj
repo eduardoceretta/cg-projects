@@ -188,6 +188,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\..\src\Kernels\KernelBleed.cpp"
+					>
+				</File>
+				<File
 					RelativePath="..\..\src\Kernels\KernelFresnel.cpp"
 					>
 				</File>
@@ -327,6 +331,10 @@
 				>
 				<File
 					RelativePath="..\..\src\Kernels\KernelBase.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelBleed.h"
 					>
 				</File>
 				<File
@@ -471,6 +479,14 @@
 			<Filter
 				Name="Shaders"
 				>
+				<File
+					RelativePath="..\..\resources\Shaders\bleed.frag"
+					>
+				</File>
+				<File
+					RelativePath="..\..\resources\Shaders\bleed.vert"
+					>
+				</File>
 				<File
 					RelativePath="..\..\resources\Shaders\fresnel.frag"
 					>

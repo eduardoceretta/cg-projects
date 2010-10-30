@@ -1,4 +1,30 @@
-/*
+varying vec3 vertex;
+varying vec4 color;
+
+void main()
+{
+	//gl_FragColor = vec4(1,0,0,1);
+	//gl_FragData[0] = vec4(1,0,0,1);
+	gl_FragData[0] = color;
+	//gl_FragData[0] = vec4(gl_TexCoord[0].s, -1,-1,-1);
+	//gl_FragData[0] = vec4(gl_TexCoord[0].s, vertex.x, vertex.y, vertex.z);
+	//gl_FragData[0] = vec4(gl_TexCoord[0].s, vertex.x, vertex.y, vertex.z);
+}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	/*
 struct 
 {
   //int index;
@@ -22,26 +48,28 @@ struct
 }VertexInfo;
 *///
 
-uniform float outWidth;
-uniform float outHeight;
-uniform float numVertices;
-uniform float sizeofVertexInfo; 
-uniform float n1;
-uniform float n2;
-uniform sampler2D vertexInfoTex;
+//uniform float outWidth;
+//uniform float outHeight;
+//uniform float numVertices;
+//uniform float sizeofVertexInfo; 
+//uniform float n1;
+//uniform float n2;
+//uniform sampler2D vertexInfoTex;
+//
+//vec2 index1Dto2D(float index, float width, float size)
+//{
+  //float height = float(trunc(size/width))+1.0;
+  //vec2 r = vec2(float(mod(index,width)), float(trunc(index/width)));
+  //r.x = (r.x+.5)/width;
+  //r.y = (r.y+.5)/height;
+//
+  //return r;
+//}
 
-vec2 index1Dto2D(float index, float width, float size)
-{
-  float height = float(trunc(size/width))+1.0;
-  vec2 r = vec2(float(mod(index,width)), float(trunc(index/width)));
-  r.x = (r.x+.5)/width;
-  r.y = (r.y+.5)/height;
-
-  return r;
-}
-
-void main()
-{
+	
+	
+	
+	/*
 	float fragIndex = floor((gl_TexCoord[0].t*outHeight - .5)*outWidth + (gl_TexCoord[0].s*outWidth - .5) + .5);
 	
 	if(fragIndex > numVertices)
@@ -125,3 +153,4 @@ void main()
 //   gl_FragData[3] = vec4(vec3(gl_FrontMaterial.specular.rgb), gl_FrontMaterial.shininess);
 }
 
+*/

@@ -33,6 +33,7 @@ typedef struct
   float RFileIndexF;
   Vector3 Q; // One Directional light g_lightDirection
   float q; // One Directional light g_lightDirection
+  float BYTECORRECTOR; //only needed for the size of the struct be multiple of 4
 }VertexInfo;
 
 class PreProcessor

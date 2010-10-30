@@ -282,7 +282,7 @@ void PreProcessor::writeTextures( string fileName )
   fwrite(&vertexRSize, sizeof(int), 1, fp);
   
   fwrite(m_vertexInfo, sizeof(VertexInfo), m_numVertices, fp );
-
+  
   float *neighbors = new float[vertexNeighborSize/sizeof(float)];
   int *Rs = new int[vertexRSize/sizeof(float)];
   int j = 0;
