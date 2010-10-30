@@ -9,7 +9,9 @@
 #include "GraphBasis/Frames.h"
 
 #include "Kernels/KernelFresnel.h"
+#include "Kernels/KernelBleed.h"
 
+#include "MeshLoaders/MeshLoader.h"
 #include "Objects\Scene.h"
 
 #include "main.h"
@@ -40,15 +42,17 @@ float farPlane = 10000.0f;
 float fov = 60.0f;
 
 //Global Objects
-Scene* rtScene;
+Scene* rtScene = NULL;
+VertexBufferObject *vbo;
 GLFont fontRender;
 
 //Kernels
 KernelFresnel *kernelFresnel;
+KernelBleed *kernelBleed;
 
 //Program Options
-typedef enum {Regular, SubSurfaceScattering} OptionsState;
-OptionsState optionsState = Regular;
+typedef enum {Regular, SubSurfaceScattering, Bleed} OptionsState;
+OptionsState optionsState = Bleed;
 
 //Debug
 GLenum e;
@@ -153,6 +157,8 @@ void keyboard(unsigned char key, int x, int y){
       cout << "Shader On" << endl;
     break;
     case '3':
+      optionsState = Bleed;
+      cout << "Bleed On" << endl;
     break;
 
     case 'A':
@@ -292,13 +298,13 @@ StexFileInfo createTexturesFromPreProcess(string fileName)
   ret.vertexNeighborRH = (ret.vertexRSize/sizeof(float)/4)/ret.max_tex_size + 1;
 
   ret.vertexInfo = new float[ret.vertexInfoW * ret.vertexInfoH * 4];
-  fread(ret.vertexInfo, sizeof(float), ret.vertexInfoSize, fp );
+  fread(ret.vertexInfo, sizeof(float), ret.vertexInfoSize/sizeof(float), fp );
 
   ret.vertexNeighborIndex = new float[ret.vertexNeighborIndexW * ret.vertexNeighborIndexH * 4];
-  fread(ret.vertexNeighborIndex, sizeof(float), ret.vertexNeighborSize, fp );
+  fread(ret.vertexNeighborIndex, sizeof(float), ret.vertexNeighborSize/sizeof(float), fp );
 
   ret.vertexNeighborR = new float[ret.vertexNeighborRW * ret.vertexNeighborRH * 4];
-  fread(ret.vertexNeighborR, sizeof(float), ret.vertexRSize, fp );
+  fread(ret.vertexNeighborR, sizeof(float), ret.vertexRSize/sizeof(float), fp );
 
   fclose(fp);
 
@@ -352,12 +358,48 @@ StexFileInfo createTexturesFromPreProcess(string fileName)
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, ret.vertexNeighborRW, ret.vertexNeighborRH, 0, GL_RGBA, GL_FLOAT, ret.vertexNeighborR);
   glBindTexture(GL_TEXTURE_2D, 0);
 
+ 
+
+
+
   return ret;
 }
 
+GLuint getTextureWidth(GLuint id)
+{
+  GLint textureWidth;
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, id);
+  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &textureWidth);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glDisable(GL_TEXTURE_2D);
+  return textureWidth;
+}
+
+GLuint getTextureHeight(GLuint id)
+{
+  GLint  textureHeight;
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, id);
+  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &textureHeight);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glDisable(GL_TEXTURE_2D);
+  return textureHeight;
+}
+
+void getTextureData(GLuint id, GLfloat * buffer)
+{
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, id);
+
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, buffer);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glDisable(GL_TEXTURE_2D);
+}
+GLfloat * buffer;
 void createScenes()
 {
-  rtScene = new Scene("./resources/scenes/scene1.rt4");
+  //rtScene = new Scene("./resources/scenes/scene1.rt4");
   //rtScene->configure();
   //rtScene->setLightEnabled(false);
 
@@ -366,10 +408,45 @@ void createScenes()
   string path = "./resources/Models/";
   string fileName = "dragon_low";
 
+  MeshLoader m;
+  m.readFile(path+fileName+".msh");
+
+  int numVertices = m.getNumVertices();
+
+  vbo = m.getVbo();
+  GLfloat *texCoords = new GLfloat[numVertices*2];
+  for(int i=0; i < numVertices*2 ; i+=2)
+  {
+    texCoords[i] = (float)i/2;
+    texCoords[i+1] = 0.0;
+  }
+
+  vbo->setVBOBuffer(GL_TEXTURE_COORD_ARRAY, GL_FLOAT, numVertices, texCoords);
+  //vbo->setPrimitive(GL_POINTS);
+  vbo->calcVBO();
+  cout << "Model:"<<fileName<<" Loaded!"<<endl;
+
+
   stexFileInfo = createTexturesFromPreProcess(path+fileName+".stex");
+  cout << "Textures Loaded!"<<endl;
+
 
   kernelFresnel = new KernelFresnel(stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH, stexFileInfo.vertexInfoTexId
-                                      ,stexFileInfo.numVertices, stexFileInfo.sizeofVertexInfo);
+                                      , stexFileInfo.numVertices, stexFileInfo.sizeofVertexInfo);
+
+
+  kernelBleed = new KernelBleed(stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH
+                                ,stexFileInfo.numVertices, stexFileInfo.sizeofVertexInfo
+                                ,stexFileInfo.vertexInfoTexId
+                                ,stexFileInfo.vertexNeighborIndexTexId, stexFileInfo.vertexNeighborIndexH*stexFileInfo.vertexNeighborIndexW
+                                ,stexFileInfo.vertexNeighborRTexId, stexFileInfo.vertexNeighborRH*stexFileInfo.vertexNeighborRW
+                                ,kernelFresnel->getTexIdFresnel());
+
+
+
+
+  //DEBUG
+  buffer = new GLfloat[getTextureWidth(stexFileInfo.vertexInfoTexId)*getTextureHeight(stexFileInfo.vertexInfoTexId)*4];
 
 /*    
   kernelShade = new KernelShade(appWidth, appHeight,
@@ -415,12 +492,26 @@ void render(){
   switch(optionsState)
   {
     case Regular:
-       renderScreenQuad(kernelFresnel->getTexIdFresnel());
+       //renderScreenQuad(kernelFresnel->getTexIdFresnel());
+       renderScreenQuad(kernelBleed->getTexIdColor());
+       //getTextureData(kernelFresnel->getTexIdFresnel(), buffer);
+       getTextureData(kernelBleed->getTexIdColor(), buffer);
+    break;
+    case Bleed:
+      kernelBleed->setShaderActive(true);
+
+      //kernelBleed->setActive(true);
+      //glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+
+      //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+      //glPointSize(30);
+      //glViewport(0, 0,  stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH); //Render the texture as full screen
+      glScalef(500,500,500);
+      vbo->configure();
+      vbo->render();
     break;
     case SubSurfaceScattering:
-
       kernelFresnel->setActive(true);
-      /*glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);*/
       glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
       
       glViewport(0, 0,  stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH); //Render the texture as full screen
@@ -452,6 +543,12 @@ void render(){
   switch(optionsState)
   {
     case Regular:
+    break;
+    case Bleed:
+      kernelBleed->setShaderActive(false);
+
+      //kernelBleed->setActive(false);
+      //kernelBleed->renderOutput(KernelBleed::Bleed);
     break;
     case SubSurfaceScattering:
       kernelFresnel->setActive(false);
@@ -524,11 +621,14 @@ void render(){
 
   char a[100];
 
-  sprintf(a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
-  fontRender.print(appWidth*.80,appHeight*.05,a, Color(0., 0., 0.));
+  if(rtScene)
+  {
+    (a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
+    fontRender.print(appWidth*.80,appHeight*.05,a, Color(0., 0., 0.));
   
-  sprintf(a,"%d Lights", rtScene->getNumLights());
-  fontRender.print(appWidth*.80,appHeight*.05 + 25,a, Color(0., 0., 0.));
+    sprintf(a,"%d Lights", rtScene->getNumLights());
+    fontRender.print(appWidth*.80,appHeight*.05 + 25,a, Color(0., 0., 0.));
+  }
 
   sprintf(a,"%.2f FPS", fpsec);
   fontRender.print(appWidth*.85,appHeight*.85+55,a, Color(0., 0., 0.));
