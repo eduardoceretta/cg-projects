@@ -5,7 +5,7 @@ KernelBleed::KernelBleed(int width, int height,
                          GLuint vertexInfoTexId, 
                          GLuint neighborTexId, int neighborSize,
                          GLuint neighborRTexId, int neighborRSize,
-                         GLuint fresnelTexId, 
+                         GLuint fresnelTexId, int fresnelSize,
                          float refractionIndex1, float refractionIndex2)
 : KernelBase("./resources/Shaders/bleed.vert", "./resources/Shaders/bleed.frag", width, height){
 	//Output
@@ -24,6 +24,7 @@ KernelBleed::KernelBleed(int width, int height,
     addInputFloat("sizeofVertexInfo", sizeofVertexInfo);
     addInputFloat("neighborSize", neighborSize);
     addInputFloat("neighborRSize", neighborRSize);
+    addInputFloat("fresnelSize", fresnelSize);
     addInputFloat("n1", refractionIndex1);
     addInputFloat("n2", refractionIndex2);
 

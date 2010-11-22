@@ -54,7 +54,7 @@ void main()
 	
 	vec2 d = vec2(1./outWidth, 1./outHeight);
 	
-	vec2 coord2D = (gl_TexCoord[0] - d/2.)*texStep + d/2.;
+	vec2 coord2D = (gl_TexCoord[0].st - d/2.)*texStep + d/2.;
 
 	while(coord2D.s > 1.0)
 		coord2D = vec2(coord2D.s - 1.0, coord2D.t + d.t);
@@ -96,7 +96,7 @@ void main()
 	vec3 wi = normalize(gl_LightSource[0].position.xyz - vertex);
 
 	float cosOi = dot(wi, normal);
-	if(cosOi < 0)
+	if(cosOi < .0)
 	{
 		gl_FragData[0] = vec4(0, 0, index, -2);	
 		return ;
@@ -118,7 +118,8 @@ void main()
 
 	float ft = 1. - fr;
 
-   gl_FragData[0] = vec4(ft, fr, index, -1);
+   gl_FragData[0] = vec4(ft*area, normal.r, normal.g, normal.b);
+   //gl_FragData[0] = vec4(ft, fr, index, -6);
 //   gl_FragData[1] = normal;
 //   gl_FragData[1] = vec4(normalize(normal), 1.0);
 //   gl_FragData[2] = gl_FrontMaterial.diffuse;

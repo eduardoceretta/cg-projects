@@ -36,4 +36,10 @@ inline T clamp(T v, T min, T max)
    return v;
 }
 
+template <typename T>
+inline T isNaN(T v)
+{
+  return v!=v;
+}
+
 #endif

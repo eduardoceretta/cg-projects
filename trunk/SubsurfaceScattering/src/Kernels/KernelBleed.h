@@ -15,7 +15,7 @@ public:
               GLuint vertexInfoTexId, 
               GLuint neighborTexId, int neighborSize,
               GLuint neighborRTexId, int neighborRSize,
-              GLuint fresnelTexId, 
+              GLuint fresnelTexId, int fresnelSize,
               float refractionIndex1 = REFRACTIVE_INDEX_N1, float refractionIndex2 = REFRACTIVE_INDEX_N2);
 	~KernelBleed();
   

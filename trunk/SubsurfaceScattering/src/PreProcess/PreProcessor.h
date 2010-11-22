@@ -11,7 +11,7 @@
 
 using namespace std;
 
-extern Vector3 g_lightDirection;
+extern Vector3 m_lightDirection;
 
 typedef struct 
 {
@@ -33,6 +33,7 @@ typedef struct
   float RFileIndexF;
   Vector3 Q; // One Directional light g_lightDirection
   float q; // One Directional light g_lightDirection
+  
   float BYTECORRECTOR; //only needed for the size of the struct be multiple of 4
 }VertexInfo;
 
@@ -45,6 +46,7 @@ protected:
   int m_numVertices;
   unsigned int * m_indexes;
   int m_numTriangles;
+  Vector3 m_lightDirection;
 
   //PARAMETERS
   float m_neighborDistance;
@@ -77,6 +79,9 @@ public:
   float getN2() const;
   float getN1() const;
   void setN(float n1, float n2);
+
+  Vector3 getLightDirection() const;
+  void setLightDirection(Vector3 val);
 
   void calc();
 

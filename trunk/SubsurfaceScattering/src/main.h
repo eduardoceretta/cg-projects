@@ -6,7 +6,7 @@
 #include "GraphBasis/GraphBasisDefines.h"
 
 
-#define APP_NAME "DeferredShading"
+#define APP_NAME "Subsurface Scattering"
 #define APP_INITIAL_WIDTH 800
 #define APP_INITIAL_HEIGHT 600
 

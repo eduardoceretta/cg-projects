@@ -1,11 +1,18 @@
 varying vec3 vertex;
+varying vec3 normalR;
+varying vec3 lightDir;
 varying vec4 color;
 
 void main()
 {
+	//vec3 half = normalize(normalize(lightDir) + normalize(- vertex));
+	//float spec =  max(dot(normalize(normalR), half),0.0);
+    //vec4 specular = vec4(1,1,1,1) * pow(spec, 10.);
+
 	//gl_FragColor = vec4(1,0,0,1);
 	//gl_FragData[0] = vec4(1,0,0,1);
 	gl_FragData[0] = color;
+	//gl_FragData[0] = color+specular;
 	//gl_FragData[0] = vec4(gl_TexCoord[0].s, -1,-1,-1);
 	//gl_FragData[0] = vec4(gl_TexCoord[0].s, vertex.x, vertex.y, vertex.z);
 	//gl_FragData[0] = vec4(gl_TexCoord[0].s, vertex.x, vertex.y, vertex.z);
