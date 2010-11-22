@@ -139,7 +139,6 @@ void Scene :: configure()
   }
   if(m_lightEnabled)
   {
-     
     vector<LightObj> :: iterator lightIt;
     for( lightIt = mLights.begin(); lightIt!=mLights.end(); ++lightIt)
     {
@@ -256,4 +255,25 @@ int Scene::getNumLights()
 unsigned int Scene::getSceneNumTriangles()
 {
   return Triangle::getMaxNumTriangles();
+}
+
+void Scene::setLightActive( bool op )
+{
+  if(op)
+  {
+    if(m_lightEnabled)
+    {
+      glPushAttrib(GL_LIGHTING_BIT);
+     
+      vector<LightObj> :: iterator lightIt;
+      for( lightIt = mLights.begin(); lightIt!=mLights.end(); ++lightIt)
+      {
+        lightIt->configure();
+        lightIt->render();
+      }
+
+    }
+  }else {
+    glPopAttrib();
+  }
 }

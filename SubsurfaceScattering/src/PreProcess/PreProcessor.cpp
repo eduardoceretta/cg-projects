@@ -12,12 +12,10 @@
 
 using namespace std;
 
-Vector3 g_lightDirection = Vector3(1,1,1);
-
 ///////////////////
 //~ PreProcessor
 //////////////////
-PreProcessor::PreProcessor( GLfloat * vertices, GLfloat * normals, int numVertices, unsigned int * indexes, int numTriangles)
+PreProcessor::PreProcessor(GLfloat * vertices, GLfloat * normals, int numVertices, unsigned int * indexes, int numTriangles)
 :m_vertices(vertices)
 ,m_normals(normals)
 ,m_indexes(indexes)
@@ -87,6 +85,9 @@ void PreProcessor::calcNeighborhood()
   cout << endl;
   cout << "Media de neighbors por vertice:" << (float)mean/m_numVertices <<endl;
   cout << "Media de neighbors por vertice(%):" << ((((float)mean/m_numVertices)/m_numVertices)*100) <<endl;
+
+  delete []m_vertices;
+  delete []m_normals;
 }
 
 void PreProcessor::calcArea()
@@ -104,6 +105,7 @@ void PreProcessor::calcArea()
     }
     m_vertexInfo[i].area = area/3;
   }
+  delete [] m_indexes;
 }
 
 void PreProcessor::calcLightTerms()
@@ -139,8 +141,7 @@ void PreProcessor::calcLightTerms()
   float a_4pi = a/(4*PI);
   float e_pwr_ctr = pow(EULER,-ctr);
 
-  Vector3 wi = g_lightDirection.unitary();
-
+  Vector3 wi = m_lightDirection.unitary();
   m_vertexR = new vector<float>[m_numVertices];
   for(unsigned int i=0;i<m_numVertices;++i)
   {
@@ -157,8 +158,11 @@ void PreProcessor::calcLightTerms()
       float dr = sqrt(rr+zrzr);
       float dv = sqrt(rr+zvzv);
 
-      float Rd = a_4pi*(  zr*(ctr + 1/dr)*pow(e_pwr_ctr, dr)/(dr*dr) + 
-                          zv*(ctr + 1/dv)*pow(e_pwr_ctr, dv)/(dv*dv)  );
+      float Rd = a_4pi*(  zr*(ctr + 1/dr)*pow(EULER, -ctr*dr)/(dr*dr) + 
+                          zv*(ctr + 1/dv)*pow(EULER, -ctr*dv)/(dv*dv)  );
+
+      //float Rd = a_4pi*(  zr*(ctr + 1/dr)*pow(e_pwr_ctr, dr)/(dr*dr) + 
+      //  zv*(ctr + 1/dv)*pow(e_pwr_ctr, dv)/(dv*dv)  );
 
       m_vertexR[i].push_back(Rd);
 
@@ -258,6 +262,16 @@ void PreProcessor::setN( float n1, float n2 )
   m_n1 = n1;  m_n2 = n2;
 }
 
+Vector3 PreProcessor::getLightDirection() const
+{
+  return m_lightDirection;
+}
+
+void PreProcessor::setLightDirection( Vector3 val )
+{
+  m_lightDirection = val;
+}
+
 void PreProcessor::writeTextures( string fileName )
 {
   int sizeofVertexInfo = sizeof(VertexInfo);
@@ -284,9 +298,8 @@ void PreProcessor::writeTextures( string fileName )
   fwrite(m_vertexInfo, sizeof(VertexInfo), m_numVertices, fp );
   
   float *neighbors = new float[vertexNeighborSize/sizeof(float)];
-  int *Rs = new int[vertexRSize/sizeof(float)];
+
   int j = 0;
-  int k = 0;
   for(int i = 0; i<m_numVertices; ++i)
   {
     vector<float>::iterator it(m_vertexNeighbor[i].begin());
@@ -295,7 +308,15 @@ void PreProcessor::writeTextures( string fileName )
       neighbors[j] = *it;
       j++;
     }
+  }
+  fwrite(neighbors, sizeof(float), vertexNeighborSize/sizeof(float), fp );
+  delete []neighbors;
 
+
+  int *Rs = new int[vertexRSize/sizeof(float)];
+  int k = 0;
+  for(int i = 0; i<m_numVertices; ++i)
+  {
     vector<float>::iterator itR(m_vertexR[i].begin());
     for(; itR != m_vertexR[i].end();++itR)
     {
@@ -303,9 +324,10 @@ void PreProcessor::writeTextures( string fileName )
       k++;
     }
   }
-  fwrite(neighbors, sizeof(float), vertexNeighborSize/sizeof(float), fp );
   fwrite(Rs, sizeof(float), vertexRSize/sizeof(float), fp );
   fclose(fp);
+
+  delete []Rs;
 }
 
 void PreProcessor::calc()

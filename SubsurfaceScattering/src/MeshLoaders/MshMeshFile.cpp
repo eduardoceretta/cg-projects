@@ -85,16 +85,26 @@ void MshMeshFile::calcTriangles()
     Vector3 v2(vList[t2*3], vList[t2*3+1], vList[t2*3+2]);
     Vector3 v3(vList[t3*3], vList[t3*3+1], vList[t3*3+2]);
     Vector3 normal = (v2 - v1) ^ (v3 - v1);
+    normal = normal.unitary();
 
-    nList[t1*3] += normal.x;
-    nList[t1*3+1] += normal.y;
-    nList[t1*3+2] += normal.z;
-    nList[t2*3] += normal.x;
-    nList[t2*3+1] += normal.y;
-    nList[t2*3+2] += normal.z;
-    nList[t3*3] += normal.x;
-    nList[t3*3+1] += normal.y;
-    nList[t3*3+2] += normal.z;
+    Vector3 nListT1(nList[t1*3], nList[t1*3+1], nList[t1*3+1]);
+    Vector3 normalT1 = (nListT1 + normal).unitary();
+    nList[t1*3] = normalT1.x;
+    nList[t1*3+1] = normalT1.y;
+    nList[t1*3+2] = normalT1.z;
+
+    Vector3 nListT2(nList[t2*3], nList[t2*3+1], nList[t2*3+1]);
+    Vector3 normalT2 = (nListT2 + normal).unitary();
+    nList[t2*3] = normalT2.x;
+    nList[t2*3+1] = normalT2.y;
+    nList[t2*3+2] = normalT2.z;
+
+    Vector3 nListT3(nList[t3*3], nList[t3*3+1], nList[t3*3+1]);
+    Vector3 normalT3 = (nListT3 + normal).unitary();
+    nList[t3*3] = normalT3.x;
+    nList[t3*3+1] = normalT3.y;
+    nList[t3*3+2] = normalT3.z;
+
 
     iList[i*3] = t1;
     iList[i*3+1] = t2;
@@ -104,7 +114,10 @@ void MshMeshFile::calcTriangles()
   for(int i = 0; i < numVertex; ++i)
   {
     Vector3 normal(nList[i*3], nList[i*3+1], nList[i*3+2]);
+    if(normal == Vector3(0,0,0))
+      normal = Vector3(0,1,0);
     normal = normal.unitary();
+
     nList[i*3] = normal.x;
     nList[i*3+1] = normal.y;
     nList[i*3+2] = normal.z;

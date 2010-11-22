@@ -10,6 +10,7 @@
 
 #include "Kernels/KernelFresnel.h"
 #include "Kernels/KernelBleed.h"
+#include "Kernels/KernelOnePass.h"
 
 #include "MeshLoaders/MeshLoader.h"
 #include "Objects\Scene.h"
@@ -48,11 +49,11 @@ GLFont fontRender;
 
 //Kernels
 KernelFresnel *kernelFresnel;
-KernelBleed *kernelBleed;
+KernelBleed   *kernelBleed;
+KernelOnePass *kernelOnePass;
 
-//Program Options
-typedef enum {Regular, SubSurfaceScattering, Bleed} OptionsState;
-OptionsState optionsState = Bleed;
+typedef enum {Regular, Fresnel, Bleed, OnePass} OptionsState;
+OptionsState optionsState = OnePass;
 
 //Debug
 GLenum e;
@@ -152,13 +153,17 @@ void keyboard(unsigned char key, int x, int y){
       optionsState = Regular;
       cout << "Shader Off" << endl;
     break;
-    case '2':
-      optionsState = SubSurfaceScattering;
-      cout << "Shader On" << endl;
-    break;
-    case '3':
-      optionsState = Bleed;
-      cout << "Bleed On" << endl;
+    //case '2':
+    //  optionsState = Fresnel;
+    //  cout << "Shader On" << endl;
+    //break;
+    //case '3':
+    //  optionsState = Bleed;
+    //  cout << "Bleed On" << endl;
+    //break;
+    case '4':
+      optionsState = OnePass;
+      cout << "OnePass On" << endl;
     break;
 
     case 'A':
@@ -277,6 +282,21 @@ typedef struct
 }StexFileInfo;
 StexFileInfo stexFileInfo;
 
+typedef struct
+{
+  int max_tex_size;
+  int sizeofVertexInfo;
+  int numVertices;
+  int vertexInfoSize, vertexInfoW, vertexInfoH;
+  int vertexqSize, vertexqW, vertexqH;
+  int sphereDivAlpha, sphereDivTeta;
+
+  float *vertexInfo, *vertexq;
+
+  GLuint vertexInfoTexId ,vertexqTexId;
+}S2texFileInfo;
+S2texFileInfo s2texFileInfo;
+
 StexFileInfo createTexturesFromPreProcess(string fileName)
 {
   StexFileInfo ret;
@@ -365,6 +385,73 @@ StexFileInfo createTexturesFromPreProcess(string fileName)
   return ret;
 }
 
+
+S2texFileInfo createTexturesFromPreProcess2(string fileName)
+{
+  S2texFileInfo ret;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &ret.max_tex_size);
+
+  FILE *fp;
+  fp = fopen(fileName.c_str(), "rb");
+  MyAssert("Invalid FileName: " + fileName, fp);
+
+  fread(&ret.numVertices, sizeof(int), 1, fp);
+  fread(&ret.sizeofVertexInfo, sizeof(int), 1, fp);
+  fread(&ret.vertexInfoSize, sizeof(int), 1, fp);
+  fread(&ret.vertexqSize, sizeof(int), 1, fp);
+  fread(&ret.sphereDivAlpha, sizeof(int), 1, fp);
+  fread(&ret.sphereDivTeta, sizeof(int), 1, fp);
+
+  ret.vertexInfoW = ret.vertexqW = ret.max_tex_size;
+  ret.vertexInfoH = (ret.vertexInfoSize/sizeof(float)/4)/ret.max_tex_size + 1;
+  ret.vertexqH = (ret.vertexqSize/sizeof(float))/ret.max_tex_size + 1;
+
+  ret.vertexInfo = new float[ret.vertexInfoW * ret.vertexInfoH * 4];
+  fread(ret.vertexInfo, sizeof(float), ret.vertexInfoSize/sizeof(float), fp );
+
+  ret.vertexq = new float[ret.vertexqW * ret.vertexqH * 4];
+  fread(ret.vertexq, sizeof(float), ret.vertexqSize/sizeof(float), fp );
+
+  fclose(fp);
+
+  glGenTextures(1, &ret.vertexInfoTexId);
+  glBindTexture(GL_TEXTURE_2D, ret.vertexInfoTexId);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, ret.vertexInfoW, ret.vertexInfoH, 0, GL_RGBA, GL_FLOAT, ret.vertexInfo);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+
+  glGenTextures(1, &ret.vertexqTexId);
+  glBindTexture(GL_TEXTURE_2D, ret.vertexqTexId);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, ret.vertexqW, ret.vertexqH, 0, GL_ALPHA, GL_FLOAT, ret.vertexq);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  return ret;
+}
+
+
+
+
 GLuint getTextureWidth(GLuint id)
 {
   GLint textureWidth;
@@ -399,7 +486,7 @@ void getTextureData(GLuint id, GLfloat * buffer)
 GLfloat * buffer;
 void createScenes()
 {
-  //rtScene = new Scene("./resources/scenes/scene1.rt4");
+  rtScene = new Scene("./resources/scenes/scene1.rt4");
   //rtScene->configure();
   //rtScene->setLightEnabled(false);
 
@@ -408,6 +495,13 @@ void createScenes()
   string path = "./resources/Models/";
   string fileName = "dragon_low";
 
+
+  //stexFileInfo = createTexturesFromPreProcess(path+fileName+".stex");
+  //cout << "Textures Loaded!"<<endl;
+  s2texFileInfo = createTexturesFromPreProcess2(path+fileName+".s2tex");
+  cout << "Textures Loaded!"<<endl;
+
+
   MeshLoader m;
   m.readFile(path+fileName+".msh");
 
@@ -415,38 +509,49 @@ void createScenes()
 
   vbo = m.getVbo();
   GLfloat *texCoords = new GLfloat[numVertices*2];
+  int line = 0;
+  int numLines = s2texFileInfo.vertexInfoH;
+  //int numLines = numVertices/s2texFileInfo.max_tex_size;
   for(int i=0; i < numVertices*2 ; i+=2)
   {
-    texCoords[i] = (float)i/2;
-    texCoords[i+1] = 0.0;
+    if(i/2 > s2texFileInfo.max_tex_size*(line+1))
+      line++;
+    texCoords[i] = ((float)(i/2 - s2texFileInfo.max_tex_size*line ))/s2texFileInfo.max_tex_size;
+    texCoords[i+1] = (float)(line)/numLines;
   }
 
   vbo->setVBOBuffer(GL_TEXTURE_COORD_ARRAY, GL_FLOAT, numVertices, texCoords);
-  //vbo->setPrimitive(GL_POINTS);
+
   vbo->calcVBO();
   cout << "Model:"<<fileName<<" Loaded!"<<endl;
 
 
-  stexFileInfo = createTexturesFromPreProcess(path+fileName+".stex");
-  cout << "Textures Loaded!"<<endl;
 
 
-  kernelFresnel = new KernelFresnel(stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH, stexFileInfo.vertexInfoTexId
-                                      , stexFileInfo.numVertices, stexFileInfo.sizeofVertexInfo);
+
+  /*kernelFresnel = new KernelFresnel(stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH, stexFileInfo.vertexInfoTexId
+                                      , stexFileInfo.numVertices, stexFileInfo.sizeofVertexInfo);*/
 
 
-  kernelBleed = new KernelBleed(stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH
+  //kernelBleed = new KernelBleed(stexFileInfo.max_tex_size, numLines
+    /*kernelBleed = new KernelBleed(stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH
                                 ,stexFileInfo.numVertices, stexFileInfo.sizeofVertexInfo
                                 ,stexFileInfo.vertexInfoTexId
                                 ,stexFileInfo.vertexNeighborIndexTexId, stexFileInfo.vertexNeighborIndexH*stexFileInfo.vertexNeighborIndexW
                                 ,stexFileInfo.vertexNeighborRTexId, stexFileInfo.vertexNeighborRH*stexFileInfo.vertexNeighborRW
-                                ,kernelFresnel->getTexIdFresnel());
-
+                                ,kernelFresnel->getTexIdFresnel(),stexFileInfo.vertexInfoW*stexFileInfo.vertexInfoH);
+ */   
+    
+    kernelOnePass = new KernelOnePass(s2texFileInfo.vertexInfoW, s2texFileInfo.vertexInfoH
+      ,s2texFileInfo.numVertices, s2texFileInfo.sizeofVertexInfo
+      ,s2texFileInfo.vertexInfoTexId
+      ,s2texFileInfo.vertexqTexId, s2texFileInfo.vertexqW*s2texFileInfo.vertexqH
+      ,s2texFileInfo.sphereDivTeta, s2texFileInfo.sphereDivAlpha);
 
 
 
   //DEBUG
-  buffer = new GLfloat[getTextureWidth(stexFileInfo.vertexInfoTexId)*getTextureHeight(stexFileInfo.vertexInfoTexId)*4];
+  buffer = new GLfloat[getTextureWidth(s2texFileInfo.vertexInfoTexId)*getTextureHeight(s2texFileInfo.vertexInfoTexId)*4];
 
 /*    
   kernelShade = new KernelShade(appWidth, appHeight,
@@ -469,7 +574,7 @@ void createScenes()
   
 }
 
-
+#define SHADER 1
 
 void render(){
   float fpsec = fps.getFrames();
@@ -493,30 +598,76 @@ void render(){
   {
     case Regular:
        //renderScreenQuad(kernelFresnel->getTexIdFresnel());
-       renderScreenQuad(kernelBleed->getTexIdColor());
        //getTextureData(kernelFresnel->getTexIdFresnel(), buffer);
-       getTextureData(kernelBleed->getTexIdColor(), buffer);
-    break;
-    case Bleed:
-      kernelBleed->setShaderActive(true);
+#if SHADER
 
-      //kernelBleed->setActive(true);
-      //glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-
-      //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-      //glPointSize(30);
-      //glViewport(0, 0,  stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH); //Render the texture as full screen
-      glScalef(500,500,500);
-      vbo->configure();
-      vbo->render();
+#else
+      //renderScreenQuad(kernelBleed->getTexIdColor());
+      //getTextureData(kernelBleed->getTexIdColor(), buffer);
+      
+      renderScreenQuad(kernelOnePass->getTexIdColor());
+      getTextureData(kernelOnePass->getTexIdColor(), buffer);
+      printf("");
+#endif
     break;
-    case SubSurfaceScattering:
+    case Fresnel:
       kernelFresnel->setActive(true);
       glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-      
+
       glViewport(0, 0,  stexFileInfo.vertexInfoW, stexFileInfo.vertexInfoH); //Render the texture as full screen
       renderScreenQuad();
     break;
+
+
+    case Bleed:
+#if SHADER
+      kernelBleed->setShaderActive(true);
+#else
+      kernelBleed->setActive(true);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+
+      //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+      //glPointSize(30);
+      glViewport(0, 0,  stexFileInfo.vertexInfoW,stexFileInfo.vertexInfoH); //Render the texture as full screen
+      vbo->setPrimitive(GL_POINTS);
+#endif   
+      vbo->configure();
+      vbo->render();
+    break;
+
+
+    case OnePass:
+#if SHADER
+      kernelOnePass->setShaderActive(true);
+#else
+      kernelOnePass->setActive(true);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+
+      //glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+      //glPointSize(30);
+      glViewport(0, 0,  s2texFileInfo.vertexInfoW,s2texFileInfo.vertexInfoH); //Render the texture as full screen
+      vbo->setPrimitive(GL_POINTS);
+#endif
+      static float a=0;
+      Vector3 axis = Vector3(0,1,0);
+      a+=.5;
+      glPushMatrix();
+      glRotated(a,axis.x, axis.y, axis.z);
+      glTranslated(100,100,0);
+
+      glutSolidTeapot(5);
+      glPopMatrix();
+
+      glPushMatrix();
+      glRotated(a,axis.x, axis.y, axis.z);
+
+      rtScene->setLightActive(true);
+      glPopMatrix();
+      vbo->configure();
+      vbo->render();
+      rtScene->setLightActive(false);
+    break;
+    
   }
 
   
@@ -543,19 +694,32 @@ void render(){
   switch(optionsState)
   {
     case Regular:
+      rtScene->configure();
+      rtScene->render();
     break;
-    case Bleed:
-      kernelBleed->setShaderActive(false);
-
-      //kernelBleed->setActive(false);
-      //kernelBleed->renderOutput(KernelBleed::Bleed);
-    break;
-    case SubSurfaceScattering:
+    case Fresnel:
       kernelFresnel->setActive(false);
       kernelFresnel->renderOutput(KernelFresnel::Fresnel);
     break;
-   }
+    case Bleed:
+#if SHADER
+      kernelBleed->setShaderActive(false);
+#else
+      kernelBleed->setActive(false);
+      kernelBleed->renderOutput(KernelBleed::Bleed);
+#endif
+    break;
+    case OnePass:
+#if SHADER
+      kernelOnePass->setShaderActive(false);
+#else
+      kernelOnePass->setActive(false);
+      kernelOnePass->renderOutput(KernelOnePass::OnePass);
+#endif
+    break;
 
+   }
+ 
 
 
   //glEnable(GL_COLOR_MATERIAL);
@@ -623,7 +787,7 @@ void render(){
 
   if(rtScene)
   {
-    (a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
+    sprintf(a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
     fontRender.print(appWidth*.80,appHeight*.05,a, Color(0., 0., 0.));
   
     sprintf(a,"%d Lights", rtScene->getNumLights());

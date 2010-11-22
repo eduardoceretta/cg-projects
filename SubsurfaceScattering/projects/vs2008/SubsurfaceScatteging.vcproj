@@ -92,8 +92,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)..\..\bin\$(ConfigurationName)"
+			IntermediateDirectory="$(SolutionDir)..\..\bin\obj\$(ConfigurationName)"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -167,6 +167,62 @@
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
+		<Configuration
+			Name="Meio|Win32"
+			ConfigurationType="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
 	</Configurations>
 	<References>
 	</References>
@@ -193,6 +249,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\Kernels\KernelFresnel.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelOnePass.cpp"
 					>
 				</File>
 			</Filter>
@@ -339,6 +399,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\Kernels\KernelFresnel.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelOnePass.h"
 					>
 				</File>
 			</Filter>
@@ -493,6 +557,14 @@
 				</File>
 				<File
 					RelativePath="..\..\resources\Shaders\fresnel.vert"
+					>
+				</File>
+				<File
+					RelativePath="..\..\resources\Shaders\onePass.frag"
+					>
+				</File>
+				<File
+					RelativePath="..\..\resources\Shaders\onePass.vert"
 					>
 				</File>
 			</Filter>
