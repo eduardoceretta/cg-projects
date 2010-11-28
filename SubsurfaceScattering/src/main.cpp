@@ -28,6 +28,7 @@ int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
 Frames fps;
+Frames fps2;
 
 bool polygonModeFill = true;
 
@@ -493,7 +494,7 @@ void createScenes()
   GLfloat amb [] = {0.2,0.2,0.2,1};
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
   string path = "./resources/Models/";
-  string fileName = "dragon_low";
+  string fileName = "buddha_low";
 
 
   //stexFileInfo = createTexturesFromPreProcess(path+fileName+".stex");
@@ -578,6 +579,12 @@ void createScenes()
 
 void render(){
   float fpsec = fps.getFrames();
+  float fp_last = fps2.getTimeFromLastFrame ();
+
+  static float a=0;
+  Vector3 axis = Vector3(0,1,0);
+  a+=20*fp_last;
+
   float x = camR*sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
   float y = camR*sin(DEG_TO_RAD(camAlpha));
   float z = camR*cos(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
@@ -648,10 +655,10 @@ void render(){
       glViewport(0, 0,  s2texFileInfo.vertexInfoW,s2texFileInfo.vertexInfoH); //Render the texture as full screen
       vbo->setPrimitive(GL_POINTS);
 #endif
-      static float a=0;
-      Vector3 axis = Vector3(0,1,0);
-      a+=.5;
+
       glPushMatrix();
+      glTranslated (0,-70,0);
+            glPushMatrix();
       glRotated(a,axis.x, axis.y, axis.z);
       glTranslated(100,100,0);
 
@@ -666,6 +673,7 @@ void render(){
       vbo->configure();
       vbo->render();
       rtScene->setLightActive(false);
+            glPopMatrix();
     break;
     
   }
@@ -694,8 +702,31 @@ void render(){
   switch(optionsState)
   {
     case Regular:
-      rtScene->configure();
-      rtScene->render();
+      {
+
+      glPushMatrix();
+      glRotated(a,axis.x, axis.y, axis.z);
+      glTranslated(100,100-70,0);
+
+      glutSolidTeapot(5);
+      glPopMatrix();
+
+      glPushMatrix();
+      glRotated(a,axis.x, axis.y, axis.z);
+
+      rtScene->setLightActive(true);
+      
+      glPopMatrix();
+      rtScene->setMaterialActive(true, 0);
+      
+      rtScene->renderMesh (0);
+      
+      rtScene->setMaterialActive(false, 0);
+      rtScene->setLightActive(false);
+      //rtScene->configure();
+      //rtScene->render();
+      }
+
     break;
     case Fresnel:
       kernelFresnel->setActive(false);
@@ -783,19 +814,19 @@ void render(){
 
   fontRender.initText();
 
-  char a[100];
+  char ar[100];
 
   if(rtScene)
   {
-    sprintf(a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
-    fontRender.print(appWidth*.80,appHeight*.05,a, Color(0., 0., 0.));
+    sprintf(ar,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
+    fontRender.print(appWidth*.80,appHeight*.05,ar, Color(0., 0., 0.));
   
-    sprintf(a,"%d Lights", rtScene->getNumLights());
-    fontRender.print(appWidth*.80,appHeight*.05 + 25,a, Color(0., 0., 0.));
+    sprintf(ar,"%d Lights", rtScene->getNumLights());
+    fontRender.print(appWidth*.80,appHeight*.05 + 25,ar, Color(0., 0., 0.));
   }
 
-  sprintf(a,"%.2f FPS", fpsec);
-  fontRender.print(appWidth*.85,appHeight*.85+55,a, Color(0., 0., 0.));
+  sprintf(ar,"%.2f FPS", fpsec);
+  fontRender.print(appWidth*.85,appHeight*.85+55,ar, Color(0., 0., 0.));
 
   fontRender.endText();
   glPopAttrib();

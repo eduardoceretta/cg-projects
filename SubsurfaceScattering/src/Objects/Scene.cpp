@@ -277,3 +277,22 @@ void Scene::setLightActive( bool op )
     glPopAttrib();
   }
 }
+
+void Scene::setMaterialActive( bool op , int index)
+{
+  if(op)
+  {
+    glPushAttrib(GL_LIGHTING_BIT);
+    mMaterials[mMeshes[index].getMaterialIndex()].configure();
+    mMaterials[mMeshes[index].getMaterialIndex()].render();
+  }else
+  {
+    glPopAttrib();
+  }
+}
+
+void Scene::renderMesh(int index)
+{
+  mMeshes[index].configure();
+  mMeshes[index].render();
+}
