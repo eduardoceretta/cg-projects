@@ -169,6 +169,7 @@
 		</Configuration>
 		<Configuration
 			Name="Meio|Win32"
+			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool

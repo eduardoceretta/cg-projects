@@ -50,6 +50,10 @@ class Scene
       bool isLightEnabled() const;
       void setLightEnabled(bool val);
       void setLightActive(bool op);
+      void setMaterialActive(bool op, int index);
+      void renderMesh(int index);
+
+
 
 protected:
       void readFromStr(char buffer[]);

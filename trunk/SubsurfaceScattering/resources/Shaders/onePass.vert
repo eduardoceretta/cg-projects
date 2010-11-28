@@ -102,7 +102,9 @@ void main()
 	float ft2 = 1-calcFresnelTransmissionTerm(normalize(gl_Normal), 
 		normalize(gl_ModelViewMatrixInverse*vec4(0,0,0,1) - gl_ModelViewMatrixInverse*gl_Position).xyz, n1, n2);
 	
-	vec4 scatter = qq.a*vec4(.5,0.,0.,1.);
+	//vec4 scatter = qq.a*vec4(.2,.5,0.2,1.); //Bunny
+	vec4 scatter = qq.a*vec4(.2,.2,.6,1.); //Buddha
+	//vec4 scatter = qq.a*vec4(.5,.0,0.0,1.); //dragon
 	
 	color = scatter;
 	normalR = gl_NormalMatrix*gl_Normal;
