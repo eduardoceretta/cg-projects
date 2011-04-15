@@ -32,7 +32,7 @@ protected:
 	GLuint addOutput(int index, GLuint textureId = -1);
   GLuint setInputTexture(GLenum textureDimension, char* name, GLuint id, int index);
   GLuint setOutput(int index, GLuint textureId);
-
+  void renderScreenQuad();
   FrameBufferObject* m_fbo;
 	Shader* m_shader;
   std::vector<std::pair<GLenum, GLuint>> m_inputTextures;

@@ -5,7 +5,6 @@
 #include <string>
 
 #include "GraphBasis/Vector3.h"
-#include "Objects/Triangle.h"
 
 using namespace std;
 
@@ -17,12 +16,12 @@ class Mesh
 
    protected:
       VertexBufferObject* mVbo;
-      bool mCalculed;
+
+      bool mCalculated;
 
       int mMaterialIndex;
       Vector3 mPos;
-      Vector3 mPos2;
-      vector<Triangle> mTriangles;
+      Vector3 mScale;
 
       int myMeshNum;
    public:
@@ -32,12 +31,10 @@ class Mesh
       void readFromStr(char buffer[]);
 
       int getMaterialIndex();
-	  std::vector<Triangle>* getTriangles();
+      VertexBufferObject* getVbo() const;
 
       void configure();
       void render();
    protected:
-       void calcVBO();
-       void applyScaleTranslateToVertexes() ;
 };
 

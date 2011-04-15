@@ -6,6 +6,7 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
+#include "main.h"
 #include "Objects/Scene.h"
 
 using namespace std;
@@ -35,7 +36,7 @@ void Scene :: readFromFile(string rt4FileName)
 	char buffer[1024];
 
 	file = fopen(rt4FileName.c_str(), "rt");
-	assert(file);
+  MyAssert("File Not Found: " + rt4FileName, file);
 
 	int numScene = 0;
 	int numCamera = 0;
@@ -138,7 +139,6 @@ void Scene :: configure()
   }
   if(m_lightEnabled)
   {
-     
     vector<LightObj> :: iterator lightIt;
     for( lightIt = mLights.begin(); lightIt!=mLights.end(); ++lightIt)
     {
@@ -255,4 +255,44 @@ int Scene::getNumLights()
 unsigned int Scene::getSceneNumTriangles()
 {
   return Triangle::getMaxNumTriangles();
+}
+
+void Scene::setLightActive( bool op )
+{
+  if(op)
+  {
+    if(m_lightEnabled)
+    {
+      glPushAttrib(GL_LIGHTING_BIT);
+     
+      vector<LightObj> :: iterator lightIt;
+      for( lightIt = mLights.begin(); lightIt!=mLights.end(); ++lightIt)
+      {
+        lightIt->configure();
+        lightIt->render();
+      }
+
+    }
+  }else {
+    glPopAttrib();
+  }
+}
+
+void Scene::setMaterialActive( bool op , int index)
+{
+  if(op)
+  {
+    glPushAttrib(GL_LIGHTING_BIT);
+    mMaterials[mMeshes[index].getMaterialIndex()].configure();
+    mMaterials[mMeshes[index].getMaterialIndex()].render();
+  }else
+  {
+    glPopAttrib();
+  }
+}
+
+void Scene::renderMesh(int index)
+{
+  mMeshes[index].configure();
+  mMeshes[index].render();
 }

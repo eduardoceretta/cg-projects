@@ -38,16 +38,15 @@ typedef struct vbobuffer
    {
       switch(clientState)
       {
+//         case GL_SECONDARY_COLOR_ARRAY:
          case GL_NORMAL_ARRAY:
          case GL_COLOR_ARRAY:  //assume cores em RGB e vertices em 3D
-
-//         case GL_SECONDARY_COLOR_ARRAY:
          case GL_VERTEX_ARRAY:
             return n*sizeof(type)*3;
          case GL_TEXTURE_COORD_ARRAY:
             return n*sizeof(type)*2;
-         case GL_INDEX_ARRAY:
 //         case GL_FOG_COORD_ARRAY:
+         case GL_INDEX_ARRAY:
          case GL_EDGE_FLAG_ARRAY:
             return n*sizeof(type);
       }
@@ -66,7 +65,6 @@ typedef struct vbobuffer
             glColorPointer(3, type,  0, (GLvoid*)offset);
          break;
          case GL_VERTEX_ARRAY: //assume que sejam vertices em 3D
-
             glVertexPointer(3, type,  0, (GLvoid*)offset);
          break;
          case GL_TEXTURE_COORD_ARRAY:
@@ -124,8 +122,12 @@ public:
    void configure();
    void render();
 
+   GLenum getPrimitive() const;
+   void setPrimitive(GLenum val);
+
    void setVBOBuffer(GLenum clientState, GLenum type, int n, void* data);
    void setVBOIndexBuffer(GLenum type, int n, void* data);
 
-
+  void writeToFile(FILE * fp);
+  void readFromFile(FILE * fp);
 };

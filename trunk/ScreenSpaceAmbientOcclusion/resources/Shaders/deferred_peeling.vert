@@ -1,5 +1,6 @@
 varying vec4 pos;
 varying vec3 normal;
+varying vec3 lightDir;
 
 
 void main()
@@ -9,5 +10,6 @@ void main()
 
    pos = gl_ModelViewMatrix*gl_Vertex;
    normal = gl_NormalMatrix*gl_Normal;
+   lightDir = gl_NormalMatrix*vec3(1,1,1);
 //   normal = gl_Normal;
 }

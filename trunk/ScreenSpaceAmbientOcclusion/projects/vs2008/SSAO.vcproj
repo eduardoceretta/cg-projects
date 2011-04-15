@@ -195,6 +195,10 @@
 					RelativePath="..\..\src\Kernels\KernelDeferred_Peeling.cpp"
 					>
 				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelSSAO.cpp"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="GraphBasis"
@@ -296,6 +300,50 @@
 					>
 				</File>
 			</Filter>
+			<Filter
+				Name="MeshLoaders"
+				>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MeshFileBase.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MeshFileBase.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MeshLoader.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MeshLoader.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MsbMeshFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MsbMeshFile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MshMeshFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\MshMeshFile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\UmMeshFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\UmMeshFile.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -319,6 +367,10 @@
 				</File>
 				<File
 					RelativePath="..\..\src\Kernels\KernelDeferred_Peeling.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\Kernels\KernelSSAO.h"
 					>
 				</File>
 			</Filter>
@@ -453,6 +505,14 @@
 				</File>
 				<File
 					RelativePath="..\..\resources\Shaders\deferred_peeling.vert"
+					>
+				</File>
+				<File
+					RelativePath="..\..\resources\Shaders\ssao.frag"
+					>
+				</File>
+				<File
+					RelativePath="..\..\resources\Shaders\ssao.vert"
 					>
 				</File>
 			</Filter>

@@ -45,10 +45,15 @@ class Scene
       GLuint getLightsTexId();
       GLfloat getLightsTexSize();
       int getNumLights();
-      	    unsigned int getSceneNumTriangles();
+      unsigned int getSceneNumTriangles();
 
       bool isLightEnabled() const;
       void setLightEnabled(bool val);
+      void setLightActive(bool op);
+      void setMaterialActive(bool op, int index);
+      void renderMesh(int index);
+
+
 
 protected:
       void readFromStr(char buffer[]);
