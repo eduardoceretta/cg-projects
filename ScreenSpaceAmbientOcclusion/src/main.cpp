@@ -16,6 +16,7 @@
 #include "Objects/Scene.h"
 #include "Kernels/KernelDeferred.h"
 #include "Kernels/KernelDeferred_Peeling.h"
+#include "Kernels/KernelSSAO.h"
 
 #include "main.h"
 
@@ -60,6 +61,7 @@ float fpsec;
 Scene* rtScene;
 KernelDeferred* kernelDeferred;
 KernelDeferred_Peeling* kernelDeferred_Peeling;
+KernelSSAO* kernelSSAO;
 
 GLFont fontRender;
 
@@ -402,9 +404,18 @@ void createScenes()
 
 
   kernelDeferred_Peeling = new KernelDeferred_Peeling(appWidth, appHeight
-    ,dummyTexId
-    //,kernelDeferred->getTexIdNormal()
+    ,dummyTexId ,3
   );
+
+  kernelSSAO = new KernelSSAO(appWidth, appHeight
+    ,kernelDeferred_Peeling->getTexIdDiffuse(0)
+    ,kernelDeferred_Peeling->getTexIdSpecular(0)
+    ,kernelDeferred_Peeling->getTexIdPosition(0)
+    ,kernelDeferred_Peeling->getTexIdNormal(0)
+    ,kernelDeferred_Peeling->getTexIdNormal(1)
+    ,kernelDeferred_Peeling->getTexIdNormal(2)
+  );
+
 
   rtScene = new Scene("./resources/scenes/cavalo.rt4");
   //rtScene->configure();
@@ -412,8 +423,9 @@ void createScenes()
 
 
 
-  //texDebug = new TextureObject(dummyTexId);
-    texDebug = new TextureObject(kernelDeferred->getTexIdPosition());
+  texDebug = new TextureObject(dummyTexId);
+    //texDebug = new TextureObject(kernelDeferred->getTexIdPosition());
+
 
 }
 
@@ -434,6 +446,8 @@ void render(){
   //int h = texDebug->getTextureHeight();
   //printf("");
 
+  GLfloat projectionMatrix[16];
+  glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
   for(int i=0; i < numPeelings; ++i)
   {
@@ -449,16 +463,29 @@ void render(){
     kernelDeferred_Peeling->setActive(false);
   }
 
-  if(outputSelection)
+
+  float x = projectionMatrix[0*4+0];
+  float y = projectionMatrix[1*4+1];
+  float z = projectionMatrix[2*4+2];
+  float w = projectionMatrix[3*4+2];
+  float Znear = w/(z - 1.0);
+  float Zfar = w * Znear/(w + 2.0 * Znear);
+  float right = Znear/x;
+  float top = Znear/y;
+
+  kernelSSAO->step(Znear, Zfar, right, top);
+  kernelSSAO->renderOutput(0);
+
+  /*if(outputSelection)
     texDebug->setId(kernelDeferred_Peeling->getTexIdNormal(outputIndexSelection));
   else 
     texDebug->setId(kernelDeferred_Peeling->getTexIdPosition(outputIndexSelection));
-  texDebug->renderTexture();
+  texDebug->renderTexture();*/
 
-  GLfloat *buffer = texDebug->getTextureData();
-  int w = texDebug->getTextureWidth();
-  int h = texDebug->getTextureHeight();
-  printf("");
+  //GLfloat *buffer = texDebug->getTextureData();
+  //int w = texDebug->getTextureWidth();
+  //int h = texDebug->getTextureHeight();
+  //printf("");
 
   //kernelDeferred_Peeling->renderOutput(1);
 /*

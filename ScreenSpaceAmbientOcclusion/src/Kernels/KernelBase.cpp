@@ -103,6 +103,37 @@ void KernelBase::renderQuad(){
   glEnd();
 }
 
+void KernelBase::renderScreenQuad(){
+  glPushAttrib(GL_ENABLE_BIT);
+  glMatrixMode(GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity();
+  gluOrtho2D(0, 1, 0, 1);
+  glMatrixMode(GL_MODELVIEW);
+  glPushMatrix();
+  glLoadIdentity();
+
+
+  glEnable(GL_TEXTURE_1D);
+  glEnable(GL_TEXTURE_2D);
+
+  activateTextures();
+  glColor3f(1,1,1);
+  glBegin(GL_QUADS);
+  glTexCoord2f(0,0); glVertex3f(0,0,0);
+  glTexCoord2f(1,0); glVertex3f(1,0,0);
+  glTexCoord2f(1,1); glVertex3f(1,1,0);
+  glTexCoord2f(0,1); glVertex3f(0,1,0);
+  glEnd();
+
+
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
+  glPopMatrix();
+  glPopAttrib();
+}
+
 void KernelBase::renderShader()
 {
   glPushAttrib(GL_ENABLE_BIT);
@@ -140,8 +171,8 @@ void KernelBase::renderShader()
 void KernelBase::step(){
 	m_fbo->setActive(true);
 	m_shader->setActive(true);
-	activateTextures();
-	renderQuad();
+	//activateTextures();
+	renderScreenQuad();
 	m_shader->setActive(false);
 	m_fbo->setActive(false);
 }

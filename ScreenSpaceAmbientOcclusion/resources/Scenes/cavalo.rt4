@@ -37,7 +37,8 @@ LIGHT 100. 100. 100.   204 204. 204.   255. 255. 255.
 
 
 
-MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/dragon_high.msh
+# MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/dragon_high.msb
+MESH 1  0. 0. 0.     90. 90. 90.  resources/Models/cube.msh
 # MESH 1  -300. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 # MESH 0  -200. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 # MESH 2  -100. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
