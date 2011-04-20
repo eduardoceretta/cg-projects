@@ -4,9 +4,11 @@
 #include <cmath>
 
 #include "GraphBasis/Vector3.h"
+#include "GraphBasis/Matrix4.h"
 #include "GraphBasis/Shader.h"
 #include "GraphBasis/GLFont.h"
 #include "GraphBasis/Frames.h"
+
 #include "GraphBasis/TextureObject.h"
 
 #include "Light/PointLight.h"
@@ -39,8 +41,9 @@ int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
 int outputSelection = 0;
-int numPeelings = 2;
+int numPeelings = 1;
 int outputIndexSelection = 0;
+bool shader_on = true;
 
 //Camera Position
 float camAlpha = 0.0;
@@ -150,6 +153,9 @@ void keyboardSpecial(int key, int x, int y){
          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
       polygonModeFill = !polygonModeFill;
+      break;
+    case 11:
+      shader_on = !shader_on;
       break;
   }
 
@@ -423,12 +429,20 @@ void createScenes()
 
 
 
-  texDebug = new TextureObject(dummyTexId);
+  texDebug = new TextureObject(kernelSSAO->getColorTexId());
     //texDebug = new TextureObject(kernelDeferred->getTexIdPosition());
 
 
 }
 
+
+
+GLfloat *buffer = NULL;
+float *radiuses = NULL;
+Vector3 *positions = NULL; 
+float mvi [16];
+int numspheres = 0;
+int t = 0;
 
 
 
@@ -437,21 +451,136 @@ void createScenes()
 void render(){
   fpsec = fps.getFrames();
   setupCamera();
-  
-  GLfloat lightModelViewMatrix[16];
-  glGetFloatv(GL_MODELVIEW_MATRIX, lightModelViewMatrix);
- 
-  //GLfloat *buffer = texDebug->getTextureData();
-  //int w = texDebug->getTextureWidth();
-  //int h = texDebug->getTextureHeight();
-  //printf("");
 
-  GLfloat projectionMatrix[16];
-  glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
-
-  for(int i=0; i < numPeelings; ++i)
+  if(!shader_on)
   {
-    kernelDeferred_Peeling->step(i);
+    //glEnable(GL_CULL_FACE);
+    rtScene->configure();
+    rtScene->render();
+  }
+  {
+    if(t == 0)
+    {
+      GLfloat lightModelViewMatrix[16];
+      glGetFloatv(GL_MODELVIEW_MATRIX, lightModelViewMatrix);
+
+      GLfloat modelViewMatrix[16];
+      glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrix);
+
+      Matrix4 mvi = Matrix4((float*)modelViewMatrix);
+      mvi.Inverse();
+      mvi.Transpose();
+     
+      GLfloat projectionMatrix[16];
+      glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
+
+      for(int i=0; i < numPeelings; ++i)
+      {
+        kernelDeferred_Peeling->step(i);
+        kernelDeferred_Peeling->setActive(true);
+
+        glClearColor(.8, .8, 1.0, -1.0);
+        glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+        glDisable(GL_CULL_FACE);
+        //glEnable(GL_CULL_FACE);
+        rtScene->configure();
+        rtScene->render();
+
+        kernelDeferred_Peeling->setActive(false);
+      }
+      //kernelDeferred_Peeling->renderOutput(0);
+
+      float x = projectionMatrix[0*4+0];
+      float y = projectionMatrix[1*4+1];
+      float z = projectionMatrix[2*4+2];
+      float w = projectionMatrix[3*4+2];
+      float Znear = w/(z - 1.0);
+      float Zfar = w * Znear/(w + 2.0 * Znear);
+      float right = Znear/x;
+      float top = Znear/y;
+      
+
+      kernelSSAO->step(Znear, Zfar, right, top);
+      texDebug->setId(kernelSSAO->getColorTexId());
+      
+      
+      
+      buffer = texDebug->getTextureData();
+      int width = texDebug->getTextureWidth();
+      int height = texDebug->getTextureHeight();
+      
+      numspheres = 0;
+      for(int i = height-1; i >= 0; --i)
+      {
+        for(int j = 0; j < width; ++j)
+          if(buffer[i*width*4+j*4 + 3] < 0)
+            ;
+          else numspheres++;
+      }
+
+      if(radiuses)
+        delete[] radiuses;
+      if(positions)
+        delete[] positions;
+
+      radiuses = new float[numspheres];
+      positions = new Vector3[numspheres];
+
+      int k = 0;
+      for(int i = height-1; i >= 0; --i)
+      {
+        for(int j = 0; j < width; ++j)
+          if(buffer[i*width*4+j*4 + 3] < 0)
+            ;
+          else
+          {
+            positions[k] = mvi*Vector3(buffer[i*width*4+j*4 + 0], buffer[i*width*4+j*4 + 1], buffer[i*width*4+j*4 + 2]);
+            radiuses[k] = buffer[i*width*4+j*4 + 3]; 
+            k++;
+          };
+      }
+      
+      t++;
+    }
+
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+
+    glColor3f(1,1,1);
+
+    rtScene->configure();
+    rtScene->render();
+    glColor3f(1,0,0);
+    glBegin(GL_POINTS);
+    for(int i=0; i<numspheres; ++i)
+    {
+      glPushMatrix();
+      glTranslatef(positions[i].x,positions[i].y,positions[i].z);
+      glutSolidCube(radiuses[i]);
+      glPopMatrix();
+      //glVertex3f(positions[i].x,positions[i].y,positions[i].z);
+    }
+    glEnd();
+
+  
+      
+    
+
+
+
+    /*if(outputSelection)
+      texDebug->setId(kernelDeferred_Peeling->getTexIdNormal(outputIndexSelection));
+    else 
+      texDebug->setId(kernelDeferred_Peeling->getTexIdPosition(outputIndexSelection));
+    texDebug->renderTexture();*/
+
+    //GLfloat *buffer = texDebug->getTextureData();
+    //int w = texDebug->getTextureWidth();
+    //int h = texDebug->getTextureHeight();
+    //printf("");
+
+    //kernelDeferred_Peeling->renderOutput(1);
+  /*
+    kernelDeferred_Peeling->step(1);
     kernelDeferred_Peeling->setActive(true);
 
     glClearColor(.8, .8, 1.0, -1.0);
@@ -461,169 +590,130 @@ void render(){
     rtScene->render();
 
     kernelDeferred_Peeling->setActive(false);
-  }
+    //kernelDeferred_Peeling->renderOutput(0);
+    texDebug->setId(kernelDeferred_Peeling->getTexIdNormal(1));
+    //texDebug->setId(kernelDeferred_Peeling->getTexIdPosition(1));
+    texDebug->renderTexture();
 
+    //kernelDeferred_Peeling->setActive(true);
 
-  float x = projectionMatrix[0*4+0];
-  float y = projectionMatrix[1*4+1];
-  float z = projectionMatrix[2*4+2];
-  float w = projectionMatrix[3*4+2];
-  float Znear = w/(z - 1.0);
-  float Zfar = w * Znear/(w + 2.0 * Znear);
-  float right = Znear/x;
-  float top = Znear/y;
+    //glClearColor(.8, .8, 1.0, -1.0);
+    //glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    //glDisable(GL_CULL_FACE);
+    //rtScene->configure();
+    //rtScene->render();
 
-  kernelSSAO->step(Znear, Zfar, right, top);
-  kernelSSAO->renderOutput(0);
-
-  /*if(outputSelection)
-    texDebug->setId(kernelDeferred_Peeling->getTexIdNormal(outputIndexSelection));
-  else 
-    texDebug->setId(kernelDeferred_Peeling->getTexIdPosition(outputIndexSelection));
-  texDebug->renderTexture();*/
-
-  //GLfloat *buffer = texDebug->getTextureData();
-  //int w = texDebug->getTextureWidth();
-  //int h = texDebug->getTextureHeight();
-  //printf("");
-
-  //kernelDeferred_Peeling->renderOutput(1);
-/*
-  kernelDeferred_Peeling->step(1);
-  kernelDeferred_Peeling->setActive(true);
-
-  glClearColor(.8, .8, 1.0, -1.0);
-  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-  glDisable(GL_CULL_FACE);
-  rtScene->configure();
-  rtScene->render();
-
-  kernelDeferred_Peeling->setActive(false);
-  //kernelDeferred_Peeling->renderOutput(0);
-  texDebug->setId(kernelDeferred_Peeling->getTexIdNormal(1));
-  //texDebug->setId(kernelDeferred_Peeling->getTexIdPosition(1));
-  texDebug->renderTexture();
-
-  //kernelDeferred_Peeling->setActive(true);
-
-  //glClearColor(.8, .8, 1.0, -1.0);
-  //glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-  //glDisable(GL_CULL_FACE);
-  //rtScene->configure();
-  //rtScene->render();
-
-  //kernelDeferred_Peeling->setActive(false);
-  //kernelDeferred_Peeling->renderOutput(KernelDeferred::Position);
-/*
-  if(lightModel==Pixel)
-  {
-    pixelShading->setActive(true);
-    GLuint loc = pixelShading->getUniformLocation("numLights");
-    glUniform1i(loc, rtScene->getNumLights());
-  }
-
-  if(lightModel==Deferred)
-  {
-    kernelGeometry->setActive(true);
-    glClearColor(.8, .8, 1.0, -1.0);
-    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-    rtScene->setLightEnabled(false);
-    glDisable(GL_LIGHTING);
-  }else
-  {
-    //rtScene->setLightEnabled(true);
-    //p2.configure();
-	  //p2.render();
-
-    p.configure();
-    p.render();
-
-    d.configure();
-    d.render();
-
-    sp2.configure();
-    sp2.render();
-  }
-
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-
-
-
-  //glPushMatrix();
-
-  //glScalef(10.,1.,10.);
-  rtScene->configure();
-  rtScene->render();
-
-  glEnable(GL_COLOR_MATERIAL);
-  glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT);
-  glColor3f(1,1,1);
-  glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-  glColor3f(1,0,0);
-  glColorMaterial(GL_FRONT_AND_BACK, GL_SPECULAR);
-  glColor3f(1,1,1);
-  glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 10.0);
-  ////
-  ////glCullFace(GL_FRONT);
-  ////for(int i=0;i<NL;++i)
-  ////{
-  ////  pp[i].configure();
-  ////  pp[i].render();
-  ////}
-
-
-
-  //glutSolidTeapot(60);
-  //glutSolidSphere(60, 30, 30);
-  ////glutSolidSphere(60, 500, 500);
-  //
-  //glBegin(GL_QUADS);
-  //  glNormal3f(0,0,1);
-  //  glVertex3f(-301,-301,-300);
-  //  glVertex3f(300,-301,-300);
-  //  glVertex3f(300 ,300,-301);
-  //  glVertex3f(-301,300,-301);
-  //glEnd();
-
-  //glPopMatrix();
-  if(lightModel==Pixel)
-    pixelShading->setActive(false);
-  
-  if(lightModel==Deferred)
-  {
-    kernelGeometry->setActive(false);
-    //kernelGeometry->renderOutput(KernelGeometry::Diffuse);
-    
-    kernelShade->step(lightModelViewMatrix);
-    if(!enabledAntialias)
-      kernelShade->renderOutput(0);
-    else 
+    //kernelDeferred_Peeling->setActive(false);
+    //kernelDeferred_Peeling->renderOutput(KernelDeferred::Position);
+  /*
+    if(lightModel==Pixel)
     {
-      glMatrixMode(GL_PROJECTION);
-      glPushMatrix();
-      glLoadIdentity();
-      gluOrtho2D(0, 1, 0, 1);
-      glMatrixMode(GL_MODELVIEW);
-      glPushMatrix();
-      glLoadIdentity();
-
-
-      kernelAntiAliasing->step();
-      //kernelAntiAliasing->renderOutput(0);
-      for(int i=0;i<antialiasNumTimes; ++i)
-        kernelAntiAliasingN->step();
-
-      glMatrixMode(GL_PROJECTION);
-      glPopMatrix();
-      glMatrixMode(GL_MODELVIEW);
-      glPopMatrix();
-      kernelAntiAliasingN->renderOutput(0);
+      pixelShading->setActive(true);
+      GLuint loc = pixelShading->getUniformLocation("numLights");
+      glUniform1i(loc, rtScene->getNumLights());
     }
-  }
-    //kernelShade->renderShader(lightModelViewMatrix);
-/**/
 
-  renderUIText();
+    if(lightModel==Deferred)
+    {
+      kernelGeometry->setActive(true);
+      glClearColor(.8, .8, 1.0, -1.0);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+      rtScene->setLightEnabled(false);
+      glDisable(GL_LIGHTING);
+    }else
+    {
+      //rtScene->setLightEnabled(true);
+      //p2.configure();
+	    //p2.render();
+
+      p.configure();
+      p.render();
+
+      d.configure();
+      d.render();
+
+      sp2.configure();
+      sp2.render();
+    }
+
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+
+
+    //glPushMatrix();
+
+    //glScalef(10.,1.,10.);
+    rtScene->configure();
+    rtScene->render();
+
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT);
+    glColor3f(1,1,1);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+    glColor3f(1,0,0);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_SPECULAR);
+    glColor3f(1,1,1);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 10.0);
+    ////
+    ////glCullFace(GL_FRONT);
+    ////for(int i=0;i<NL;++i)
+    ////{
+    ////  pp[i].configure();
+    ////  pp[i].render();
+    ////}
+
+
+
+    //glutSolidTeapot(60);
+    //glutSolidSphere(60, 30, 30);
+    ////glutSolidSphere(60, 500, 500);
+    //
+    //glBegin(GL_QUADS);
+    //  glNormal3f(0,0,1);
+    //  glVertex3f(-301,-301,-300);
+    //  glVertex3f(300,-301,-300);
+    //  glVertex3f(300 ,300,-301);
+    //  glVertex3f(-301,300,-301);
+    //glEnd();
+
+    //glPopMatrix();
+    if(lightModel==Pixel)
+      pixelShading->setActive(false);
+    
+    if(lightModel==Deferred)
+    {
+      kernelGeometry->setActive(false);
+      //kernelGeometry->renderOutput(KernelGeometry::Diffuse);
+      
+      kernelShade->step(lightModelViewMatrix);
+      if(!enabledAntialias)
+        kernelShade->renderOutput(0);
+      else 
+      {
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity();
+        gluOrtho2D(0, 1, 0, 1);
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+        glLoadIdentity();
+
+
+        kernelAntiAliasing->step();
+        //kernelAntiAliasing->renderOutput(0);
+        for(int i=0;i<antialiasNumTimes; ++i)
+          kernelAntiAliasingN->step();
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPopMatrix();
+        kernelAntiAliasingN->renderOutput(0);
+      }
+    }
+      //kernelShade->renderShader(lightModelViewMatrix);
+  /**/
+  }
+  //renderUIText();
  // glPopAttrib();
 }
-

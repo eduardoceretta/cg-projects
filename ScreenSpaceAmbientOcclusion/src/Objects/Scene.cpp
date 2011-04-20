@@ -183,48 +183,48 @@ void Scene :: render()
 
 void Scene::calcTextures()
 {
-  GLenum sizeType [] = {0,GL_ALPHA, 2 ,GL_RGB, GL_RGBA};
-  
-  GLfloat* lData = new GLfloat[mLights.size()*sizeof(struct lightStruct)];
-  for( unsigned int i = 0; i < mLights.size(); ++i)
-    memcpy(&lData[i*sizeof(struct lightStruct)/sizeof(GLfloat)], mLights[i].getLightStruct(), sizeof(struct lightStruct));
+  //GLenum sizeType [] = {0,GL_ALPHA, 2 ,GL_RGB, GL_RGBA};
+ 
+  //GLfloat* lData = new GLfloat[mLights.size()*sizeof(struct lightStruct)];
+  //for( unsigned int i = 0; i < mLights.size(); ++i)
+  //  memcpy(&lData[i*sizeof(struct lightStruct)/sizeof(GLfloat)], mLights[i].getLightStruct(), sizeof(struct lightStruct));
 
-  int lightArraySize = mLights.size()*sizeof(struct lightStruct)/(4*sizeof(GLfloat));
-  int lightArrayAbsoluteSize = mLights.size()*sizeof(struct lightStruct)/(sizeof(GLfloat));
+  //int lightArraySize = mLights.size()*sizeof(struct lightStruct)/(4*sizeof(GLfloat));
+  //int lightArrayAbsoluteSize = mLights.size()*sizeof(struct lightStruct)/(sizeof(GLfloat));
 
 
-  GLfloat* data[] = { lData/*RGBA*/ };
-  
-  
-  unsigned int size[] = { lightArraySize };
-  
-  int sizeIndex [] = { lightArrayAbsoluteSize/lightArraySize };
-  
-  int numTextures = sizeof(data)/sizeof(GLfloat*);
-  GLuint *id = new GLuint[numTextures];
-  //// //DEBUG
-  //char sizeTypeStr [5][10] = {"NOT","GL_ALPHA", "2" ,"GL_RGB", "GL_RGBA"};
-  //for(int i=0;i<numTextures;++i)
+  //GLfloat* data[] = { lData/*RGBA*/ };
+  //
+  //
+  //unsigned int size[] = { lightArraySize };
+  //
+  //int sizeIndex [] = { lightArrayAbsoluteSize/lightArraySize };
+  //
+  //int numTextures = sizeof(data)/sizeof(GLfloat*);
+  //GLuint *id = new GLuint[numTextures];
+  ////// //DEBUG
+  ////char sizeTypeStr [5][10] = {"NOT","GL_ALPHA", "2" ,"GL_RGB", "GL_RGBA"};
+  ////for(int i=0;i<numTextures;++i)
+  ////{
+  ////  printf("%d %s\n",sizeIndex[i], sizeTypeStr[sizeIndex[i]]);
+  ////}
+
+  //glGenTextures(numTextures, id);
+  //for(int i=0; i<numTextures; ++i)
   //{
-  //  printf("%d %s\n",sizeIndex[i], sizeTypeStr[sizeIndex[i]]);
+  //  glBindTexture(GL_TEXTURE_1D, id[i]);
+  //  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  //  glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //  glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  //  glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  //  glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F_ARB, size[i], 0, sizeType[sizeIndex[i]], GL_FLOAT, data[i]);
+  //  glBindTexture(GL_TEXTURE_1D, 0);
   //}
-
-  glGenTextures(numTextures, id);
-  for(int i=0; i<numTextures; ++i)
-  {
-    glBindTexture(GL_TEXTURE_1D, id[i]);
-    //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameterf(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F_ARB, size[i], 0, sizeType[sizeIndex[i]], GL_FLOAT, data[i]);
-    glBindTexture(GL_TEXTURE_1D, 0);
-  }
-  
-  int i = 0;
-  mLightsTexId = id[i++];
-  
-  delete[] id;
+  //
+  //int i = 0;
+  //mLightsTexId = id[i++];
+  //
+  //delete[] id;
 }
 
 GLuint Scene::getLightsTexId()
