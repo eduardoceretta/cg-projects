@@ -31,7 +31,7 @@ void main()
   
   float dx = 1.0/screenWidth;
   float dy = 1.0/screenHeight;
-  
+  bool t = true;
   float totalAO = 0.0;
   for(int i=-1; i < 2; ++i)
     for(int j = -1; j < 2; ++j)
@@ -41,7 +41,16 @@ void main()
       {
         vec2 inc = vec2(float(i)*dx, float(j)*dy);
         vec4 depth_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st + inc);
+        if(depth_normal.a < 0.0 || depth_normal.a < depth)
+          continue;
         vec4 sphere = getSphere(gl_FragCoord.x + float(i), gl_FragCoord.y + float(j), depth_normal.a);
+        float tmp = getAproxAO(sphere, position.xyz, depth0_normal.xyz);
+        if(tmp == 1) 
+        {
+          totalAO = 0;
+          t = false;
+          break;
+        }
         totalAO += getAproxAO(sphere, position.xyz, depth0_normal.xyz);
       }
       
@@ -57,15 +66,18 @@ void main()
 
 	//gl_FragData[0] = gl_FrontMaterial.diffuse*(1.0-totalAO);
 	if(depth < 0.0)
-		gl_FragData[0] = vec4(1,1,0,1);
+		gl_FragData[0] = vec4(1,1,0,-1);
 	else if(depth <= 1.0)
 	{
 	  //if(totalAO >= 0.0)
 		  //gl_FragData[0] = vec4(0,0,1,1);
 		//else  gl_FragData[0] =  vec4(0,1,0,1);
-				 gl_FragData[0] =  diffuse * (1 - totalAO) ;
+		//if(t == false)
+	    //gl_FragData[0] =  vec4(1,0,0,1) ;
+	  //else 
+	  gl_FragData[0] =  getSphere(gl_FragCoord.x, gl_FragCoord.y , depth);
   }
-	else gl_FragData[0] = vec4(1,1,1,1);
+	else gl_FragData[0] = vec4(1,1,1,-1);
   //gl_FragData[0] = max(dot(normal, normalize(lightDir)), 0.0) * gl_FrontMaterial.diffuse;
 	//gl_FragData[1] = vec4(normalize(normal), gl_FragCoord.z);
 	//gl_FragData[2] = gl_FrontMaterial.diffuse;
@@ -87,6 +99,7 @@ vec4 getSphere(float xw, float yw, float zw)
 
   float r = -ze * right/(screenWidth * near);
  
+  //ze += r;
   //return vec4(far, near, zn * (far - near), (zn * (far - near) - (far + near)));
   return vec4(xe, ye, ze, r);
 }
@@ -96,6 +109,6 @@ float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP)
   vec3 PQ = (posP - sphereQ.xyz);
   float S = 2.0 * PI * (1.0 - cos(asin( sphereQ.a / length(PQ))));
   float max_dot = max(dot(normalize(normalP), normalize(PQ)), 0.0);
-  return max_dot;
-    //return S*max_dot;
+  //return S;
+    return S*max_dot;
 }

@@ -10,7 +10,7 @@
 #define APP_INITIAL_HEIGHT 512
 #define APP_FOV 60.0f
 #define APP_NEAR 5.0f
-#define APP_FAR 500.0f
+#define APP_FAR 1000.0f
 
 #ifdef NDEBUG
   #define MyAssert(str, expression)     ((void)0)  

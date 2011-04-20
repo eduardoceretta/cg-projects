@@ -21,6 +21,7 @@ class Matrix4
       Matrix4(double m[4][4]);
       Matrix4(float m[4][4]);
       Matrix4(int m[4][4]);
+      Matrix4(float *m);
 
       Matrix4(const Matrix4& m);
 
@@ -31,7 +32,11 @@ class Matrix4
       double getValue(int line, int column);
 
       void setIdentity();
+      void Inverse();
+      void Transpose();
       void setRotationMatrix(double mAng, Vector3 ax);
+
+
 
       void operator= (const Matrix4& m);
 
