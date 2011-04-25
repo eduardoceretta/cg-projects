@@ -47,7 +47,7 @@ bool shader_on = true;
 
 //Camera Position
 float camAlpha = 0.0;
-float camBeta = 40.0;
+float camBeta = 90.0;
 float camR = 300.0;
 float camInc = 5.0;
 
@@ -179,6 +179,12 @@ void keyboard(unsigned char key, int x, int y){
     case '2':
       break;
     case '3':
+      break;
+
+    case '*':
+      camAlpha = 0.0;
+      camBeta = 90.0;
+      camR = 300.0;
       break;
 
     case '+':
@@ -459,6 +465,58 @@ void render(){
     rtScene->render();
   }
   {
+    GLfloat projectionMatrix[16];
+    glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
+
+    for(int i=0; i < numPeelings; ++i)
+    {
+      kernelDeferred_Peeling->step(i);
+      kernelDeferred_Peeling->setActive(true);
+
+      glClearColor(.8, .8, 1.0, -1.0);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+      glDisable(GL_CULL_FACE);
+      //glEnable(GL_CULL_FACE);
+      rtScene->configure();
+      rtScene->render();
+
+      kernelDeferred_Peeling->setActive(false);
+    }
+    //kernelDeferred_Peeling->renderOutput(0);
+
+    float x = projectionMatrix[0*4+0];
+    float y = projectionMatrix[1*4+1];
+    float z = projectionMatrix[2*4+2];
+    float w = projectionMatrix[3*4+2];
+    float Znear = w/(z - 1.0);
+    float Zfar = w * Znear/(w + 2.0 * Znear);
+    float right = Znear/x;
+    float top = Znear/y;
+
+
+    kernelSSAO->step(Znear, Zfar, right, top);
+    kernelSSAO->renderOutput(0);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/********************************
+///VERIFICADOR DE PONTOS EM ESPAÇO DE TELA
+/********************************
     if(t == 0)
     {
       GLfloat lightModelViewMatrix[16];
@@ -561,7 +619,7 @@ void render(){
     }
     glEnd();
 
-  
+  ***************************************************************/
       
     
 
