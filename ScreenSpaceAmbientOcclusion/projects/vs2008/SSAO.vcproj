@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../src/;&quot;../../libs/glew-1.5.4/include&quot;;&quot;../../libs/freeglut-2.6.0/include&quot;"
+				AdditionalIncludeDirectories="../../src/;&quot;../../libs/glew-1.5.4/include&quot;;&quot;../../libs/freeglut-2.6.0/include&quot;;../../libs/ply/include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;GLEW_STATIC;FREEGLUT_STATIC;_CRT_SECURE_NO_WARNINGS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,9 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="opengl32.lib glu32.lib freeglut_static.lib glew32s.lib"
+				AdditionalDependencies="opengl32.lib glu32.lib freeglut_static.lib glew32s.lib ply.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;../../libs/glew-1.5.4/lib&quot;;&quot;../../libs/freeglut-2.6.0/VisualStudio2008Static/Release&quot;"
+				AdditionalLibraryDirectories="&quot;../../libs/glew-1.5.4/lib&quot;;&quot;../../libs/freeglut-2.6.0/VisualStudio2008Static/Release&quot;;../../libs/ply/lib"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -333,6 +333,14 @@
 				</File>
 				<File
 					RelativePath="..\..\src\MeshLoaders\MshMeshFile.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\PlyMeshFile.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\MeshLoaders\PlyMeshFile.h"
 					>
 				</File>
 				<File
