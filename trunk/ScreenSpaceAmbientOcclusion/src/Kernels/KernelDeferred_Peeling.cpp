@@ -62,7 +62,7 @@ GLuint KernelDeferred_Peeling::getTexIdSpecular(int index) const
   return m_texIdSpecular[index];
 }
 
-void KernelDeferred_Peeling::step(int pass )
+void KernelDeferred_Peeling::step(int pass)
 {
   if(pass > 0)
   {

@@ -41,7 +41,7 @@ int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
 int outputSelection = 0;
-int numPeelings = 1;
+int numPeelings = 3;
 int outputIndexSelection = 0;
 bool shader_on = true;
 
@@ -65,6 +65,10 @@ Scene* rtScene;
 KernelDeferred* kernelDeferred;
 KernelDeferred_Peeling* kernelDeferred_Peeling;
 KernelSSAO* kernelSSAO;
+
+//Algorithm
+float rfar = 10.0f;
+float pixelmask_size = .8;
 
 GLFont fontRender;
 
@@ -138,6 +142,7 @@ void reshape(int w, int h){
 
 
 void keyboardSpecial(int key, int x, int y){
+  int modifier = glutGetModifiers();
 
 	if(key == GLUT_KEY_LEFT) camBeta = (int)(camBeta + camInc)%360;
 	else if(key == GLUT_KEY_RIGHT)  camBeta = (int)(camBeta - camInc)%360;
@@ -157,13 +162,26 @@ void keyboardSpecial(int key, int x, int y){
     case 11:
       shader_on = !shader_on;
       break;
+    case GLUT_KEY_PAGE_UP:
+      rfar = rfar + 1. * (modifier == GLUT_ACTIVE_SHIFT ? 10. : 1.);
+      break;
+    case GLUT_KEY_PAGE_DOWN:
+      rfar = max(rfar - 1. * (modifier == GLUT_ACTIVE_SHIFT ? 10. : 1.) , 0.0);
+      break;
+
+    case GLUT_KEY_HOME:
+      pixelmask_size = min(pixelmask_size + .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1), 1.f);
+      break;
+    case GLUT_KEY_END:
+      pixelmask_size = max(pixelmask_size - .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1) , 0.5f);
+      break;
   }
 
   
 }
 
 void keyboard(unsigned char key, int x, int y){
-  
+  int modifier = glutGetModifiers();
   if(key > '0' && key < '9' + 1)
     outputIndexSelection = min(key - '0' - 1, numPeelings - 1);
   switch(key)
@@ -293,50 +311,28 @@ void renderUIText()
   //fontRender.print(10,appHeight*.05+125,"    (-) - AntiAliasing", Color(0., 0., 0.));
   char a[100];
   int i = 0;
-  sprintf(a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
-  fontRender.print(appWidth*.80,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
+  //sprintf(a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
+  //fontRender.print(appWidth*.80,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
 
   //sprintf(a,"%d Lights", rtScene->getNumLights());
   //fontRender.print(appWidth*.80,appHeight*.05 + 25,a, Color(0., 0., 0.));
 
   sprintf(a,"%d Num Peelings", numPeelings);
-  fontRender.print(appWidth*.80,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
+  fontRender.print(appWidth*.70,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"%d OutputIndex", outputIndexSelection);
-  fontRender.print(appWidth*.80,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
+  sprintf(a,"rfar: %.2f ", rfar);
+  fontRender.print(appWidth*.70,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
 
+  sprintf(a,"pixmask: %.3f ", pixelmask_size);
+  fontRender.print(appWidth*.70,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
   
-  if(outputSelection)
-    sprintf(a,"NORMAL", outputIndexSelection);
-  else sprintf(a,"POSITION", outputIndexSelection);
-  fontRender.print(appWidth*.80,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
-
-
   sprintf(a,"%.2f FPS", fpsec);
   fontRender.print(appWidth*.85,appHeight*.85+55,a, Color(0., 0., 0.));
-  //switch(lightModel)
-  //{
-  //case Vertex:
-  //  fontRender.print(10,appHeight*.85+55,"Vertex Shading ON", Color(0., 0., 0.));
-  //  break;
-  //case Pixel:
-  //  fontRender.print(10,appHeight*.85+55,"Pixel Shading ON", Color(0., 0., 0.));
-  //  break;
-  //case Deferred:
-  //  fontRender.print(10,appHeight*.85+55,"Deferred Shading ON", Color(0., 0., 0.));
-  //  if(enabledAntialias)
-  //  {
-  //    char alias[60];
-  //    sprintf(alias, "AntiAliasing %dx ON", antialiasNumTimes);
-  //    fontRender.print(10,appHeight*.85+85,alias, Color(0.,0.,0.));
-  //  }
-  //  else fontRender.print(10,appHeight*.85+85,"AntiAliasing OFF", Color(0., 0., 0.));
-  //  break;
-  //}
 
   fontRender.endText();
   glPopAttrib();
 }
+
 void setupCamera()
 {
   float x = camR*sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
@@ -354,8 +350,6 @@ void setupCamera()
 }
 
 
-
-GLuint dummyTexId;
 void createScenes()
 {
   p.setAmbientColor(Color(0.0,0.0,0.0));
@@ -382,7 +376,7 @@ void createScenes()
   sp2.setSpotAngle(30);
   sp2.setSpotDirection(Vector3(0,0,-1));
 
-  GLfloat amb [] = {0.2,0.2,0.2,1};
+  GLfloat amb [] = {0.2f,0.2f,0.2f,1.0f};
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
   
   kernelDeferred = new KernelDeferred(appWidth, appHeight);
@@ -397,20 +391,15 @@ void createScenes()
   GLfloat *pixels = new GLfloat[appWidth*appHeight*4];
   for(int i=0; i < appWidth*appHeight*4; ++i)
     pixels[i] = 0.0;
-
+  
+  GLuint dummyTexId;
   glGenTextures(1, &dummyTexId);
   glBindTexture(GL_TEXTURE_2D, dummyTexId);
-  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  //glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  //   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
-  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F_ARB, appWidth, appHeight, 0, GL_RGBA, GL_FLOAT, pixels);
   glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -437,18 +426,10 @@ void createScenes()
 
   texDebug = new TextureObject(kernelSSAO->getColorTexId());
     //texDebug = new TextureObject(kernelDeferred->getTexIdPosition());
-
-
 }
 
 
 
-GLfloat *buffer = NULL;
-float *radiuses = NULL;
-Vector3 *positions = NULL; 
-float mvi [16];
-int numspheres = 0;
-int t = 0;
 
 
 
@@ -463,7 +444,7 @@ void render(){
     //glEnable(GL_CULL_FACE);
     rtScene->configure();
     rtScene->render();
-  }
+  }else
   {
     GLfloat projectionMatrix[16];
     glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
@@ -494,7 +475,7 @@ void render(){
     float top = Znear/y;
 
 
-    kernelSSAO->step(Znear, Zfar, right, top);
+    kernelSSAO->step(Znear, Zfar, right, top, rfar, pixelmask_size);
     kernelSSAO->renderOutput(0);
 
 
@@ -517,6 +498,15 @@ void render(){
 /********************************
 ///VERIFICADOR DE PONTOS EM ESPAÇO DE TELA
 /********************************
+
+GLfloat *buffer = NULL;
+float *radiuses = NULL;
+Vector3 *positions = NULL; 
+float mvi [16];
+int numspheres = 0;
+int t = 0;
+    
+    
     if(t == 0)
     {
       GLfloat lightModelViewMatrix[16];
@@ -772,6 +762,6 @@ void render(){
       //kernelShade->renderShader(lightModelViewMatrix);
   /**/
   }
-  //renderUIText();
+  renderUIText();
  // glPopAttrib();
 }

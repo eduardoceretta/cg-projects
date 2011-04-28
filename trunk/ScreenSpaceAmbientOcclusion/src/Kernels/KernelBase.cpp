@@ -52,6 +52,14 @@ GLuint KernelBase::addInputFloat( char* name, GLfloat value )
   return loc;
 }
 
+GLuint KernelBase::addInputInt( char* name, GLint value )
+{
+  GLuint loc = m_shader->getUniformLocation(name);
+  glUniform1i(loc, value);
+
+  return loc;
+}
+
 
 GLuint KernelBase::addInputMatrix4( char* name, const GLfloat* value )
 {
