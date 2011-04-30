@@ -14,14 +14,21 @@ using namespace std;
 class GLFont
 {
 public:
-   static int charHieght;
+  typedef enum{Small, Medium, Big} FontSize;
+
+  static int charHieght;
 	static void print(int x, int y, string str,Color c=Color(1,1,0));
 	static void endText();
 	static void initText();
+  static void setSize(FontSize s);
 	static int length(string s);
 	GLFont(){}
 protected:
 	static GLboolean color_material, texture_2d, fog, lighting, depth_test;
+  static FontSize fontSize;
+  static void* font;
+  static void* fonts[];
+  static int font_sizes[]; 
 };
 
 

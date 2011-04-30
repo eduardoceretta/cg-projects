@@ -5,20 +5,22 @@ KernelBase::KernelBase(){
 }
 
 KernelBase::KernelBase(char* vert, char* frag, int width, int height){
-	m_shader = new Shader(vert, frag);
+  if(!vert || !frag)
+    m_shader = NULL;
+  else
+	  m_shader = new Shader(vert, frag);
 	m_fbo = new FrameBufferObject(width, height);
   //m_fbo->attachToDepthBuffer(BufferType::RenderBufferObject);
 }
 
 KernelBase::~KernelBase(){
-
-	delete m_shader;
+  if(m_shader)
+	  delete m_shader;
 	delete m_fbo;
 
 }
 
 GLuint KernelBase::addInputTexture(GLenum textureDimension, char* name, GLuint id){
-
   GLuint loc = m_shader->getUniformLocation(name);
   glUniform1iARB(loc, m_inputTextures.size());
   m_inputTextures.push_back(std::pair<GLenum, GLuint>(textureDimension, id));
@@ -178,10 +180,12 @@ void KernelBase::renderShader()
 
 void KernelBase::step(){
 	m_fbo->setActive(true);
-	m_shader->setActive(true);
+  if(m_shader)
+	  m_shader->setActive(true);
 	//activateTextures();
 	renderScreenQuad();
-	m_shader->setActive(false);
+  if(m_shader)
+  	m_shader->setActive(false);
 	m_fbo->setActive(false);
 }
 
@@ -190,17 +194,20 @@ void KernelBase::setActive( bool op )
   if(op)
   {
     m_fbo->setActive(true);
-    m_shader->setActive(true);
+    if(m_shader)
+      m_shader->setActive(true);
     activateTextures();
   }else 
   {
-    m_shader->setActive(false);
+    if(m_shader)
+      m_shader->setActive(false);
     m_fbo->setActive(false);
   }
 }
 
 void KernelBase::setActiveShaderOnly( bool op )
 {
+  if(!m_shader) return;
   if(op)
   {
     m_shader->setActive(true);

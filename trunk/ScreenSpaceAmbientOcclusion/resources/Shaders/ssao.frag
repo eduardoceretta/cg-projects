@@ -1,6 +1,6 @@
 varying vec3 lightDir;
 uniform sampler2D diffuseTex;
-uniform sampler2D specularTex;
+uniform sampler2D colorTex;
 uniform sampler2D positionTex;
 uniform sampler2D depth0_normalTex;
 uniform sampler2D depth1_normalTex;
@@ -35,8 +35,8 @@ float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP);
 
 void main()
 {
-  vec4 diffuse = texture2D(diffuseTex,  gl_TexCoord[0].st);
-  vec4 specular = texture2D(specularTex,  gl_TexCoord[0].st);
+  //vec4 diffuse = texture2D(diffuseTex,  gl_TexCoord[0].st);
+  vec4 color = texture2D(colorTex,  gl_TexCoord[0].st);
   vec4 depth0_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st);
   vec4 position = texture2D(positionTex,  gl_TexCoord[0].st);
   float depth = depth0_normal.a;
@@ -55,9 +55,9 @@ void main()
   //pixelmask_size = min(samplerSize, pixelmask_size);
   
   float v = pixelmask_size;
-  float n_depth = clamp(depth - v,0.,v)*1./(1.-v);
-  int size = max(floor((1.-n_depth)*samplerSize + .5), 1);
-
+  float n_depth = max(depth - v,0.)*1./(1.-v);
+  int size = int(max(floor((1.-n_depth)*samplerSize + .5), 1.));
+//
   //if (size > 25)
     //gl_FragData[0] = WHITE;
   //else if (size > 24)
@@ -75,8 +75,22 @@ void main()
   //else 
     //gl_FragData[0] = PINK;
   //return;
+  //size = 15;
+  float maxAO = .5;
   for(int i=-size; i < size + 1; ++i)
+  {
+    if(totalAO >= maxAO)
+    {
+      totalAO = maxAO;
+      break;
+    }
     for(int j = -size; j < size + 1; ++j)
+    {
+      if(totalAO >= maxAO)
+      {
+        totalAO = maxAO;
+        break;
+      }
       if(!(i==0 && j==0))
       {
         vec2 coord = vec2((float(i) + samplerSize + .5)/samplerTotalSize, (float(j) + samplerSize + .5)/samplerTotalSize);
@@ -103,27 +117,28 @@ void main()
             
             if(depth_normal.a < 0.0)
               continue;
-            if(depth_normal.a >= depth)
-              continue;
+            //if(depth_normal.a >= depth)
+              //continue;
 
             vec4 sphere = getSphere(gl_FragCoord.x + float(i), gl_FragCoord.y + float(j), depth_normal.a);
-            
+            sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*0.1;
             float eye_dist = length(sphere.xyz - position.xyz);
-            //sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*.1;
             
             if(eye_dist > rfar)
               continue;
             totalAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,2);
 
-            if(totalAO >= 1.0)
+            if(totalAO >= maxAO)
             {
-              totalAO = 1.0;
+              totalAO = maxAO;
               break;
             }
           }
         }
       }
-      
+    }
+  }
+  //totalAO=clamp(totalAO,0.0,0.5);
 
 	//gl_FragData[0] = gl_FrontMaterial.diffuse*(1.0-totalAO);
 	if(depth <= 1.0)
@@ -135,7 +150,8 @@ void main()
 	  //return;
 
 	  //gl_FragData[0] = RED*(1. - clamp(totalAO, 0.,1.));
-	  gl_FragData[0] = RED*(1. - totalAO);
+	  gl_FragData[0] = color*(1. - totalAO);
+	  	  //gl_FragData[0] = diffuse*(1. - totalAO);
 	  if(totalAO < 0.0)
 		  gl_FragData[0] = YELLOW;
 	  //else if(totalAO == 0.0)

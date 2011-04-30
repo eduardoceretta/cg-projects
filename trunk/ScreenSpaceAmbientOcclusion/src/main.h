@@ -12,6 +12,9 @@
 #define APP_NEAR 5.0f
 #define APP_FAR 1000.0f
 
+#define P3DMODEL_NAME_BIN "D:/users/favera/My Dropbox/Data/Mestrado/Papers Tese/SSAO/SSAO/resources/Models/TecGraf/16metros_30graus.p3b"
+#define P3DMODEL_NAME_LUA "D:/users/favera/My Dropbox/Data/Mestrado/Papers Tese/SSAO/SSAO/resources/Models/TecGraf/16metros_30graus.p3i"
+
 #ifdef NDEBUG
   #define MyAssert(str, expression)     ((void)0)  
 #else

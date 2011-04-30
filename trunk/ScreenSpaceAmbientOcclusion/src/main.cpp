@@ -17,8 +17,16 @@
 
 #include "Objects/Scene.h"
 #include "Kernels/KernelDeferred.h"
+#include "Kernels/KernelColor.h"
 #include "Kernels/KernelDeferred_Peeling.h"
 #include "Kernels/KernelSSAO.h"
+
+//TECGRAF LIBS
+#include "model.h"
+#include "io/nfrmodelreader.h"
+#include "display/fem.h"
+#include "elemvis.h"
+#include "elemselection.h"
 
 #include "main.h"
 
@@ -40,6 +48,8 @@ int lastMousePosY = 0;
 int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
+bool lights_on = true;
+int render_model = 0;
 int outputSelection = 0;
 int numPeelings = 3;
 int outputIndexSelection = 0;
@@ -64,7 +74,12 @@ float fpsec;
 Scene* rtScene;
 KernelDeferred* kernelDeferred;
 KernelDeferred_Peeling* kernelDeferred_Peeling;
+KernelColor* kernelColor;
 KernelSSAO* kernelSSAO;
+//TecGraf Objects
+P3DModel *p3dModel;
+P3DNfrModelReader *p3dModelReader;
+P3DFemDisplay* p3dRenderer;
 
 //Algorithm
 float rfar = 10.0f;
@@ -163,17 +178,17 @@ void keyboardSpecial(int key, int x, int y){
       shader_on = !shader_on;
       break;
     case GLUT_KEY_PAGE_UP:
-      rfar = rfar + 1. * (modifier == GLUT_ACTIVE_SHIFT ? 10. : 1.);
+      rfar = rfar + 1. * (modifier == GLUT_ACTIVE_SHIFT ? 1. : .1);
       break;
     case GLUT_KEY_PAGE_DOWN:
-      rfar = max(rfar - 1. * (modifier == GLUT_ACTIVE_SHIFT ? 10. : 1.) , 0.0);
+      rfar = max(rfar - 1. * (modifier == GLUT_ACTIVE_SHIFT ? 1. : .1) , 0.0);
       break;
 
     case GLUT_KEY_HOME:
-      pixelmask_size = min(pixelmask_size + .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1), 1.f);
+      pixelmask_size = min(pixelmask_size + .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1), .999f);
       break;
     case GLUT_KEY_END:
-      pixelmask_size = max(pixelmask_size - .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1) , 0.5f);
+      pixelmask_size = max(pixelmask_size - .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1) , 0.001f);
       break;
   }
 
@@ -198,11 +213,18 @@ void keyboard(unsigned char key, int x, int y){
       break;
     case '3':
       break;
-
+    case 'M':
+    case 'm':
+      render_model = (render_model + 1) % 2;
+      break;
+    case 'L':
+    case 'l':
+      lights_on = !lights_on;
+      break;
     case '*':
       camAlpha = 0.0;
       camBeta = 90.0;
-      camR = 300.0;
+      camR = 10.0;
       break;
 
     case '+':
@@ -225,6 +247,7 @@ void mouseButtons(int button, int state, int x, int y){
 }
 
 void mouseActive(int x, int y){
+  int modifier = glutGetModifiers();
 	if(mouseButton == GLUT_LEFT_BUTTON && mouseState == GLUT_DOWN){
 		float angleX = (x - lastMousePosX)*.5;
 		float angleY = (y - lastMousePosY)*.5;
@@ -234,7 +257,7 @@ void mouseActive(int x, int y){
 		camBeta = ((int)(camBeta + angleX))%360;
 	}
 	else if(mouseButton == GLUT_RIGHT_BUTTON && mouseState == GLUT_DOWN){
-		camR += (y - lastMousePosY)/2.0;
+		camR += (y - lastMousePosY)/(2.0*(modifier == GLUT_ACTIVE_SHIFT ? 10 : 1) );
 	}
 	lastMousePosX = x;
 	lastMousePosY = y;
@@ -301,6 +324,7 @@ void renderScreenQuad(GLuint id = 0)
 void renderUIText()
 {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
+  fontRender.setSize(GLFont::Medium);
   fontRender.initText();
 
   //fontRender.print(10,appHeight*.05, "(1) Vertex Shading", Color(0., 0., 0.));
@@ -316,18 +340,31 @@ void renderUIText()
 
   //sprintf(a,"%d Lights", rtScene->getNumLights());
   //fontRender.print(appWidth*.80,appHeight*.05 + 25,a, Color(0., 0., 0.));
+  float x = .70;
+  float y = .03;
+  sprintf(a,"(+/-)%d Num Peelings", numPeelings);
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"%d Num Peelings", numPeelings);
-  fontRender.print(appWidth*.70,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
+  sprintf(a,"(PgUp/PgDn)rfar: %.2f ", rfar);
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"rfar: %.2f ", rfar);
-  fontRender.print(appWidth*.70,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
-
-  sprintf(a,"pixmask: %.3f ", pixelmask_size);
-  fontRender.print(appWidth*.70,appHeight*.05 + 25*i++,a, Color(0., 0., 0.));
+  sprintf(a,"(Home/End)pixmask: %.3f ", pixelmask_size);
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
   
+  sprintf(a,"(F11)Shader %s", shader_on? "On":"Off");
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+
+  sprintf(a,"(l)Lights %s", lights_on? "On":"Off");
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+
+  sprintf(a,"(m)Model: %d", render_model);
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+
+
+
   sprintf(a,"%.2f FPS", fpsec);
   fontRender.print(appWidth*.85,appHeight*.85+55,a, Color(0., 0., 0.));
+
 
   fontRender.endText();
   glPopAttrib();
@@ -347,6 +384,7 @@ void setupCamera()
 
   glLoadIdentity();
   gluLookAt(x,y,z, 0, 0, 0, ux, uy, uz);
+  p.setPosition(Vector3(x,y,z));
 }
 
 
@@ -408,9 +446,11 @@ void createScenes()
     ,dummyTexId ,3
   );
 
+  kernelColor = new KernelColor(appWidth, appHeight);
+
   kernelSSAO = new KernelSSAO(appWidth, appHeight
     ,kernelDeferred_Peeling->getTexIdDiffuse(0)
-    ,kernelDeferred_Peeling->getTexIdSpecular(0)
+    ,kernelColor->getTexIdColor()
     ,kernelDeferred_Peeling->getTexIdPosition(0)
     ,kernelDeferred_Peeling->getTexIdNormal(0)
     ,kernelDeferred_Peeling->getTexIdNormal(1)
@@ -426,12 +466,97 @@ void createScenes()
 
   texDebug = new TextureObject(kernelSSAO->getColorTexId());
     //texDebug = new TextureObject(kernelDeferred->getTexIdPosition());
+
+
+
+  p3dModel = new P3DModel();
+  p3dModelReader = new P3DNfrModelReader(p3dModel);
+  p3dModelReader->SetFilename(P3DMODEL_NAME_BIN, P3DMODEL_NAME_LUA);
+
+  if(p3dModelReader->Open() == 0)
+  {
+    MyAssert("CAN'T OPEN FILE:" + string(P3DMODEL_NAME_BIN) + " " + string(P3DMODEL_NAME_LUA), true);
+    delete p3dModelReader;
+    delete p3dModel;
+  }
+
+  if(p3dModelReader->Read() == 0)
+  {
+    MyAssert("CAN'T READ FILE:" + string(P3DMODEL_NAME_BIN) + " " + string(P3DMODEL_NAME_LUA) + "\n" + p3dModelReader->GetLastError(), true);
+    delete p3dModelReader;
+    delete p3dModel;
+  }
+  p3dRenderer = new P3DFemDisplay();
+  p3dRenderer->SetModel(p3dModel);
+  //p3dRenderer->SetColorScale(m_sci_colorscale);
+  //p3dRenderer->SetBoundaryMeshColor(r, g, b, 1);
+  //p3dRenderer->SetBoundaryMeshWidth((float) i);
+  //p3dRenderer->SetBoundaryCohMeshColor(r, g, b, 1);
+  //p3dRenderer->SetBoundaryCohMeshWidth((float) i);
+  //p3dRenderer->SetBoundaryNodesEnabled(flag);
+  //p3dRenderer->SetBoundaryNodesColor(r, g, b, 1);
+  //p3dRenderer->SetBoundaryCohNodesColor(r, g, b, 1);
+  //p3dRenderer->SetOutlineEnabled(flag);
+  //p3dRenderer->SetMaterialOutlineEnabled(flag);
+  //p3dRenderer->SetBoundaryElemNumbersEnabled(flag);
+  //p3dRenderer->SetBoundaryNodeNumbersEnabled(flag);
+  //p3dRenderer->SetDispFactor(factor);
+  //p3dRenderer->SetUndeformedEnabled(flag);
+  //p3dRenderer->SetMaterialColorScale(m_sci_matcolorscale);
+  //p3dRenderer->SetBoundaryElemColor(r, g, b, 1.f);
+  //p3dRenderer->SetBoundaryCohElemColor(r, g, b, 1.f);
+  //P3DModel* p3d_model = m_model->GetModel();
+  //TopModel* mesh = p3d_model->GetMesh();
+  //p3dRenderer->SetBoundaryPerElemColors(mesh->GetNElem(), colors_rgba);
+  //p3dRenderer->SetSelectionMode(P3DFemDisplay::SELECT_NODE);
+  //p3dRenderer->SetSelectionMode(P3DFemDisplay::SELECT_ELEMENT);
+  //p3dRenderer->SetShaderPath(path);
+
+  //p3dRenderer->SetViewport(x0, y0, w, h);
+
+
+  P3DElemVis *m_elemvis = new P3DElemVis();
+  P3DElemSelection *m_elemsel = new P3DElemSelection();
+  int n = p3dModel->GetNumOfElements();
+  
+  m_elemvis->SetModel(p3dModel);
+  m_elemsel->SetModel(p3dModel);
+  m_elemsel->SetBaseGlobalId(1);
+  
+  bool *b = new bool[n];
+  for(int i=0;i<n;++i)
+    b[i] = rand()%2==0;
+
+  m_elemvis->SetAllElements(false);
+  m_elemsel->AddSelectElems(b);
+  m_elemvis->SetSelection(m_elemsel);
+  p3dRenderer->SetElemVis(m_elemvis);
 }
 
 
 
 
-
+void drawScene()
+{
+  if(render_model == 0)
+  {
+    //glEnable(GL_CULL_FACE);
+    rtScene->setLightEnabled(lights_on);
+    rtScene->configure();
+    rtScene->render();
+  }else
+  {
+    glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
+    if(lights_on)
+    {
+      p.configure();
+      p.render();
+    }
+    glColor3f(1,1,1);
+    p3dRenderer->Render();
+    glPopAttrib();
+  }
+}
 
 
 
@@ -441,11 +566,21 @@ void render(){
 
   if(!shader_on)
   {
-    //glEnable(GL_CULL_FACE);
-    rtScene->configure();
-    rtScene->render();
+    drawScene();
   }else
   {
+    kernelColor->setActive(true);
+
+    glClearColor(.8, .8, 1.0, -1.0);
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    glDisable(GL_CULL_FACE);
+    drawScene();
+
+    kernelColor->setActive(false);
+
+
+
+
     GLfloat projectionMatrix[16];
     glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
@@ -457,9 +592,7 @@ void render(){
       glClearColor(.8, .8, 1.0, -1.0);
       glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
       glDisable(GL_CULL_FACE);
-      //glEnable(GL_CULL_FACE);
-      rtScene->configure();
-      rtScene->render();
+      drawScene();
 
       kernelDeferred_Peeling->setActive(false);
     }
