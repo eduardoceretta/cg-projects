@@ -16,17 +16,13 @@
 #include "Light/DirectionalLight.h"
 
 #include "Objects/Scene.h"
+#include "MeshLoaders/P3bMeshFile.h"
 #include "Kernels/KernelDeferred.h"
 #include "Kernels/KernelColor.h"
 #include "Kernels/KernelDeferred_Peeling.h"
 #include "Kernels/KernelSSAO.h"
 
-//TECGRAF LIBS
-#include "model.h"
-#include "io/nfrmodelreader.h"
-#include "display/fem.h"
-#include "elemvis.h"
-#include "elemselection.h"
+
 
 #include "main.h"
 
@@ -76,10 +72,8 @@ KernelDeferred* kernelDeferred;
 KernelDeferred_Peeling* kernelDeferred_Peeling;
 KernelColor* kernelColor;
 KernelSSAO* kernelSSAO;
-//TecGraf Objects
-P3DModel *p3dModel;
-P3DNfrModelReader *p3dModelReader;
-P3DFemDisplay* p3dRenderer;
+P3bMeshFile* p3bMesh;
+
 
 //Algorithm
 float rfar = 10.0f;
@@ -467,70 +461,30 @@ void createScenes()
   texDebug = new TextureObject(kernelSSAO->getColorTexId());
     //texDebug = new TextureObject(kernelDeferred->getTexIdPosition());
 
+  //p3bMesh = new P3bMeshFile();
+  //p3bMesh->readFile("resources/Models/TecGraf/16metros_30graus.p3b");
+  // int n = p3bMesh->getNumElements();
+  //bool *b = new bool[n];
+  //for(int i=0;i<n;++i)
+  //  b[i] = rand()%2==0;
+  //p3bMesh->setVisibleElements(b);
+  //delete [] b;
 
-
-  p3dModel = new P3DModel();
-  p3dModelReader = new P3DNfrModelReader(p3dModel);
-  p3dModelReader->SetFilename(P3DMODEL_NAME_BIN, P3DMODEL_NAME_LUA);
-
-  if(p3dModelReader->Open() == 0)
+  for(int i=0; i<rtScene->getNumMeshes();++i)
   {
-    MyAssert("CAN'T OPEN FILE:" + string(P3DMODEL_NAME_BIN) + " " + string(P3DMODEL_NAME_LUA), true);
-    delete p3dModelReader;
-    delete p3dModel;
+    Mesh *m = rtScene->getMeshAt(i);
+    P3bMeshFile * p3bMesh2 = m->getP3bMesh();
+    if(p3bMesh2!=NULL)
+    {
+      int n = p3bMesh2->getNumElements();
+      
+      bool *b = new bool[n];
+      for(int i=0;i<n;++i)
+        b[i] = rand()%2==0;
+      p3bMesh2->setVisibleElements(b);
+      delete [] b;
+    }
   }
-
-  if(p3dModelReader->Read() == 0)
-  {
-    MyAssert("CAN'T READ FILE:" + string(P3DMODEL_NAME_BIN) + " " + string(P3DMODEL_NAME_LUA) + "\n" + p3dModelReader->GetLastError(), true);
-    delete p3dModelReader;
-    delete p3dModel;
-  }
-  p3dRenderer = new P3DFemDisplay();
-  p3dRenderer->SetModel(p3dModel);
-  //p3dRenderer->SetColorScale(m_sci_colorscale);
-  //p3dRenderer->SetBoundaryMeshColor(r, g, b, 1);
-  //p3dRenderer->SetBoundaryMeshWidth((float) i);
-  //p3dRenderer->SetBoundaryCohMeshColor(r, g, b, 1);
-  //p3dRenderer->SetBoundaryCohMeshWidth((float) i);
-  //p3dRenderer->SetBoundaryNodesEnabled(flag);
-  //p3dRenderer->SetBoundaryNodesColor(r, g, b, 1);
-  //p3dRenderer->SetBoundaryCohNodesColor(r, g, b, 1);
-  //p3dRenderer->SetOutlineEnabled(flag);
-  //p3dRenderer->SetMaterialOutlineEnabled(flag);
-  //p3dRenderer->SetBoundaryElemNumbersEnabled(flag);
-  //p3dRenderer->SetBoundaryNodeNumbersEnabled(flag);
-  //p3dRenderer->SetDispFactor(factor);
-  //p3dRenderer->SetUndeformedEnabled(flag);
-  //p3dRenderer->SetMaterialColorScale(m_sci_matcolorscale);
-  //p3dRenderer->SetBoundaryElemColor(r, g, b, 1.f);
-  //p3dRenderer->SetBoundaryCohElemColor(r, g, b, 1.f);
-  //P3DModel* p3d_model = m_model->GetModel();
-  //TopModel* mesh = p3d_model->GetMesh();
-  //p3dRenderer->SetBoundaryPerElemColors(mesh->GetNElem(), colors_rgba);
-  //p3dRenderer->SetSelectionMode(P3DFemDisplay::SELECT_NODE);
-  //p3dRenderer->SetSelectionMode(P3DFemDisplay::SELECT_ELEMENT);
-  //p3dRenderer->SetShaderPath(path);
-
-  //p3dRenderer->SetViewport(x0, y0, w, h);
-
-
-  P3DElemVis *m_elemvis = new P3DElemVis();
-  P3DElemSelection *m_elemsel = new P3DElemSelection();
-  int n = p3dModel->GetNumOfElements();
-  
-  m_elemvis->SetModel(p3dModel);
-  m_elemsel->SetModel(p3dModel);
-  m_elemsel->SetBaseGlobalId(1);
-  
-  bool *b = new bool[n];
-  for(int i=0;i<n;++i)
-    b[i] = rand()%2==0;
-
-  m_elemvis->SetAllElements(false);
-  m_elemsel->AddSelectElems(b);
-  m_elemvis->SetSelection(m_elemsel);
-  p3dRenderer->SetElemVis(m_elemvis);
 }
 
 
@@ -538,24 +492,17 @@ void createScenes()
 
 void drawScene()
 {
-  if(render_model == 0)
+  glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
+  if(lights_on)
   {
-    //glEnable(GL_CULL_FACE);
-    rtScene->setLightEnabled(lights_on);
-    rtScene->configure();
-    rtScene->render();
-  }else
-  {
-    glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
-    if(lights_on)
-    {
-      p.configure();
-      p.render();
-    }
-    glColor3f(1,1,1);
-    p3dRenderer->Render();
-    glPopAttrib();
+    p.configure();
+    p.render();
   }
+  //glEnable(GL_CULL_FACE);
+  rtScene->setLightEnabled(lights_on);
+  rtScene->configure();
+  rtScene->render();
+  glPopAttrib();
 }
 
 

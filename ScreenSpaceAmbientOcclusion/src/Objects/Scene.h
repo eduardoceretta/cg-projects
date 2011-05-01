@@ -22,7 +22,7 @@ using namespace std;
 class Scene
 {
   protected:
-      bool mCalculed;
+      bool m_calculated;
       Color mClear;
       Color mAmbient;
 
@@ -45,6 +45,8 @@ class Scene
       GLuint getLightsTexId();
       GLfloat getLightsTexSize();
       int getNumLights();
+      int getNumMeshes();
+      Mesh* getMeshAt(int i);
       unsigned int getSceneNumTriangles();
 
       bool isLightEnabled() const;

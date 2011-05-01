@@ -5,6 +5,7 @@
 #include <string>
 
 #include "GraphBasis/Vector3.h"
+#include "MeshLoaders/P3bMeshFile.h"
 
 using namespace std;
 
@@ -16,7 +17,7 @@ class Mesh
 
    protected:
       VertexBufferObject* mVbo;
-
+      P3bMeshFile * m_p3bMesh;
       bool mCalculated;
 
       int mMaterialIndex;
@@ -26,12 +27,14 @@ class Mesh
       int myMeshNum;
    public:
       Mesh();
+      ~Mesh();
 
       int getMyMeshNumber() const;
       void readFromStr(char buffer[]);
 
       int getMaterialIndex();
       VertexBufferObject* getVbo() const;
+      P3bMeshFile * getP3bMesh() const;
 
       void configure();
       void render();
