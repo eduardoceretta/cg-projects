@@ -15,7 +15,7 @@ using namespace std;
 //~ Scene
 //////////////////
 Scene :: Scene(string rt4FileName)
-:mCalculed(false)
+:m_calculated(false)
 ,m_lightEnabled(true)
 {
   readFromFile(rt4FileName);
@@ -132,10 +132,10 @@ void Scene :: readFromStr(char buffer[])
 
 void Scene :: configure()
 {
-  if(!mCalculed) 
+  if(!m_calculated) 
   {
     calcTextures();
-    mCalculed = true;
+    m_calculated = true;
   }
   if(m_lightEnabled)
   {
@@ -174,7 +174,7 @@ void Scene :: render()
         //if(m_lightEnabled)  
           mMaterials[meshIt->getMaterialIndex()].render();
         //else mMaterials[meshIt->getMaterialIndex()].mDiffuse.setColor();
-        meshIt->render();
+          meshIt->render();
       glPopAttrib();
     }
   glPopAttrib();
@@ -295,4 +295,14 @@ void Scene::renderMesh(int index)
 {
   mMeshes[index].configure();
   mMeshes[index].render();
+}
+
+int Scene::getNumMeshes()
+{
+  return mMeshes.size();
+}
+
+Mesh* Scene::getMeshAt( int i )
+{
+  return &mMeshes[i];
 }

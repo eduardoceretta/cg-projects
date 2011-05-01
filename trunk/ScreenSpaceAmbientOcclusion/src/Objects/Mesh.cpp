@@ -19,8 +19,15 @@ int Mesh :: sMeshNum = 0;
 Mesh :: Mesh()
 :mCalculated(false)
 ,mVbo(NULL)
+,m_p3bMesh(NULL)
 {
    myMeshNum = sMeshNum++;
+}
+
+Mesh :: ~Mesh()
+{
+  //if(m_p3bMesh)
+  //  delete m_p3bMesh;
 }
 
 
@@ -34,16 +41,31 @@ void Mesh :: readFromStr(char buffer[])
    int r = sscanf( buffer, "%d %f %f %f %f %f %f %s\n", &mMaterialIndex, &mPos.x, &mPos.y, &mPos.z,
       &mScale.x, &mScale.y, &mScale.z, buffer);
    cout << "Ler Arquivo " << buffer <<endl;
-   
+   assert(r == 8);
+   //   cout << "Mesh materialindex, pos, pos2, fileName:\n" << mMaterialIndex <<endl << mPos << mPos2 << buffer <<endl;
+
    string fileName(buffer);
 
+   int index = fileName.find_last_of(".");
+   MyAssert("Invalid FileName: " + fileName, index!=string::npos);
+   string sub = fileName.substr(index, string::npos);
+
    MeshLoader m;
-   m.readFile(fileName, mPos, mScale);
-   mVbo = m.getVbo();
+   if(m.isValidFileType(sub))
+   {
+     m.readFile(fileName, mPos, mScale);
+     mVbo = m.getVbo();
+   }else
+   {
+     if(m_p3bMesh)
+       delete m_p3bMesh;
+     m_p3bMesh = new P3bMeshFile();
 
-   assert(r == 8);
-
-//   cout << "Mesh materialindex, pos, pos2, fileName:\n" << mMaterialIndex <<endl << mPos << mPos2 << buffer <<endl;
+     if(m_p3bMesh->isValidFileType(sub))
+     {
+       m_p3bMesh->readFile(fileName, mPos, mScale);
+     }
+   }
 }
 
 
@@ -73,11 +95,20 @@ void Mesh :: render()
 {
    glPushMatrix();
       glTranslatef(mPos.x, mPos.y, mPos.z);
-      mVbo->render();
-   glPopMatrix();
+      if(mVbo)
+        mVbo->render();
+  glPopMatrix();
+
+  if(m_p3bMesh)
+    m_p3bMesh->render();
 }
 
 VertexBufferObject* Mesh::getVbo() const
 {
   return mVbo;
+}
+
+P3bMeshFile * Mesh::getP3bMesh() const
+{
+  return m_p3bMesh;
 }
