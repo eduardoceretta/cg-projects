@@ -93,8 +93,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)..\..\bin\$(ConfigurationName)"
+			IntermediateDirectory="$(SolutionDir)..\..\bin\obj\$(ConfigurationName)"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -118,7 +118,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../../src/;&quot;../../libs/glew-1.5.4/include&quot;;&quot;../../libs/freeglut-2.6.0/include&quot;"
+				AdditionalIncludeDirectories="../../src/;&quot;../../libs/glew-1.5.4/include&quot;;&quot;../../libs/freeglut-2.6.0/include&quot;;../../libs/ply/include;../../libs/TecGraf/include;../../libs/TecGraf/include/lua5;../../libs/TecGraf/include/nfr;../../libs/TecGraf/include/ds;../../libs/TecGraf/include/io;../../libs/TecGraf/include/tops;../../libs/TecGraf/include/topsview;../../libs/TecGraf/include/pos3dlib"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;GLEW_STATIC;FREEGLUT_STATIC;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -137,9 +137,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="opengl32.lib glu32.lib freeglut_static.lib glew32s.lib"
+				AdditionalDependencies="opengl32.lib glu32.lib glut32.lib freeglut_static.lib glew32s.lib CgGL.lib Cg.lib shadercg.lib utl.lib uso.lib ufont.lib shader.lib topsview.lib tops.lib vgl.lib ply.lib pos3dlib.lib io.lib nfr.lib lua5.1.lib iup.lib im.lib ugl.lib uglim.lib alg.lib sciutils.lib particles.lib geoms.lib freetype2.lib ftgl.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;../../libs/glew-1.5.4/lib&quot;;&quot;../../libs/freeglut-2.6.0/VisualStudio2008Static/Release&quot;"
+				AdditionalLibraryDirectories="&quot;../../libs/glew-1.5.4/lib&quot;;&quot;../../libs/freeglut-2.6.0/VisualStudio2008Static/Release&quot;;../../libs/TecGraf/lib;../../libs/ply/lib"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
