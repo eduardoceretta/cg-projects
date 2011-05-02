@@ -10,6 +10,7 @@
 #include "MeshLoaders\MshMeshFile.h"
 #include "MeshLoaders\MsbMeshFile.h"
 #include "MeshLoaders\UmMeshFile.h"
+#include "MeshLoaders\PlyMeshFile.h"
 
 using namespace std;
 
@@ -18,6 +19,7 @@ MeshFileBase* MeshLoader :: sMeshLoaders[] =
   new MshMeshFile(),
   new UmMeshFile(),
   new MsbMeshFile(),
+  new PlyMeshFile(),
 };
 
 ///////////////////
@@ -51,7 +53,14 @@ void MeshLoader::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
     }
 
   MyAssert("Unknown File Type:" + fileName, knownFileType);
+}
 
+bool MeshLoader:: isValidFileType(string filetype)
+{
+  for(int i=0;i<sizeof(sMeshLoaders)/sizeof(MeshFileBase*); ++i)  
+    if(sMeshLoaders[i]->isValidFileType(filetype))
+      return true;
+  return false;
 }
 
 void MeshLoader::calcVBO()
