@@ -16,6 +16,7 @@ MsbMeshFile::~MsbMeshFile(void)
 
 void MsbMeshFile::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Vector3 scale /*= Vector3(1,1,1)*/ )
 {
+  m_vbo = NULL;
   m_pos = pos;
   m_scale = scale;
   m_fileName = fileName;

@@ -16,9 +16,10 @@ class MeshLoader: public MeshFileBase
 
  public:
     MeshLoader();
-
+    virtual bool isValidFileType(string filetype);
     void readFile(string fileName, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
 protected:
   void calcVBO();
+
 };
 
