@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <GL/glew.h>
-#include <GL/freeglut.h>
+#include <GL/glut.h>
 
 #include "main.h"
 #include "Objects/Scene.h"

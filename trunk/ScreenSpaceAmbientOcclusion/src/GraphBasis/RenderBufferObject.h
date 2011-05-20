@@ -6,7 +6,7 @@
 #define RenderBufferObject_H
 
 #include <GL/glew.h>
-#include <GL/freeglut.h>
+#include <GL/glut.h>
 #include <stdio.h>
 #include <stdlib.h>
 

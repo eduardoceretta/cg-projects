@@ -1,6 +1,6 @@
 #include <iostream>
 #include <GL\glew.h>
-#include <GL\freeglut.h>
+#include <GL\glut.h>
 #include <cmath>
 
 #include "GraphBasis/Vector3.h"
@@ -44,7 +44,7 @@ int lastMousePosY = 0;
 int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
-bool lights_on = true;
+bool lights_on = false;
 int render_model = 0;
 int outputSelection = 0;
 int numPeelings = 3;
@@ -241,7 +241,8 @@ void mouseButtons(int button, int state, int x, int y){
 }
 
 void mouseActive(int x, int y){
-  int modifier = glutGetModifiers();
+  //int modifier = glutGetModifiers();
+  int modifier = 0;
 	if(mouseButton == GLUT_LEFT_BUTTON && mouseState == GLUT_DOWN){
 		float angleX = (x - lastMousePosX)*.5;
 		float angleY = (y - lastMousePosY)*.5;
@@ -527,9 +528,21 @@ void render(){
 
 
 
-
+    GLfloat modelviewMatrix[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, modelviewMatrix);
     GLfloat projectionMatrix[16];
     glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
+
+    Matrix4 mv = Matrix4((float*)modelviewMatrix);
+    Matrix4 mp = Matrix4((float*)projectionMatrix);
+    Matrix4 mvp = mp;
+    mvp.Inverse();
+    //mvp.Transpose();
+    GLfloat imvp[16];
+    for(int i=0;i<4;++i)
+      for(int j = 0;j<4;++j)
+        imvp[i*4 + j] = mvp.getValue(i, j);
+
 
     for(int i=0; i < numPeelings; ++i)
     {
@@ -555,7 +568,7 @@ void render(){
     float top = Znear/y;
 
 
-    kernelSSAO->step(Znear, Zfar, right, top, rfar, pixelmask_size);
+    kernelSSAO->step(Znear, Zfar, right, top, rfar, pixelmask_size,imvp);
     kernelSSAO->renderOutput(0);
 
 

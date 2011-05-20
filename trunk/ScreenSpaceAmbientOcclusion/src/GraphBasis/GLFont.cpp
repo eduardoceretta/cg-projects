@@ -44,7 +44,7 @@ void GLFont::initText()
 
 void GLFont::print(int x, int y, string str,Color color)
 {
-   color.setColor();
+  color.setColor();
 	for (const char *c= str.c_str(); *c != '\0'; c++)
    {
 		glRasterPos2f(x,y);
@@ -64,7 +64,8 @@ void GLFont::endText()
 
    glMatrixMode(GL_PROJECTION);
    glPopMatrix();
-
+   
+   glMatrixMode(GL_MODELVIEW);
    glPopAttrib();
    glPopMatrix();
 }

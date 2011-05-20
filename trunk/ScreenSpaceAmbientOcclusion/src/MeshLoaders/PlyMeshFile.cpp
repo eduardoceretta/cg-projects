@@ -213,7 +213,7 @@ void PlyMeshFile::calcTriangles()
 
   char vertexname[] = "vertex";
   char facename[] = "face";
-  bool flipnormals = false;
+  bool flipnormals = true;
 
   const char* texpropnames[8][3] = {
     { "s0", "t0", "r0" },

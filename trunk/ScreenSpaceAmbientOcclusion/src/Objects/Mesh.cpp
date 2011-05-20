@@ -93,11 +93,13 @@ void Mesh :: configure()
 
 void Mesh :: render()
 {
-   glPushMatrix();
+  if(mVbo)
+  {
+    glPushMatrix();
       glTranslatef(mPos.x, mPos.y, mPos.z);
-      if(mVbo)
-        mVbo->render();
-  glPopMatrix();
+      mVbo->render();
+    glPopMatrix();
+  }
 
   if(m_p3bMesh)
     m_p3bMesh->render();
