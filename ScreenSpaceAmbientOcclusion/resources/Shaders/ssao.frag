@@ -1,3 +1,23 @@
+//////SHADER CONTROLS\\\\\\\\
+//////SHADER CONTROLS\\\\\\\\
+//////SHADER CONTROLS\\\\\\\\
+//////SHADER CONTROLS\\\\\\\\
+
+
+#define ONE_MINUS_AO
+#define SIZE_OVER_DEPTH
+#define MAX_OVER_PEELING
+#define SPHERE_CENTER_MINUS_NORMAL .1
+//#define Z_MINUS_R -.5
+//#define INVERT_NORMAL
+
+//#define SAMPLER_QUAD
+#define SAMPLER_VECTOR
+
+//////SHADER BEGIN\\\\\\\\
+//////SHADER BEGIN\\\\\\\\
+//////SHADER BEGIN\\\\\\\\
+//////SHADER BEGIN\\\\\\\\
 varying vec3 lightDir;
 uniform sampler2D diffuseTex;
 uniform sampler2D colorTex;
@@ -5,8 +25,14 @@ uniform sampler2D positionTex;
 uniform sampler2D depth0_normalTex;
 uniform sampler2D depth1_normalTex;
 uniform sampler2D depth2_normalTex;
-uniform sampler2D sampleTex;
+
+#ifdef SAMPLER_QUAD
+  uniform sampler2D sampleTex;
+#else
+  uniform sampler1D sampleTex;
+#endif
 uniform float samplerSize;
+
 
 uniform float rfar;
 uniform float pixelmask_size;
@@ -16,6 +42,9 @@ uniform float near;
 uniform float far;
 uniform float right;
 uniform float top;
+
+uniform float offsets_size;
+uniform float intensity;
 
 #define PI 3.14159265
 
@@ -66,35 +95,45 @@ void main()
  
   //pixelmask_size = min(samplerSize, pixelmask_size);
   
-#if 1
-  float v = pixelmask_size;
-  float n_depth = max(depth - v,0.)*1./(1.-v);
-  int size = int(max(floor((1.-n_depth)*samplerSize + .5), 1.));
-#else  
-  int size = int(samplerSize);
+#ifdef SAMPLER_QUAD
+  #ifdef SIZE_OVER_DEPTH
+    float v = pixelmask_size;
+    float n_depth = max(depth - v,0.)*1./(1.-v);
+    int size = int(max(floor((1.-n_depth)*samplerSize + .5), 1.));
+  #else
+    int size = int(samplerSize);
+  #endif
+#else
+  #ifdef SIZE_OVER_DEPTH
+    float v = pixelmask_size;
+    float n_depth = max(depth - v,0.)*1./(1.-v);
+    int size = int(max(floor((1.-n_depth)*samplerSize + .5), 9.));
+  #else
+    int size = int(samplerSize);
+  #endif
 #endif
   //if (size == samplerSize)
     //gl_FragData[0] = ORANGE;
-  //else if (size > 24)
+  //else if (size > samplerSize*.9)
     //gl_FragData[0] = WHITE;
-  //else if (size > 20)
+  //else if (size > samplerSize*.75)
     //gl_FragData[0] = RED;
-  //else if (size > 15)
+  //else if (size > samplerSize*.6)
     //gl_FragData[0] = CYAN;
-  //else if (size > 10)
+  //else if (size > samplerSize*.45)
     //gl_FragData[0] = BLUE;
-  //else if (size > 5)
+  //else if (size > samplerSize*.3)
     //gl_FragData[0] = BLACK;
-  //else if (size > 3)
+  //else if (size > samplerSize*.15)
     //gl_FragData[0] = GREEN;
-  //else if (size >= 1)
+  //else if (size >= samplerSize*.05)
     //gl_FragData[0] = YELLOW;
   //else 
     //gl_FragData[0] = PINK;
   //return;
-  //size = 15;
-  //float maxAO = .5;
+
   int n = 0;
+#ifdef SAMPLER_QUAD
   for(int i=-size; i < size + 1; ++i)
   {
     for(int j = -size; j < size + 1; ++j)
@@ -105,7 +144,7 @@ void main()
         float sample = floor(texture2D(sampleTex, coord).a + .5);
         if(sample == 1.0)
         {
-          float local_ao = 0.0;
+          float localAO = 0.0;
           for(int k = 0; k < 3; ++k)
           //int k = 0;
           {
@@ -122,38 +161,100 @@ void main()
               case 2:
                 depth_normal = texture2D(depth2_normalTex,  gl_TexCoord[0].st + inc);  
               break;
+              default:
+                depth_normal = vec4(-1.0, -1.0, -1.0, -1.0);
+              break;
             }
             
             if(depth_normal.a < 0.0)
               continue;
 
             vec4 sphere = getSphere(gl_FragCoord.x + float(i), gl_FragCoord.y + float(j), depth_normal.a);
-            sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*0.1;
+            #ifdef SPHERE_CENTER_MINUS_NORMAL
+              sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL;
+            #endif
             float eye_dist = length(sphere.xyz - position.xyz);
 
             if(eye_dist > rfar)
               continue;
             
-            #if 1
-              local_ao = max(local_ao, getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+            #ifdef MAX_OVER_PEELING
+              localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
             #else
-              local_ao += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+              localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
             #endif
           }
           
-          totalAO += local_ao;
+          totalAO += localAO;
           n++;
         }
       }
     }
   }
-  totalAO = totalAO/(2*PI);
+  
+  
+  
+#else
+  for(int k = 0; k < size ; ++k)
+  {
+    float coord = (float(k) + .5) / samplerSize;
+    vec2 sample = texture1D(sampleTex, coord).xy * offsets_size;
+    float i = floor(sample.x + .5);
+    float j = floor(sample.y + .5);
+
+    float localAO = 0.0;
+    for(int k = 0; k < 3; ++k)
+    //int k = 0;
+    {
+      vec2 inc = vec2(float(i)*dx, float(j)*dy);
+      vec4 depth_normal;
+      switch(k)
+      {
+        case 0:
+          depth_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st + inc);  
+        break;
+        case 1:
+          depth_normal = texture2D(depth1_normalTex,  gl_TexCoord[0].st + inc);  
+        break;
+        case 2:
+          depth_normal = texture2D(depth2_normalTex,  gl_TexCoord[0].st + inc);  
+        break;
+        default:
+          depth_normal = vec4(-1.0, -1.0, -1.0, -1.0);
+        break;
+      }
+      
+      if(depth_normal.a < 0.0)
+        continue;
+
+      vec4 sphere = getSphere(gl_FragCoord.x + float(i), gl_FragCoord.y + float(j), depth_normal.a);
+      #ifdef SPHERE_CENTER_MINUS_NORMAL
+        sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL;
+      #endif
+      float eye_dist = length(sphere.xyz - position.xyz);
+
+      if(eye_dist > rfar)
+        continue;
+      
+      #ifdef MAX_OVER_PEELING
+        localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+      #else
+        localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+      #endif
+    }
+
+    totalAO += localAO;
+    n++;
+  }
+#endif
+  
+  totalAO = intensity * totalAO/(PI);
   totalAO = clamp(totalAO,0.0,1.0);
 
 	if(depth <= 1.0)
 	{
-	  #if 1
-	    gl_FragData[0] = color*(1 - totalAO);
+	  #ifdef ONE_MINUS_AO
+	    gl_FragData[0] = color*(1.0 - totalAO);
 	  #else
 	    gl_FragData[0] = color*(totalAO);
 	  #endif
@@ -190,8 +291,8 @@ vec3 ndc2eye(vec3 ndc)
 {	
 //--assuming r == -l, t == -b
   float ze = 2. * far * near/(ndc.z * (far - near) - (far + near));
-  float ye = -ze * ndc.y * (top - (-top))/(2*near);
-  float xe = -ze * ndc.x * (right - (-right))/(2*near);
+  float ye = -ze * ndc.y * (top - (-top))/(2.0*near);
+  float xe = -ze * ndc.x * (right - (-right))/(2.0*near);
   
   return vec3(xe, ye, ze);
 }
@@ -200,7 +301,6 @@ vec3 window2ndc(vec3 w)
 {
   //--assuming window (0,0), (screenWidth, screenHeight)
   //--assuming r == -l, t == -b
-
   float xn = 2. * w.x/screenWidth - 1.;
   float yn = 2. * w.y/screenHeight - 1.;
   float zn = (2. * w.z - 1.)/1.;
@@ -221,15 +321,11 @@ vec4 getSphere(float xw, float yw, float zw)
   vec3 ex2 = window2eye(vec3(xw + 1., yw, zw));
   //float rr = abs(ex2.x - ex1.x)/2.;
   float rr = length(ex2 - ex1)/2.;
-  #if 0
-    ex1.z -= rr;
+  #ifdef Z_MINUS_R
+    ex1.z -= rr * Z_MINUS_R;
   #endif
   return vec4(ex1,rr);
     
-//
-  //
-  //
-  //
   //float xn = 2.0 * xw/screenWidth - 1.0;
   //float yn = 2.0 * yw/screenHeight - 1.0;
   //float zn = 2.0 * zw - 1.0;
@@ -250,7 +346,7 @@ float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP)
 {
   vec3 PQ = (sphereQ.xyz - posP);
   float S = 2.0 * PI * (1.0 - cos(asin(sphereQ.a / length(PQ))));
-  #if 1
+  #ifdef INVERT_NORMAL
     normalP = -normalP;
   #endif
   float max_dot = max(dot(normalize(normalP), normalize(PQ)), 0.0);
