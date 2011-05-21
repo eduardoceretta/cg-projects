@@ -78,6 +78,8 @@ P3bMeshFile* p3bMesh;
 //Algorithm
 float rfar = 10.0f;
 float pixelmask_size = .8;
+float offsets_size = 1.0;
+float intensity = 1.0;
 
 GLFont fontRender;
 
@@ -227,6 +229,33 @@ void keyboard(unsigned char key, int x, int y){
     case '-':
       numPeelings = max(numPeelings - 1, 1);
     break;
+
+    case 'K':
+      offsets_size = min(offsets_size + 1.0f, appWidth/2.0f);
+      break;
+    case 'k':
+      offsets_size = min(offsets_size + .1f, appWidth/2.0f);
+      break;
+    case 'J':
+      offsets_size = max(offsets_size - 1.0f, 1.0f);
+      break;
+    case 'j':
+      offsets_size = max(offsets_size - .1f, 1.0f);
+      break;
+
+
+    case 'I':
+      intensity = min(intensity + 1.0f, 100.f);
+      break;
+    case 'i':
+      intensity = min(intensity + .05f, 100.f);
+      break;
+    case 'U':
+      intensity = max(intensity - 1.0f, 0.01f);
+      break;
+    case 'u':
+      intensity = max(intensity - .05f, 0.01f);
+      break;
   }
   //cout << (int)key<<endl;
 }
@@ -344,6 +373,12 @@ void renderUIText()
   fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
   sprintf(a,"(Home/End)pixmask: %.3f ", pixelmask_size);
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+
+  sprintf(a,"(K/J)offsets_size: %.1f ", offsets_size);
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+  
+  sprintf(a,"(I/U)intensity: %.2f ", intensity);
   fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
   
   sprintf(a,"(F11)Shader %s", shader_on? "On":"Off");
@@ -568,7 +603,7 @@ void render(){
     float top = Znear/y;
 
 
-    kernelSSAO->step(Znear, Zfar, right, top, rfar, pixelmask_size,imvp);
+    kernelSSAO->step(Znear, Zfar, right, top, rfar, pixelmask_size,offsets_size, intensity);
     kernelSSAO->renderOutput(0);
 
 

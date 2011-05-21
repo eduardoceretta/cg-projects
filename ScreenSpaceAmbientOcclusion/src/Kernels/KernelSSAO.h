@@ -17,7 +17,7 @@ public:
  
   GLuint getColorTexId() const;
  
-  void step(float z_near, float z_far, float right, float top, float rfar, float pixelmask_size, GLfloat *imvp);
+  void step(float z_near, float z_far, float right, float top, float rfar, float pixelmask_size, GLfloat offsets_size, GLfloat intensity);
 private:
   GLuint m_colorTexId;
   GLuint createSampleTexture();
