@@ -5,8 +5,10 @@
 
 
 #define ONE_MINUS_AO
-#define SIZE_OVER_DEPTH
+//#define SIZE_OVER_DEPTH
+//#define DEPTH_PEELING
 #define MAX_OVER_PEELING
+#define SPHERE_POSITION
 #define SPHERE_CENTER_MINUS_NORMAL .1
 //#define Z_MINUS_R -.5
 //#define INVERT_NORMAL
@@ -19,8 +21,6 @@
 //////SHADER BEGIN\\\\\\\\
 //////SHADER BEGIN\\\\\\\\
 varying vec3 lightDir;
-uniform sampler2D diffuseTex;
-uniform sampler2D colorTex;
 uniform sampler2D positionTex;
 uniform sampler2D depth0_normalTex;
 uniform sampler2D depth1_normalTex;
@@ -60,16 +60,26 @@ uniform float intensity;
 
 vec4 getSphere(float xw, float yw, float zw);
 float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP);
+float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position);
+
+
 
 
 
 void main()
 {
   //vec4 diffuse = texture2D(diffuseTex,  gl_TexCoord[0].st);
-  vec4 color = texture2D(colorTex,  gl_TexCoord[0].st);
+  //vec4 color = texture2D(colorTex,  gl_TexCoord[0].st);
+  vec4 color = vec4(1,1,1,1);
   vec4 depth0_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st);
-  vec4 position = texture2D(positionTex,  gl_TexCoord[0].st);
   float depth = depth0_normal.a;
+  
+  #ifdef SPHERE_POSITION
+    vec4 position = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth);
+  #else
+    vec4 position = texture2D(positionTex,  gl_TexCoord[0].st);
+  #endif
+
 
 	if(depth < 0.0)
 	{
@@ -135,115 +145,33 @@ void main()
   int n = 0;
 #ifdef SAMPLER_QUAD
   for(int i=-size; i < size + 1; ++i)
-  {
     for(int j = -size; j < size + 1; ++j)
-    {
       if(!(i==0 && j==0))
       {
         vec2 coord = vec2((float(i) + samplerSize + .5)/samplerTotalSize, (float(j) + samplerSize + .5)/samplerTotalSize);
         float sample = floor(texture2D(sampleTex, coord).a + .5);
         if(sample == 1.0)
         {
-          float localAO = 0.0;
-          for(int k = 0; k < 3; ++k)
-          //int k = 0;
-          {
-            vec2 inc = vec2(float(i)*dx, float(j)*dy);
-            vec4 depth_normal;
-            switch(k)
-            {
-              case 0:
-                depth_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st + inc);  
-              break;
-              case 1:
-                depth_normal = texture2D(depth1_normalTex,  gl_TexCoord[0].st + inc);  
-              break;
-              case 2:
-                depth_normal = texture2D(depth2_normalTex,  gl_TexCoord[0].st + inc);  
-              break;
-              default:
-                depth_normal = vec4(-1.0, -1.0, -1.0, -1.0);
-              break;
-            }
-            
-            if(depth_normal.a < 0.0)
-              continue;
-
-            vec4 sphere = getSphere(gl_FragCoord.x + float(i), gl_FragCoord.y + float(j), depth_normal.a);
-            #ifdef SPHERE_CENTER_MINUS_NORMAL
-              sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL;
-            #endif
-            float eye_dist = length(sphere.xyz - position.xyz);
-
-            if(eye_dist > rfar)
-              continue;
-            
-            #ifdef MAX_OVER_PEELING
-              localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
-            #else
-              localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
-            #endif
-          }
-          
-          totalAO += localAO;
+          totalAO += calcLocalAO(float(i),float(j), depth, depth0_normal, dx, dy, position);
           n++;
         }
       }
-    }
-  }
-  
-  
-  
+
 #else
   for(int k = 0; k < size ; ++k)
   {
     float coord = (float(k) + .5) / samplerSize;
-    vec2 sample = texture1D(sampleTex, coord).xy * offsets_size;
+    vec2 sample = texture1D(sampleTex, coord).xy;
     float i = floor(sample.x + .5);
     float j = floor(sample.y + .5);
-
-    float localAO = 0.0;
-    for(int k = 0; k < 3; ++k)
-    //int k = 0;
+    if(i > 3. || j > 3.)
     {
-      vec2 inc = vec2(float(i)*dx, float(j)*dy);
-      vec4 depth_normal;
-      switch(k)
-      {
-        case 0:
-          depth_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st + inc);  
-        break;
-        case 1:
-          depth_normal = texture2D(depth1_normalTex,  gl_TexCoord[0].st + inc);  
-        break;
-        case 2:
-          depth_normal = texture2D(depth2_normalTex,  gl_TexCoord[0].st + inc);  
-        break;
-        default:
-          depth_normal = vec4(-1.0, -1.0, -1.0, -1.0);
-        break;
-      }
-      
-      if(depth_normal.a < 0.0)
-        continue;
-
-      vec4 sphere = getSphere(gl_FragCoord.x + float(i), gl_FragCoord.y + float(j), depth_normal.a);
-      #ifdef SPHERE_CENTER_MINUS_NORMAL
-        sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL;
-      #endif
-      float eye_dist = length(sphere.xyz - position.xyz);
-
-      if(eye_dist > rfar)
-        continue;
-      
-      #ifdef MAX_OVER_PEELING
-        localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
-      #else
-        localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
-      #endif
+      i *= offsets_size;
+      j *= offsets_size;
     }
-
-    totalAO += localAO;
+   
+    
+    totalAO += calcLocalAO(i,j, depth, depth0_normal, dx, dy, position);
     n++;
   }
 #endif
@@ -285,6 +213,66 @@ void main()
 	//gl_FragData[1] = vec4(normalize(normal), gl_FragCoord.z);
 	//gl_FragData[2] = gl_FrontMaterial.diffuse;
 	//gl_FragData[3] = vec4(vec3(gl_FrontMaterial.specular.rgb), gl_FrontMaterial.shininess);
+}
+
+float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position)
+{
+  float localAO = 0.0;
+#ifdef DEPTH_PEELING
+  for(int k = 0; k < 3; ++k)
+#else
+  int k = 0;
+#endif
+  {
+    vec2 inc = vec2(i*dx, j*dy);
+    vec4 depth_normal;
+    switch(k)
+    {
+      case 0:
+        depth_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st + inc);  
+      break;
+      case 1:
+        depth_normal = texture2D(depth1_normalTex,  gl_TexCoord[0].st + inc);  
+      break;
+      case 2:
+        depth_normal = texture2D(depth2_normalTex,  gl_TexCoord[0].st + inc);  
+      break;
+      default:
+        depth_normal = vec4(-1.0, -1.0, -1.0, -1.0);
+      break;
+    }
+    
+    if(depth_normal.a < 0.0)
+    #ifdef DEPTH_PEELING
+      continue;
+    #else
+      return localAO;
+    #endif
+
+    vec4 sphere = getSphere(gl_FragCoord.x + i, gl_FragCoord.y + j, depth_normal.a);
+    #ifdef SPHERE_CENTER_MINUS_NORMAL
+      sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL;
+    #endif
+
+    
+    float eye_dist = length(sphere.xyz - position.xyz);
+
+    if(eye_dist > rfar)
+    #ifdef DEPTH_PEELING
+      continue;
+    #else
+      return localAO;
+    #endif
+    
+    #ifdef MAX_OVER_PEELING
+      localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+    #else
+      localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+    #endif
+  }
+
+
+  return localAO;
 }
 
 vec3 ndc2eye(vec3 ndc)
