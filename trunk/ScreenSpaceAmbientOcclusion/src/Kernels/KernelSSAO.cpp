@@ -654,7 +654,6 @@
 
 
 KernelSSAO::KernelSSAO(int width, int height, 
-                       GLuint diffuseColorTexId, GLuint colorTexId, 
                        GLuint positionTexId, 
                        GLuint depht0_normalTexId, GLuint depht1_normalTexId, 
                        GLuint depht2_normalTexId)
@@ -664,9 +663,7 @@ KernelSSAO::KernelSSAO(int width, int height,
 
 	//Input
 	m_shader->setActive(true);
-    addInputTexture(GL_TEXTURE_2D, "diffuseTex", diffuseColorTexId);
-    addInputTexture(GL_TEXTURE_2D, "colorTex", colorTexId);
-    addInputTexture(GL_TEXTURE_2D, "positionTex", positionTexId);
+     addInputTexture(GL_TEXTURE_2D, "positionTex", positionTexId);
     addInputTexture(GL_TEXTURE_2D, "depth0_normalTex", depht0_normalTexId);
     addInputTexture(GL_TEXTURE_2D, "depth1_normalTex", depht1_normalTexId);
     addInputTexture(GL_TEXTURE_2D, "depth2_normalTex", depht2_normalTexId);

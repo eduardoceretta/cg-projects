@@ -9,7 +9,6 @@ class KernelSSAO : public KernelBase {
 public:
 
   KernelSSAO(int width, int height, 
-              GLuint diffuseColorTexId, GLuint colorTexId, 
               GLuint positionTexId, 
               GLuint depht0_normalTexId, GLuint depht1_normalTexId, 
               GLuint depht2_normalTexId);

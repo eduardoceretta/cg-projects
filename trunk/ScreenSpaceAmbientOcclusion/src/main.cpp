@@ -21,6 +21,8 @@
 #include "Kernels/KernelColor.h"
 #include "Kernels/KernelDeferred_Peeling.h"
 #include "Kernels/KernelSSAO.h"
+#include "Kernels/KernelBlurr.h"
+#include "Kernels/KernelCombine.h"
 
 
 
@@ -45,11 +47,12 @@ int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
 bool lights_on = false;
-int render_model = 0;
+bool mine_light_on = false;
 int outputSelection = 0;
 int numPeelings = 3;
 int outputIndexSelection = 0;
 bool shader_on = true;
+bool blurr_on = true;
 
 //Camera Position
 float camAlpha = 0.0;
@@ -72,6 +75,9 @@ KernelDeferred* kernelDeferred;
 KernelDeferred_Peeling* kernelDeferred_Peeling;
 KernelColor* kernelColor;
 KernelSSAO* kernelSSAO;
+KernelBlurr* kernelBlurr;
+KernelCombine* kernelCombine;
+
 P3bMeshFile* p3bMesh;
 
 
@@ -211,11 +217,15 @@ void keyboard(unsigned char key, int x, int y){
       break;
     case 'M':
     case 'm':
-      render_model = (render_model + 1) % 2;
+      mine_light_on = !mine_light_on;
       break;
     case 'L':
     case 'l':
       lights_on = !lights_on;
+      break;
+    case 'B':
+    case 'b':
+      blurr_on = !blurr_on;
       break;
     case '*':
       camAlpha = 0.0;
@@ -245,13 +255,13 @@ void keyboard(unsigned char key, int x, int y){
 
 
     case 'I':
-      intensity = min(intensity + 1.0f, 100.f);
+      intensity = intensity + (intensity > 1000.0f? 100.0f :(intensity > 100.0f? 10.0f : 1.0f));
       break;
     case 'i':
-      intensity = min(intensity + .05f, 100.f);
+      intensity = intensity + .05f;
       break;
     case 'U':
-      intensity = max(intensity - 1.0f, 0.01f);
+      intensity = max(intensity -(intensity > 100.0f? 10.0f : 1.0f), 0.01f);
       break;
     case 'u':
       intensity = max(intensity - .05f, 0.01f);
@@ -384,10 +394,13 @@ void renderUIText()
   sprintf(a,"(F11)Shader %s", shader_on? "On":"Off");
   fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
+  sprintf(a,"(b)AO Blurr %s", blurr_on? "On":"Off");
+  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+
   sprintf(a,"(l)Lights %s", lights_on? "On":"Off");
   fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"(m)Model: %d", render_model);
+  sprintf(a,"(m)Mine Light: %s", mine_light_on? "On":"Off");
   fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
 
@@ -479,13 +492,15 @@ void createScenes()
   kernelColor = new KernelColor(appWidth, appHeight);
 
   kernelSSAO = new KernelSSAO(appWidth, appHeight
-    ,kernelDeferred_Peeling->getTexIdDiffuse(0)
-    ,kernelColor->getTexIdColor()
     ,kernelDeferred_Peeling->getTexIdPosition(0)
     ,kernelDeferred_Peeling->getTexIdNormal(0)
     ,kernelDeferred_Peeling->getTexIdNormal(1)
     ,kernelDeferred_Peeling->getTexIdNormal(2)
   );
+
+  kernelBlurr = new KernelBlurr(appWidth, appHeight, kernelSSAO->getColorTexId());
+  kernelCombine = new KernelCombine(appWidth, appHeight, kernelColor->getTexIdColor());
+
 
 
   rtScene = new Scene("./resources/scenes/cavalo.rt4");
@@ -529,7 +544,7 @@ void createScenes()
 void drawScene()
 {
   glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
-  if(lights_on)
+  if(mine_light_on)
   {
     p.configure();
     p.render();
@@ -552,6 +567,9 @@ void render(){
     drawScene();
   }else
   {
+//COLOR PASS
+//COLOR PASS
+//COLOR PASS
     kernelColor->setActive(true);
 
     glClearColor(.8, .8, 1.0, -1.0);
@@ -578,7 +596,9 @@ void render(){
       for(int j = 0;j<4;++j)
         imvp[i*4 + j] = mvp.getValue(i, j);
 
-
+//DEPTH PEELING PASS
+//DEPTH PEELING PASS
+//DEPTH PEELING PASS
     for(int i=0; i < numPeelings; ++i)
     {
       kernelDeferred_Peeling->step(i);
@@ -593,6 +613,10 @@ void render(){
     }
     //kernelDeferred_Peeling->renderOutput(0);
 
+
+//SSAO PASS
+//SSAO PASS
+//SSAO PASS
     float x = projectionMatrix[0*4+0];
     float y = projectionMatrix[1*4+1];
     float z = projectionMatrix[2*4+2];
@@ -602,9 +626,26 @@ void render(){
     float right = Znear/x;
     float top = Znear/y;
 
-
     kernelSSAO->step(Znear, Zfar, right, top, rfar, pixelmask_size,offsets_size, intensity);
-    kernelSSAO->renderOutput(0);
+
+//BLURR PASS
+//BLURR PASS
+//BLURR PASS
+    if(blurr_on)
+      kernelBlurr->step();
+
+//COMBINE PASS
+//COMBINE PASS
+//COMBINE PASS
+    if(blurr_on)
+      kernelCombine->step(kernelBlurr->getBlurredTexId());
+    else kernelCombine->step(kernelSSAO->getColorTexId());
+
+//RENDER RESULT
+//RENDER RESULT
+//RENDER RESULT
+  kernelCombine->renderOutput(0);
+    
 
 
 
