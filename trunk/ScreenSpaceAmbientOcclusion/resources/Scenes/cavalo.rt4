@@ -46,7 +46,22 @@ LIGHT 100. 100. 100.   204 204. 204.   255. 255. 255.
 # MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/dragon_vrip.msb
 # MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/dragon_vrip.ply
 # MESH 1  0. -100. 0.     1000. 1000. 1000.  resources/Models/Stanford/happy_vrip_res2.msb
-MESH 1  0. -100. 0.     1000. 1000. 1000.  resources/Models/Stanford/happy_vrip.msb
+# MESH 1  0. -100. 0.     1000. 1000. 1000.  resources/Models/Stanford/happy_vrip.msb
+# MESH 1  0. 90. -30.     .5 .5 .5  resources/Models/Stanford/blade.msb
+# MESH 1  -100. -100. -100.     30 30 30  resources/Models/Stanford/hand.msb
+# MESH 1  0 -50 0     1 1 1  resources/Models/Stanford/buddha1.5M.msb
+# MESH 1  0 100 0     1 1 1  resources/Models/Stanford/knot.msb
+# MESH 1  0 -100 0     .1 .1 .1  resources/Models/Stanford/elegiusply.msb
+# MESH 1  0 0 0     .1 .1 .1  resources/Models/Stanford/bareliefply.msb
+# MESH 1  0 0 200     1 1 1  resources/Models/Stanford/karburator-500k.msb
+# MESH 1  0 -35 200     .3 .3 .3  resources/Models/Stanford/jsyrlin.msb
+# MESH 1  0 -35 70     .1 .1 .1  resources/Models/Stanford/portal08.msb
+# MESH 1  0 -35 350     .5 .5 .5  resources/Models/Stanford/sappho.ply
+# MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/65aphrodite-statue.3ds
+# MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/TableSinger.3ds
+# MESH 1  0 0 0     .003 .003 .003  resources/Models/3DS/CarToyotaCrown.msb
+MESH 1  0 0 0     .003 .003 .003  resources/Models/max/build55.max
+# MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/Figurine.3ds
 # MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/TecGraf/16metros_30graus.p3b
 # MESH 1  -300. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
 # MESH 0  -200. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
