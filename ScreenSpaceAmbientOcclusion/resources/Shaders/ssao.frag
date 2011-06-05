@@ -33,9 +33,10 @@ uniform sampler2D depth2_normalTex;
 #endif
 uniform float samplerSize;
 
+uniform float pixelmask;
 
 uniform float rfar;
-uniform float pixelmask_size;
+
 uniform float screenWidth;
 uniform float screenHeight;
 uniform float near;
@@ -103,11 +104,10 @@ void main()
   
   float samplerTotalSize = samplerSize*2. + 1.;
  
-  //pixelmask_size = min(samplerSize, pixelmask_size);
   
 #ifdef SAMPLER_QUAD
   #ifdef SIZE_OVER_DEPTH
-    float v = pixelmask_size;
+    float v = pixelmask;
     float n_depth = max(depth - v,0.)*1./(1.-v);
     int size = int(max(floor((1.-n_depth)*samplerSize + .5), 1.));
   #else
@@ -115,7 +115,7 @@ void main()
   #endif
 #else
   #ifdef SIZE_OVER_DEPTH
-    float v = pixelmask_size;
+    float v = pixelmask;
     float n_depth = max(depth - v,0.)*1./(1.-v);
     int size = int(max(floor((1.-n_depth)*samplerSize + .5), 9.));
   #else
@@ -208,7 +208,7 @@ void main()
 	  //gl_FragData[0] = vec4(1,0,0,1)*(1.0 - totalAO);
 	  	  //gl_FragData[0] = vec4(1,0,0,1)*totalAO;
   }
-	else gl_FragData[0] = vec4(1,1,1,-1);
+	else gl_FragData[0] = vec4(1,1,1,-1)*pixelmask;
   //gl_FragData[0] = max(dot(normal, normalize(lightDir)), 0.0) * gl_FrontMaterial.diffuse;
 	//gl_FragData[1] = vec4(normalize(normal), gl_FragCoord.z);
 	//gl_FragData[2] = gl_FrontMaterial.diffuse;
