@@ -1,7 +1,6 @@
 /**********************************************************\
             Nome:Eduardo Ceretta Dalla Favera
 \**********************************************************/
-// Baseado em SGPLYLoader de fabraham@tecgraf.puc-rio.br  em Oct 2004
 
 #include "MeshLoaders/AssimpMeshFile.h"
 #include <stdio.h>
@@ -76,7 +75,9 @@ void AssimpMeshFile::calcTriangles()
 
   m_aiscene = aiImportFile(m_fileName.c_str()
             , aiProcess_Triangulate
+            //| aiProcess_GenNormals 
             | aiProcess_GenSmoothNormals
+            | aiProcess_FixInfacingNormals
             | aiProcess_RemoveComponent 
             );
   if (!m_aiscene)
@@ -106,7 +107,7 @@ void AssimpMeshFile::calcTriangles()
   createVbo(nd, vList, nList, iList, vertexOffset, indexOffset, &transform);
 
   
-  cout << "TRANSLATE TO:"<<((m_bb_max - m_bb_min)*.5) <<endl;
+  cout << "TRANSLATE TO:"<<((m_bb_max + m_bb_min)*-.5) <<endl;
 
   m_numVertices = nv;
   m_numTriangles = nt;
@@ -144,35 +145,44 @@ void AssimpMeshFile::getModelSizes(struct aiNode* nd, int &nVertices, int &nTria
 
 
 void  AssimpMeshFile:: createVbo(struct aiNode* nd, GLfloat * vList, GLfloat * nList, 
-                                 unsigned int * iList, int &vertexOffset, int &indexOffset, struct aiMatrix4x4* trafo)
+                                 unsigned int * iList, int &vertexOffset, int &indexOffset, struct aiMatrix4x4* transform)
 {
   struct aiMatrix4x4 prev;
-  prev = *trafo;
-  aiMultiplyMatrix4(trafo, &nd->mTransformation);
+  prev = *transform;
+  aiMultiplyMatrix4(transform, &nd->mTransformation);
 
   for (int n = 0; n < nd->mNumMeshes; ++n) {
     const struct aiMesh* mesh = m_aiscene->mMeshes[nd->mMeshes[n]];
 
     for(int i = 0; i<mesh->mNumVertices; ++i) {
       struct aiVector3D vertex = mesh->mVertices[i];
-      aiTransformVecByMatrix4(&vertex,trafo);
+      aiTransformVecByMatrix4(&vertex,transform);
 
-      vList[vertexOffset + i*3] = vertex.x * m_scale.x;
-      vList[vertexOffset + i*3+1] = vertex.y* m_scale.y;
-      vList[vertexOffset + i*3+2] = vertex.z* m_scale.z;
+      vertex.x *= m_scale.x;
+      vertex.y *= m_scale.y;
+      vertex.z *= m_scale.z;
 
-      nList[vertexOffset + i*3] = mesh->mNormals[i].x;
-      nList[vertexOffset + i*3+1] = mesh->mNormals[i].y;
-      nList[vertexOffset + i*3+2] = mesh->mNormals[i].z;
+      vList[vertexOffset + i*3] =   vertex.x; 
+      vList[vertexOffset + i*3+1] = vertex.y;
+      vList[vertexOffset + i*3+2] = vertex.z;
 
-      m_bb_min.x = min(vertex.x * m_scale.x, m_bb_min.x);
-      m_bb_min.y = min(vertex.y * m_scale.y, m_bb_min.y);
-      m_bb_min.z = min(vertex.z * m_scale.z, m_bb_min.z);
+      struct aiMatrix4x4 inv = *transform;
+      inv.Inverse();
+      inv.Transpose();
+      struct aiVector3D normal = mesh->mNormals[i];
+      aiTransformVecByMatrix4(&normal,&inv);
 
-      m_bb_max.x = max(vertex.x * m_scale.x, m_bb_max.x);
-      m_bb_max.y = max(vertex.y * m_scale.y, m_bb_max.y);
-      m_bb_max.z = max(vertex.z * m_scale.z, m_bb_max.z);
+      nList[vertexOffset + i*3] =  normal.x;
+      nList[vertexOffset + i*3+1] = normal.y;
+      nList[vertexOffset + i*3+2] = normal.z;
 
+      m_bb_min.x = min(vList[vertexOffset + i*3]  , m_bb_min.x);
+      m_bb_min.y = min(vList[vertexOffset + i*3+1], m_bb_min.y);
+      m_bb_min.z = min(vList[vertexOffset + i*3+2], m_bb_min.z);
+
+      m_bb_max.x = max(vList[vertexOffset + i*3]  , m_bb_max.x);
+      m_bb_max.y = max(vList[vertexOffset + i*3+1], m_bb_max.y);
+      m_bb_max.z = max(vList[vertexOffset + i*3+2], m_bb_max.z);
     }
     
 
@@ -196,9 +206,9 @@ void  AssimpMeshFile:: createVbo(struct aiNode* nd, GLfloat * vList, GLfloat * n
   
   for(int i = 0; i < nd->mNumChildren; ++i)
   {
-    createVbo(nd->mChildren[i], vList, nList, iList, vertexOffset, indexOffset, trafo);
+    createVbo(nd->mChildren[i], vList, nList, iList, vertexOffset, indexOffset, transform);
   }
-  *trafo = prev;
+  *transform = prev;
 }
 
 
@@ -206,7 +216,6 @@ bool AssimpMeshFile::isValidFileType(string filetype)
 {
   return aiIsExtensionSupported(filetype.c_str());
 }
-
 
 
 

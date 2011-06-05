@@ -12,6 +12,7 @@ KernelCombine::KernelCombine(int width, int height,
 	m_shader->setActive(true);
 
     addInputTexture(GL_TEXTURE_2D, "colorTex", colorTexId);
+    addInputTexture(GL_TEXTURE_2D, "ssaoTex", colorTexId);
 
     //addInputFloat("screenWidth", width);
     //addInputFloat("screenHeight", height);
@@ -30,7 +31,7 @@ GLuint KernelCombine::getColorTexId() const
 void KernelCombine::step(GLuint ssaoTexId)
 {
   m_shader->setActive(true);
-    addInputTexture(GL_TEXTURE_2D, "ssaoTex", ssaoTexId);
+    setInputTexture(GL_TEXTURE_2D, "ssaoTex", ssaoTexId, 1);
   m_shader->setActive(false);
   KernelBase::step();
 }

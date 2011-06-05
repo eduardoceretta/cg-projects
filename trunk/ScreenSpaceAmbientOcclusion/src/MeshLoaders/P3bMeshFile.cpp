@@ -15,13 +15,14 @@
 
 #define P3D_SUB_TYPE_LUA ".p3i"
 
+string P3bMeshFile :: s_fileType = string(".p3b");
+
 P3bMeshFile::P3bMeshFile(void)
 :m_p3dModel(NULL)
 ,m_p3dModelReader(NULL)
 ,m_p3dRenderer(NULL)
 ,m_elemvis(NULL)
 ,m_elemsel(NULL)
-,m_fileType(".p3b")
 {
 }
 
@@ -44,7 +45,7 @@ void P3bMeshFile::readFile(string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
   m_pos = pos;
   m_scale = scale;
   m_fileName = fileName;
-  string fileNoType = fileName.substr(0, fileName.rfind(m_fileType));
+  string fileNoType = fileName.substr(0, fileName.rfind(s_fileType));
 
   if(m_p3dModel)
     delete m_p3dModel;
@@ -54,11 +55,11 @@ void P3bMeshFile::readFile(string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
     delete m_p3dModelReader;
   m_p3dModelReader = new P3DNfrModelReader(m_p3dModel);
 
-  m_p3dModelReader->SetFilename((fileNoType + m_fileType).c_str(), (fileNoType + string(P3D_SUB_TYPE_LUA)).c_str());
+  m_p3dModelReader->SetFilename((fileNoType + s_fileType).c_str(), (fileNoType + string(P3D_SUB_TYPE_LUA)).c_str());
 
   if(m_p3dModelReader->Open() == 0)
   {
-    MyAssert("CAN'T OPEN FILE:" + string(fileNoType + m_fileType) + " " + string(fileNoType + P3D_SUB_TYPE_LUA), false);
+    MyAssert("CAN'T OPEN FILE:" + string(fileNoType + s_fileType) + " " + string(fileNoType + P3D_SUB_TYPE_LUA), false);
     delete m_p3dModelReader;
     delete m_p3dModel;
   }
@@ -141,5 +142,5 @@ void P3bMeshFile::render()
 }
 bool P3bMeshFile::isValidFileType( string filetype )
 {
-  return strcmp(m_fileType.c_str(), strlwr((char*)filetype.c_str())) == 0;
+  return strcmp(s_fileType.c_str(), strlwr((char*)filetype.c_str())) == 0;
 }

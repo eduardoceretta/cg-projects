@@ -15,9 +15,11 @@ class P3DElemVis;
 
 class P3bMeshFile
 {
+  static string s_fileType;
+
+
   string m_fileName;
 
-  string m_fileType;
   Vector3 m_pos;
   Vector3 m_scale;
 
@@ -37,7 +39,7 @@ public:
   void readFile(string fileName, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
 
   void render();
-  bool isValidFileType( string filetype );
+  static bool isValidFileType( string filetype );
 protected:
 };
 

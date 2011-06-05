@@ -57,12 +57,11 @@ void Mesh :: readFromStr(char buffer[])
      mVbo = m.getVbo();
    }else
    {
-     if(m_p3bMesh)
-       delete m_p3bMesh;
-     m_p3bMesh = new P3bMeshFile();
-
-     if(m_p3bMesh->isValidFileType(sub))
+     if(P3bMeshFile::isValidFileType(sub))
      {
+       if(m_p3bMesh)
+         delete m_p3bMesh;
+       m_p3bMesh = new P3bMeshFile();
        m_p3bMesh->readFile(fileName, mPos, mScale);
      }
    }

@@ -15,6 +15,7 @@ public:
 	KernelBase(char* vert, char* frag, int width, int height);
 	~KernelBase();
 	
+  void reloadShader();
   void renderShader();
   void renderOutput(int texIndex = 0);
   void setActive(bool op);
@@ -25,13 +26,17 @@ protected:
   void renderQuad();
 
 	void activateTextures();
-	GLuint addInputTexture(GLenum textureDimension, char* name, GLuint id);
-	GLuint addInputVec3(char* name, Vector3 value);
-	GLuint addInputInt(char* name, GLint value);
-  GLuint addInputFloat(char* name, GLfloat value);
-  GLuint addInputMatrix4(char* name, const GLfloat* value);
+  
+	void addInputTexture(GLenum textureDimension, char* name, GLuint id);
+	void addInputVec3(char* name, Vector3 value);
+	void addInputInt(char* name, GLint value);
+  void addInputFloat(char* name, GLfloat value);
+  void addInputMatrix4(char* name, const GLfloat* value);
+
+  void setInputTexture(GLenum textureDimension, char* name, GLuint id, int index);
+
 	GLuint addOutput(int index, GLuint textureId = -1);
-  GLuint setInputTexture(GLenum textureDimension, char* name, GLuint id, int index);
+
   GLuint setOutput(int index, GLuint textureId);
   void renderScreenQuad();
   

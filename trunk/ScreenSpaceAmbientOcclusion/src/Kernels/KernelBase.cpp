@@ -20,55 +20,35 @@ KernelBase::~KernelBase(){
 
 }
 
-GLuint KernelBase::addInputTexture(GLenum textureDimension, char* name, GLuint id){
-  GLuint loc = m_shader->getUniformLocation(name);
-  glUniform1iARB(loc, m_inputTextures.size());
+void KernelBase::addInputTexture(GLenum textureDimension, char* name, GLuint id){
+  m_shader->setUniformTexture(name, m_inputTextures.size());
   m_inputTextures.push_back(std::pair<GLenum, GLuint>(textureDimension, id));
-
-  return loc;
 }
 
-GLuint KernelBase::setInputTexture(GLenum textureDimension, char* name, GLuint id, int index){
-
-  GLuint loc = m_shader->getUniformLocation(name);
-  glUniform1iARB(loc, index);
+void KernelBase::setInputTexture(GLenum textureDimension, char* name, GLuint id, int index){
+  m_shader->setUniformTexture(name, index);
   m_inputTextures[index].first = textureDimension;
   m_inputTextures[index].second = id;
-
-  return loc;
 }
 
-GLuint KernelBase::addInputVec3(char* name, Vector3 value){
-	
-	GLuint loc = m_shader->getUniformLocation(name);
-	glUniform3fARB(loc, value.x, value.y, value.z);
-
-	return loc;
+void KernelBase::addInputVec3(char* name, Vector3 value){
+	m_shader->setUniformVec3(name, value);
 }
 
-GLuint KernelBase::addInputFloat( char* name, GLfloat value )
+void KernelBase::addInputFloat( char* name, GLfloat value )
 {
-  GLuint loc = m_shader->getUniformLocation(name);
-  glUniform1f(loc, value);
-
-  return loc;
+  m_shader->setUniformFloat(name, value);
 }
 
-GLuint KernelBase::addInputInt( char* name, GLint value )
+void KernelBase::addInputInt( char* name, GLint value )
 {
-  GLuint loc = m_shader->getUniformLocation(name);
-  glUniform1i(loc, value);
-
-  return loc;
+  m_shader->setUniformInt(name, value);
 }
 
 
-GLuint KernelBase::addInputMatrix4( char* name, const GLfloat* value )
+void KernelBase::addInputMatrix4( char* name, const GLfloat* value )
 {
-  GLuint loc = m_shader->getUniformLocation(name);
-  glUniformMatrix4fv(loc, 1,GL_FALSE, value);
-
-  return loc;
+  m_shader->setUniformMatrix4(name, value);
 }
 
 
@@ -144,6 +124,11 @@ void KernelBase::renderScreenQuad(){
   glPopAttrib();
 }
 
+void KernelBase::reloadShader()
+{
+  if(m_shader)
+    m_shader->reload();
+}
 void KernelBase::renderShader()
 {
   glPushAttrib(GL_ENABLE_BIT);
@@ -245,3 +230,4 @@ void KernelBase::renderOutput( int texIndex /*= 0*/ )
   glMatrixMode(GL_MODELVIEW);
   glPopMatrix();
 }
+
