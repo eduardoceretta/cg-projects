@@ -84,10 +84,10 @@ P3bMeshFile* p3bMesh;
 
 
 //Algorithm
-float rfar = 10.0f;
+float rfar = 30.0f;
 float pixelmask_size = .8;
-float offsets_size = 1.0;
-float intensity = 1.0;
+float offsets_size = 5.0;
+float intensity = 20.0;
 
 GLFont fontRender;
 
@@ -173,6 +173,14 @@ void keyboardSpecial(int key, int x, int y){
     case 1://F1
       menu_on = !menu_on;
       break;
+
+    case 5: //F5
+      rfar = 30.0f;
+      pixelmask_size = .8;
+      offsets_size = 5.0;
+      intensity = 20.0;
+      break;
+
     case 10: //F10
       if(polygonModeFill)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -658,7 +666,7 @@ void render(){
 //BLURR PASS
 //BLURR PASS
     if(blurr_on)
-      kernelBlurr->step();
+      kernelBlurr->step(1);
 
 //COMBINE PASS
 //COMBINE PASS
