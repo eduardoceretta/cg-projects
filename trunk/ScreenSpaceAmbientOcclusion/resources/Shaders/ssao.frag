@@ -10,6 +10,8 @@
 #define MAX_OVER_PEELING
 #define SPHERE_POSITION
 #define SPHERE_CENTER_MINUS_NORMAL .1
+#define INV_DIST_DIVIDE 2.
+
 //#define Z_MINUS_R -.5
 //#define INVERT_NORMAL
 
@@ -61,7 +63,7 @@ uniform float intensity;
 
 vec4 getSphere(float xw, float yw, float zw);
 float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP);
-float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position);
+float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position, inout int n);
 
 
 
@@ -152,8 +154,7 @@ void main()
         float sample = floor(texture2D(sampleTex, coord).a + .5);
         if(sample == 1.0)
         {
-          totalAO += calcLocalAO(float(i),float(j), depth, depth0_normal, dx, dy, position);
-          n++;
+          totalAO += calcLocalAO(float(i),float(j), depth, depth0_normal, dx, dy, position, n);
         }
       }
 
@@ -171,12 +172,15 @@ void main()
     }
    
     
-    totalAO += calcLocalAO(i,j, depth, depth0_normal, dx, dy, position);
-    n++;
+    totalAO += calcLocalAO(i,j, depth, depth0_normal, dx, dy, position, n);
   }
 #endif
-  
-  totalAO = intensity * totalAO/(PI);
+
+  //float detph_weight = 1.-pow((depth),50.10);
+  float detph_weight = 1.;
+  //gl_FragData[0] = WHITE*detph_weight;
+  //return;
+  totalAO = intensity * detph_weight * totalAO/(PI*float(n));
   totalAO = clamp(totalAO,0.0,1.0);
 
 	if(depth <= 1.0)
@@ -215,9 +219,10 @@ void main()
 	//gl_FragData[3] = vec4(vec3(gl_FrontMaterial.specular.rgb), gl_FrontMaterial.shininess);
 }
 
-float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position)
+float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position, inout int n)
 {
   float localAO = 0.0;
+  int nn = 0;
 #ifdef DEPTH_PEELING
   for(int k = 0; k < 3; ++k)
 #else
@@ -263,15 +268,22 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
     #else
       return localAO;
     #endif
+
+    #ifdef INV_DIST_DIVIDE
+      float dist_divide = 1./pow(eye_dist,INV_DIST_DIVIDE);
+    #else  
+      float dist_divide = 1.;
+    #endif  
     
     #ifdef MAX_OVER_PEELING
-      localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+      localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz)/dist_divide);
+      nn = 1;
     #else
-      localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz));//pow(eye_dist,1);
+      localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz)/dist_divide);
+      nn++;
     #endif
   }
-
-
+  n += nn;
   return localAO;
 }
 
