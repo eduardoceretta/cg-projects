@@ -104,11 +104,12 @@ void Scene :: readFromFile(string rt4FileName)
          }
       }else if(!strcmp(buffer, "MESH"))
 		{
-         numMeshes++;
-         fscanf(file, "%[^\n]s", buffer);
-         Mesh m;
-         m.readFromStr(buffer);
-         mMeshes.push_back(m);
+      numMeshes++;
+      fscanf(file, "%[^\n]s", buffer);
+      Mesh m;
+      m.readFromStr(buffer);
+      if(m.getVbo() || m.getP3bMesh())
+        mMeshes.push_back(m);
 		}else
 		{
 			printf( "Ignorando comando: %s\n", buffer );

@@ -663,7 +663,7 @@ KernelSSAO::KernelSSAO(int width, int height,
 
 	//Input
 	m_shader->setActive(true);
-     addInputTexture(GL_TEXTURE_2D, "positionTex", positionTexId);
+    addInputTexture(GL_TEXTURE_2D, "positionTex", positionTexId);
     addInputTexture(GL_TEXTURE_2D, "depth0_normalTex", depht0_normalTexId);
     addInputTexture(GL_TEXTURE_2D, "depth1_normalTex", depht1_normalTexId);
     addInputTexture(GL_TEXTURE_2D, "depth2_normalTex", depht2_normalTexId);
@@ -696,7 +696,7 @@ void KernelSSAO::step(float z_near, float z_far, float right, float top, float r
 {
   m_shader->setActive(true);
     addInputFloat("rfar", rfar);
-    addInputFloat("pixelmask_size", pixelmask_size);
+    addInputFloat("pixelmask", pixelmask_size);
     addInputFloat("near", z_near);
     addInputFloat("far", z_far);
     addInputFloat("right", right);

@@ -2,22 +2,25 @@
 #include "textfile.h"
 
 
-void printInfoLog(GLhandleARB obj)
+bool printInfoLog(GLhandleARB obj)
 {
-    int infologLength = 0;
-    int charsWritten  = 0;
-    char *infoLog;
+  int infologLength = 0;
+  int charsWritten  = 0;
+  char *infoLog;
 
-	glGetObjectParameterivARB(obj, GL_OBJECT_INFO_LOG_LENGTH_ARB,
-                                         &infologLength);
+  glGetObjectParameterivARB(obj, GL_OBJECT_INFO_LOG_LENGTH_ARB,
+                                   &infologLength);
 
-    if (infologLength > 0)
-    {
-        infoLog = (char *)malloc(infologLength);
-        glGetInfoLogARB(obj, infologLength, &charsWritten, infoLog);
-		printf("%s\n",infoLog);
-        free(infoLog);
-    }
+  if (infologLength > 1)
+  {
+    infoLog = (char *)malloc(infologLength);
+    glGetInfoLogARB(obj, infologLength, &charsWritten, infoLog);
+    printf("%s\n",infoLog);
+    printf("==================\n");
+    free(infoLog);
+    return true;
+  }
+  return false;
 }
 
 char *textFileRead(char *fn) {

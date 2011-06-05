@@ -46,13 +46,15 @@ int lastMousePosY = 0;
 int mouseState = GLUT_UP;
 int mouseButton = GLUT_RIGHT_BUTTON;
 
+bool menu_on = true;
 bool lights_on = false;
 bool mine_light_on = false;
 int outputSelection = 0;
 int numPeelings = 3;
 int outputIndexSelection = 0;
 bool shader_on = true;
-bool blurr_on = true;
+bool shader_active = polygonModeFill & shader_on;
+bool blurr_on = false;
 
 //Camera Position
 float camAlpha = 0.0;
@@ -168,6 +170,9 @@ void keyboardSpecial(int key, int x, int y){
 
   switch(key)
   {
+    case 1://F1
+      menu_on = !menu_on;
+      break;
     case 10: //F10
       if(polygonModeFill)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -175,9 +180,11 @@ void keyboardSpecial(int key, int x, int y){
          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
       polygonModeFill = !polygonModeFill;
+      shader_active = polygonModeFill & shader_on;
       break;
     case 11:
       shader_on = !shader_on;
+      shader_active = polygonModeFill & shader_on;
       break;
     case GLUT_KEY_PAGE_UP:
       rfar = rfar + 1. * (modifier == GLUT_ACTIVE_SHIFT ? 1. : .1);
@@ -253,6 +260,17 @@ void keyboard(unsigned char key, int x, int y){
       offsets_size = max(offsets_size - .1f, 1.0f);
       break;
 
+    case 'R':
+    case 'r':
+      kernelDeferred->reloadShader();
+      kernelDeferred_Peeling->reloadShader();
+      kernelColor->reloadShader();
+      kernelSSAO->reloadShader();
+      kernelBlurr->reloadShader();
+      kernelCombine->reloadShader();
+      break;
+
+
 
     case 'I':
       intensity = intensity + (intensity > 1000.0f? 100.0f :(intensity > 100.0f? 10.0f : 1.0f));
@@ -283,7 +301,7 @@ void mouseActive(int x, int y){
   //int modifier = glutGetModifiers();
   int modifier = 0;
 	if(mouseButton == GLUT_LEFT_BUTTON && mouseState == GLUT_DOWN){
-		float angleX = (x - lastMousePosX)*.5;
+		float angleX = (lastMousePosX - x)*.5;
 		float angleY = (y - lastMousePosY)*.5;
 
 
@@ -376,33 +394,39 @@ void renderUIText()
   //fontRender.print(appWidth*.80,appHeight*.05 + 25,a, Color(0., 0., 0.));
   float x = .70;
   float y = .03;
-  sprintf(a,"(+/-)%d Num Peelings", numPeelings);
+
+  sprintf(a,"(F1)%s Menu", menu_on?"Close":"Open");
   fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"(PgUp/PgDn)rfar: %.2f ", rfar);
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+  if(menu_on)
+  {
+    sprintf(a,"(+/-)%d Num Peelings", numPeelings);
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"(Home/End)pixmask: %.3f ", pixelmask_size);
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    sprintf(a,"(PgUp/PgDn)rfar: %.2f ", rfar);
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"(K/J)offsets_size: %.1f ", offsets_size);
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
-  
-  sprintf(a,"(I/U)intensity: %.2f ", intensity);
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
-  
-  sprintf(a,"(F11)Shader %s", shader_on? "On":"Off");
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    sprintf(a,"(Home/End)pixmask: %.3f ", pixelmask_size);
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"(b)AO Blurr %s", blurr_on? "On":"Off");
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    sprintf(a,"(K/J)offsets_size: %.1f ", offsets_size);
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    
+    sprintf(a,"(I/U)intensity: %.2f ", intensity);
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    
+    sprintf(a,"(F11)Shader %s", shader_active? "On":"Off");
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"(l)Lights %s", lights_on? "On":"Off");
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    sprintf(a,"(b)AO Blurr %s", blurr_on? "On":"Off");
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-  sprintf(a,"(m)Mine Light: %s", mine_light_on? "On":"Off");
-  fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    sprintf(a,"(l)Lights %s", lights_on? "On":"Off");
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
+    sprintf(a,"(m)Mine Light: %s", mine_light_on? "On":"Off");
+    fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
+  }
 
 
   sprintf(a,"%.2f FPS", fpsec);
@@ -536,6 +560,8 @@ void createScenes()
       delete [] b;
     }
   }
+  if(rtScene->getNumMeshes() == 0)
+    cout << "No Mesh Loaded!!" <<endl;
 }
 
 
@@ -562,7 +588,7 @@ void render(){
   fpsec = fps.getFrames();
   setupCamera();
 
-  if(!shader_on)
+  if(!shader_active)
   {
     drawScene();
   }else

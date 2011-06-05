@@ -8,6 +8,6 @@
 
 char *textFileRead(char *fn);
 int textFileWrite(char *fn, char *s);
-void printInfoLog(GLhandleARB obj);
+bool printInfoLog(GLhandleARB obj);
 
 #endif
