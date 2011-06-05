@@ -17,7 +17,16 @@ uniform sampler2D ssaoTex;
 void main()
 {
   vec4 color = texture2D(colorTex,  gl_TexCoord[0].st);
+	
   vec4 ssao = texture2D(ssaoTex,  gl_TexCoord[0].st);
+  
+  if(ssao.a < 0.0 || color.a < 0.0)
+	{
+		gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
+		return;
+	}
 
   gl_FragData[0] = color*ssao;
+  ////gl_FragData[0] = RED;
+  //gl_FragData[0] = color*ssao;
 }

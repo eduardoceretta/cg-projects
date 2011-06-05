@@ -57,10 +57,11 @@ LIGHT 100. 100. 100.   204 204. 204.   255. 255. 255.
 # MESH 1  0 -35 200     .3 .3 .3  resources/Models/Stanford/jsyrlin.msb
 # MESH 1  0 -35 70     .1 .1 .1  resources/Models/Stanford/portal08.msb
 # MESH 1  0 -35 350     .5 .5 .5  resources/Models/Stanford/sappho.ply
-# MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/65aphrodite-statue.3ds
+# MESH 1  -78 0 4     .01 .01 .01  resources/Models/3DS/65aphrodite-statue.msb
 # MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/TableSinger.3ds
-# MESH 1  0 0 0     .003 .003 .003  resources/Models/3DS/CarToyotaCrown.msb
-MESH 1  0 0 0     .003 .003 .003  resources/Models/max/build55.max
+MESH 1  0 0 0     .003 .003 .003  resources/Models/3DS/CarToyotaCrown.msb
+# MESH 1  0 0 0     10. 10. 10.  resources/Models/3DS/lunarlandernofoil_carbajal.3ds
+
 # MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/Figurine.3ds
 # MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/TecGraf/16metros_30graus.p3b
 # MESH 1  -300. 0. 0.     600. 600. 600.  resources/Models/buddha_high.msh
