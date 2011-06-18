@@ -1,9 +1,15 @@
-/**********************************************************\
-            Nome:Eduardo Ceretta Dalla Favera
-\**********************************************************/
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  UM Model Loader. 
+ *  Imports a text mesh file that contains a list of vertexes 
+ *  and a list of triangles.
+ */
 #include "MeshLoaders/UmMeshFile.h"
 #include <string>
-#include "main.h"
+#include "defines.h"
 
 UmMeshFile::UmMeshFile(void):MeshFileBase()
 {
@@ -25,26 +31,14 @@ void UmMeshFile::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
 
 void UmMeshFile::calcVBO()
 {
-  m_vbo = new VertexBufferObject();
+  m_vbo = new GLVertexBufferObject();
   m_vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, m_numVertices, m_vertices);
   m_vbo->setVBOBuffer( GL_NORMAL_ARRAY, GL_FLOAT, m_numVertices, m_normals);
   m_vbo->setVBOIndexBuffer(GL_UNSIGNED_INT, m_numTriangles*3, m_indexes);
   m_vbo->calcVBO();
-  writeBinaryFile(m_fileName);
+  if(m_writeBinaryFile)
+    writeBinaryFile(m_fileName);
 }
-
-void UmMeshFile::writeBinaryFile(string fileName)
-{
-  int index = fileName.find_last_of(".");
-  MyAssert("Invalid FileName: " + fileName, index!=string::npos);
-  string sub = fileName.substr(0, index);
-
-  FILE * fp = fopen((sub+".msb").c_str(),"wb");
-  m_vbo->writeToFile(fp);
-  fclose(fp);
-  cout << "File " << sub+".msb" << " write successfully! " <<endl;
-}
-
 
 void UmMeshFile::calcTriangles()
 {
@@ -67,10 +61,6 @@ void UmMeshFile::calcTriangles()
     vList[i*3]*=m_scale.x;
     vList[i*3+1]*=m_scale.y;
     vList[i*3+2]*=m_scale.z;
-
-    //vList[i].x+=pos.x;
-    //vList[i].y+=pos.y;
-    //vList[i].z+=pos.z;
 
     nList[i*3] = 0;
     nList[i*3+1] = 0;

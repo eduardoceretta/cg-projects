@@ -1,6 +1,26 @@
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Apr 2011
+ *
+ *  Perform the calculation of the Screen Space Ambient Occlusion.
+ *  Receive projection matrix information and reprojects the pixels obtained from the depth
+ *  input textures and does the calculation of the occlusion that the neighborhood of a pixel 
+ *  causes using spheres as occludes approximation.
+ */
+
 #include "KernelSSAO.h"
 
+/**
+ * Sampler texture data.
+ *  Creates a 2D texture containing binary information, if the pixel must or not be accessed
+ */
 //#define SAMPLER_QUAD
+
+/**
+ * Sampler texture data.
+ *  Creates a 1D texture containing the respective index of the neiborhood access
+ */
 #define SAMPLER_VECTOR
 
 #ifdef SAMPLER_QUAD
@@ -692,8 +712,17 @@ GLuint KernelSSAO::getColorTexId() const
   return m_colorTexId; 
 }
 
-void KernelSSAO::step(float z_near, float z_far, float right, float top, float rfar, float pixelmask_size, GLfloat offsets_size, GLfloat intensity)
+void KernelSSAO::step(float* projectionMatrix, float rfar, float pixelmask_size, GLfloat offsets_size, GLfloat intensity)
 {
+  float x = projectionMatrix[0*4+0];
+  float y = projectionMatrix[1*4+1];
+  float z = projectionMatrix[2*4+2];
+  float w = projectionMatrix[3*4+2];
+  float z_near = w/(z - 1.0);
+  float z_far = w * z_near/(w + 2.0 * z_near);
+  float right = z_near/x;
+  float top = z_near/y;
+
   m_shader->setActive(true);
     addInputFloat("rfar", rfar);
     addInputFloat("pixelmask", pixelmask_size);

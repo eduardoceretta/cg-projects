@@ -1,6 +1,12 @@
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Apr 2011
+ *
+ *  A Kernel that combines two textures using a shader.
+ *  The Color are blended with multiplication
+ */
 #include "KernelCombine.h"
-
-
 
 KernelCombine::KernelCombine(int width, int height, 
                              GLuint colorTexId)
@@ -13,9 +19,6 @@ KernelCombine::KernelCombine(int width, int height,
 
     addInputTexture(GL_TEXTURE_2D, "colorTex", colorTexId);
     addInputTexture(GL_TEXTURE_2D, "ssaoTex", colorTexId);
-
-    //addInputFloat("screenWidth", width);
-    //addInputFloat("screenHeight", height);
 	m_shader->setActive(false);
 }
 

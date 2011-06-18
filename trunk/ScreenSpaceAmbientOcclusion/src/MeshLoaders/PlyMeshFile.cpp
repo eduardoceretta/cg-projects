@@ -1,15 +1,21 @@
-/**********************************************************\
-            Nome:Eduardo Ceretta Dalla Favera
-\**********************************************************/
-// Baseado em SGPLYLoader de fabraham@tecgraf.puc-rio.br  em Oct 2004
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  PLY Model Loader. 
+ *  Imports a text mesh file defined by the Stanford University.
+ *  Based on fabraham@tecgraf.puc-rio.br em Oct 2004 implementation of SGPLYLoader
+ */
 
-#include "MeshLoaders/PlyMeshFile.h"
 #include <ply.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string>
-#include "main.h"
+
+#include "MeshLoaders/PlyMeshFile.h"
+#include "defines.h"
 
 PlyMeshFile::PlyMeshFile(void):MeshFileBase()
 {
@@ -32,26 +38,14 @@ void PlyMeshFile::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, V
 
 void PlyMeshFile::calcVBO()
 {
-  m_vbo = new VertexBufferObject();
+  m_vbo = new GLVertexBufferObject();
   m_vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, m_numVertices, m_vertices);
   m_vbo->setVBOBuffer( GL_NORMAL_ARRAY, GL_FLOAT, m_numVertices, m_normals);
   m_vbo->setVBOIndexBuffer(GL_UNSIGNED_INT, m_numTriangles*3, m_indexes);
   m_vbo->calcVBO();
-  writeBinaryFile(m_fileName);
+  if(m_writeBinaryFile)
+    writeBinaryFile(m_fileName);
 }
-
-void PlyMeshFile::writeBinaryFile(string fileName)
-{
-  int index = fileName.find_last_of(".");
-  MyAssert("Invalid FileName: " + fileName, index!=string::npos);
-  string sub = fileName.substr(0, index);
-
-  FILE * fp = fopen((sub+".msb").c_str(),"wb");
-  m_vbo->writeToFile(fp);
-  fclose(fp);
-  cout << "File " << sub+".msb" << " write successfully! " <<endl;
-}
-
 
 typedef struct Vertex {
   float x,y,z;
@@ -112,11 +106,6 @@ static PlyProperty s_vert_props[] = {
 static PlyProperty s_face_props[] = {
   {"vertex_indices", Uint32, Uint32, offsetof(Face,verts),1, Uint8, Uint8, offsetof(Face,nverts)},
 };
-
-
-
-
-
 
 
 static void compute_normals (GLfloat * vList, GLfloat * nList, Face **flist, int nverts, int nfaces, bool flip_sign)
@@ -235,9 +224,6 @@ void PlyMeshFile::calcTriangles()
   GLfloat * nList = NULL; 
   unsigned int * iList = NULL;
 
-
-
-  //Vertex **vlist;
   Face **flist = NULL;
   // try to open file
   FILE *file = fopen(m_fileName.c_str(),"rb");
@@ -276,26 +262,9 @@ void PlyMeshFile::calcTriangles()
   setup_element_read_ply(ply, vertexelem, &elem_count);
   // create a vertex list to hold all the vertices
   
-  
-  
-  
-  
-  
   nverts = elem_count;
-  //vlist = (Vertex **)malloc(sizeof(Vertex *)*elem_count);
   vList = new GLfloat[nverts*3];
   nList = new GLfloat[nverts*3];
-
-
-
-
-
-
-
-
-
-
-
 
   printf("Reading %d Vertices...\n", nverts);
 
@@ -400,17 +369,13 @@ void PlyMeshFile::calcTriangles()
       nList[j*3+1] = v.ny;
       nList[j*3+2] = v.nz;
 
-      //if (hastexcoords[0]) texcoords[0]->SetValue(j, vlist[j]->s0, vlist[j]->t0, vlist[j]->r0);
-      //if (hastexcoords[1]) texcoords[1]->SetValue(j, vlist[j]->s1, vlist[j]->t1, vlist[j]->r1);
-      //if (hastexcoords[2]) texcoords[2]->SetValue(j, vlist[j]->s2, vlist[j]->t2, vlist[j]->r2);
-      //if (hastexcoords[3]) texcoords[3]->SetValue(j, vlist[j]->s3, vlist[j]->t3, vlist[j]->r3);
-      //if (hastexcoords[4]) texcoords[4]->SetValue(j, vlist[j]->s4, vlist[j]->t4, vlist[j]->r4);
-      //if (hastexcoords[5]) texcoords[5]->SetValue(j, vlist[j]->s5, vlist[j]->t5, vlist[j]->r5);
-      //if (hastexcoords[6]) texcoords[6]->SetValue(j, vlist[j]->s6, vlist[j]->t6, vlist[j]->r6);
-      //if (hastexcoords[7]) texcoords[7]->SetValue(j, vlist[j]->s7, vlist[j]->t7, vlist[j]->r7);
+      m_bb_min.x = min(vList[j*3]  , m_bb_min.x);
+      m_bb_min.y = min(vList[j*3+1], m_bb_min.y);
+      m_bb_min.z = min(vList[j*3+2], m_bb_min.z);
 
-      //if (hascolors)
-      //  colors->SetValue(j,(float)vlist[j]->red/255.0,(float)vlist[j]->green/255.0,(float)vlist[j]->blue/255.0);
+      m_bb_max.x = max(vList[j*3]  , m_bb_max.x);
+      m_bb_max.y = max(vList[j*3+1], m_bb_max.y);
+      m_bb_max.z = max(vList[j*3+2], m_bb_max.z);
     }
 
     if (hasface)
@@ -480,9 +445,10 @@ void PlyMeshFile::calcTriangles()
       goto error;
     }
 
-
     close_ply(ply);
 
+    cout << "BoundingBox Size:" << (m_bb_max - m_bb_min) ;
+    cout << "BoundingBox Center:"<<((m_bb_max + m_bb_min)*.5) <<endl;
 
     m_numVertices = nverts;
     m_numTriangles = numtris;
@@ -494,368 +460,3 @@ void PlyMeshFile::calcTriangles()
 error:
     printf("Error loading model from file \"%s\": error = %s\n",m_fileName.c_str(), error);
 }
-
-
-
-
-
-
-/*
-static void compute_normals (Vertex **vlist, Face **flist, int nverts, int nfaces, bool flip_sign)
-{
-  int i,j;
-  Face *face;
-  Vertex *vert;
-  unsigned int *verts;
-  float x,y,z;
-  float x0,y0,z0;
-  float x1,y1,z1;
-  float len;
-  float recip;
-  // zero out all normal information at vertices
-  for (i = 0; i < nverts; i++)
-  {
-    vlist[i]->nx = 0;
-    vlist[i]->ny = 0;
-    vlist[i]->nz = 0;
-  }
-  // find normal of each face and add it to each vertex adjacent to the face
-  for (i = 0; i < nfaces; i++)
-  {
-    face = flist[i];
-    verts = face->verts;
-    // determine vectors parallel to two edges of face
-    x0 = vlist[verts[face->nverts-1]]->x - vlist[verts[0]]->x;
-    y0 = vlist[verts[face->nverts-1]]->y - vlist[verts[0]]->y;
-    z0 = vlist[verts[face->nverts-1]]->z - vlist[verts[0]]->z;
-    x1 = vlist[verts[1]]->x - vlist[verts[0]]->x;
-    y1 = vlist[verts[1]]->y - vlist[verts[0]]->y;
-    z1 = vlist[verts[1]]->z - vlist[verts[0]]->z;
-    // find cross-product between these vectors
-    x = y0 * z1 - z0 * y1;
-    y = z0 * x1 - x0 * z1;
-    z = x0 * y1 - y0 * x1;
-    // normalize this vector
-    len = x*x + y*y + z*z;
-    if (len == 0)
-      x = y = z = 0;
-    else
-    {
-      recip = 1.0 / float(sqrt (len));
-      x *= recip;
-      y *= recip;
-      z *= recip;
-    }
-    // add this normal to each vertex that is adjacent to face
-    for (j = 0; j < face->nverts; j++)
-    {
-      vlist[verts[j]]->nx += x;
-      vlist[verts[j]]->ny += y;
-      vlist[verts[j]]->nz += z;
-    }
-  }
-  // normalize all the normals at the vertices
-  for (i = 0; i < nverts; i++)
-  {
-    vert = vlist[i];
-    len = vert->nx * vert->nx + vert->ny * vert->ny + vert->nz * vert->nz;
-    if (len == 0)
-    {
-      vert->nx = 0;
-      vert->ny = 0;
-      vert->nz = 0;
-    }
-    else
-    {
-      if (flip_sign)
-        recip = -1.0 / sqrt(len);
-      else
-        recip = 1.0 / sqrt(len);
-      vert->nx *= recip;
-      vert->ny *= recip;
-      vert->nz *= recip;
-    }
-  }
-}
-
-
-void PlyMeshFile::calcTriangles()
-{
-  int i, j, k;
-  int elem_count;
-  int nverts, nfaces=0;
-  char *elem_name;
-  PlyFile *ply;
-  bool hasnormals = false, hasnormal[3] = {false,false,false}, hastexcoords[8] = {false,false,false,false,false,false,false,false}, hastexcoord[8][3];
-  bool hasvertex = false, hasface = false, hasstrip = false;
-  bool hascolors = false, hascolor[3] = {false,false,false};
-  int vertexelem = -1;
-  int faceelem = -1;
-  int texelem[8][3];
-  int normalelem[3];
-  int colorelem[3];
-  int texnelems[8];
-
-  char vertexname[] = "vertex";
-  char facename[] = "face";
-  bool flipnormals = false;
-
-  const char* texpropnames[8][3] = {
-    { "s0", "t0", "r0" },
-    { "s1", "t1", "r1" },
-    { "s2", "t2", "r2" },
-    { "s3", "t3", "r3" },
-    { "s4", "t4", "r4" },
-    { "s5", "t5", "r5" },
-    { "s6", "t6", "r6" },
-    { "s7", "t7", "r7" },
-  };
-  const char *error = NULL;
-
-  Face face;
-  Face *pface;
-  Vertex **vlist;
-  Face **flist = NULL;
-  // try to open file
-  FILE *file = fopen(m_fileName.c_str(),"rb");
-  if (!file)
-  {
-    error = "Could not open file for reading";
-    goto error;
-  }
-  ply = read_ply(file);
-  if (!ply)
-  {
-    error = "Error recognizing ply format";
-    goto error;
-  }
-  // check if ply has vertex and face information
-  for (i=0; i<ply->num_elem_types; i++)
-  {
-    elem_name = setup_element_read_ply(ply,i,&elem_count);
-    if (equal_strings(vertexname,elem_name))
-    {
-      hasvertex = true;
-      vertexelem = i;
-    }
-    else if (equal_strings(facename,elem_name))
-    {
-      hasface = true;
-      faceelem = i;
-    }
-  }
-  if (!hasvertex || (!hasface))
-  {
-    error = "Could not get vertex or face information from file";
-    goto error;
-  }
-  // read vertex info
-  setup_element_read_ply(ply, vertexelem, &elem_count);
-  // create a vertex list to hold all the vertices
-  vlist = (Vertex **)malloc(sizeof(Vertex *)*elem_count);
-  nverts = elem_count;
-  printf("Reading %d Vertices...\n", nverts);
-
-  // set up for getting vertex positions
-  setup_property_ply(ply,&s_vert_props[0]);
-  setup_property_ply(ply,&s_vert_props[1]);
-  setup_property_ply(ply,&s_vert_props[2]);
-  for (i=0; i<8; i++)
-    for (k=0; k<3; k++)
-      hastexcoord[i][k] = false;
-  // check if normals and texcoords are specified
-  for (j=0; j<ply->elems[vertexelem]->nprops; j++)
-  {
-    PlyProperty *prop = ply->elems[vertexelem]->props[j];
-    if (equal_strings("nx",prop->name))
-    {
-      hasnormal[0] = true;
-      normalelem[0] = j;
-    } 
-    else if (equal_strings("ny",prop->name))
-    {
-      hasnormal[1] = true;
-      normalelem[1] = j;
-    } 
-    else if (equal_strings("nz",prop->name))
-    {
-      hasnormal[2] = true;
-      normalelem[2] = j;
-    } 
-    else if (equal_strings("red",prop->name))
-    {
-      hascolor[0] = true;
-      colorelem[0] = j;
-    }
-    else if (equal_strings("green",prop->name))
-    {
-      hascolor[1] = true;
-      colorelem[1] = j;
-    }
-    else if (equal_strings("blue",prop->name))
-    {
-      hascolor[2] = true;
-      colorelem[2] = j;
-    }
-    else
-      for (i=0; i<8; i++)
-        for (k=0; k<3; k++)
-          if (equal_strings(texpropnames[i][k],prop->name))
-          {
-            hastexcoord[i][k] = hastexcoords[i] = true;
-            texelem[i][k] = j;
-          }
-  }
-  if (hasnormal[0] && hasnormal[1] && hasnormal[2])
-  {
-    hasnormals = true;
-    // set up for getting vertex normals
-    setup_property_ply(ply,&s_vert_props[3]);
-    setup_property_ply(ply,&s_vert_props[4]);
-    setup_property_ply(ply,&s_vert_props[5]);
-  }
-  if (hascolor[0] && hascolor[1] && hascolor[2])
-  {
-    hascolors = true;
-    // set up for getting vertex colors
-    setup_property_ply(ply,&s_vert_props[6]);
-    setup_property_ply(ply,&s_vert_props[7]);
-    setup_property_ply(ply,&s_vert_props[8]);
-  }
-  for (i=0; i<8; i++)
-    if (hastexcoords[i])
-    {
-      if (!hastexcoord[i][0] || (hastexcoord[i][2] && !hastexcoord[i][1]))
-      {
-        error = "File defines texture coordinates but does not define as (s) or (s+t) or (s+t+r)";
-        goto error;
-      }
-      setup_property_ply(ply,&s_vert_props[9+i*3]);
-      texnelems[i] = 1;
-      if (hastexcoord[i][1])
-      {
-        setup_property_ply(ply,&s_vert_props[9+i*3+1]);
-        texnelems[i]++;
-      }
-      if (hastexcoord[i][2])
-      {
-        setup_property_ply(ply,&s_vert_props[9+i*3+2]);
-        texnelems[i]++;
-      }
-    }
-  // grab vertex elements 
-  for (j=0; j<nverts; j++)
-  {
-    vlist[j] = (Vertex*)malloc(sizeof(Vertex));
-    get_element_ply(ply,(void*)vlist[j]);
-  }
-  
-  
-  int numtris = 0;
-  unsigned int * iList = NULL;
-  if (hasface)
-  {
-    // read face info
-    setup_element_read_ply(ply,faceelem,&elem_count);
-    // create a list to hold all the face elements
-    nfaces = elem_count;
-
-
-    // set up for getting face elements
-    setup_property_ply(ply,&s_face_props[0]);
-    vector<unsigned int> triangles;
-    // grab face elements
-    if (!hasnormals)
-      flist = (Face**)malloc(nfaces*sizeof(Face*));
-    for (j=0; j<nfaces; j++)
-    {
-      if (hasnormals)
-        pface = &face;
-      else
-        pface = flist[j] = (Face*)malloc(sizeof(Face));
-      get_element_ply(ply,pface);
-      int nfaceverts = pface->nverts;
-      if (nfaceverts == 3) {
-        triangles.push_back(pface->verts[0]);
-        triangles.push_back(pface->verts[1]);
-        triangles.push_back(pface->verts[2]);
-      }
-      else if (nfaceverts == 4) {
-        triangles.push_back(pface->verts[0]);
-        triangles.push_back(pface->verts[1]);
-        triangles.push_back(pface->verts[2]);
-
-        triangles.push_back(pface->verts[2]);
-        triangles.push_back(pface->verts[3]);
-        triangles.push_back(pface->verts[0]);
-      }
-      else
-      {
-        error = "Found a face that is not a triangle nor a quad";
-        goto error;
-      }
-    }
-    if (!hasnormals)
-      compute_normals(vlist,flist,nverts,nfaces,flipnormals);
-    {
-      numtris = triangles.size() / 3;
-      printf("Reading %d Triangles...\n", numtris);
-      if (numtris > 0) {
-        iList = new unsigned int[numtris*3];
-        for (int i=0; i<numtris; ++i)
-        {
-          iList[i*3] = triangles[i*3];
-          iList[i*3+1] = triangles[i*3+1];
-          iList[i*3+2] = triangles[i*3+2];
-        }
-      }
-    }
-    free(flist);
-  }else 
-  {
-    error = "DOES NOT HAVE TRIANGLES";
-    goto error;
-  }
- 
-  GLfloat * vList = new GLfloat[nverts*3];
-  GLfloat * nList = new GLfloat[nverts*3];
-
-
-  for (j=0; j<nverts; j++)
-  {
-    vList[j*3] = vlist[j]->x * m_scale.x;
-    vList[j*3+1] =  vlist[j]->y * m_scale.y;
-    vList[j*3+2] =  vlist[j]->z * m_scale.z;
-
-    nList[j*3] = vlist[j]->nx;
-    nList[j*3+1] =  vlist[j]->ny;
-    nList[j*3+2] =  vlist[j]->nz;
-    //if (hastexcoords[0]) texcoords[0]->SetValue(j, vlist[j]->s0, vlist[j]->t0, vlist[j]->r0);
-    //if (hastexcoords[1]) texcoords[1]->SetValue(j, vlist[j]->s1, vlist[j]->t1, vlist[j]->r1);
-    //if (hastexcoords[2]) texcoords[2]->SetValue(j, vlist[j]->s2, vlist[j]->t2, vlist[j]->r2);
-    //if (hastexcoords[3]) texcoords[3]->SetValue(j, vlist[j]->s3, vlist[j]->t3, vlist[j]->r3);
-    //if (hastexcoords[4]) texcoords[4]->SetValue(j, vlist[j]->s4, vlist[j]->t4, vlist[j]->r4);
-    //if (hastexcoords[5]) texcoords[5]->SetValue(j, vlist[j]->s5, vlist[j]->t5, vlist[j]->r5);
-    //if (hastexcoords[6]) texcoords[6]->SetValue(j, vlist[j]->s6, vlist[j]->t6, vlist[j]->r6);
-    //if (hastexcoords[7]) texcoords[7]->SetValue(j, vlist[j]->s7, vlist[j]->t7, vlist[j]->r7);
-
-    //if (hascolors)
-    //  colors->SetValue(j,(float)vlist[j]->red/255.0,(float)vlist[j]->green/255.0,(float)vlist[j]->blue/255.0);
-    free(vlist[j]);
-  }
-  free(vlist);
-
-  close_ply(ply);
-
-
-  m_numVertices = nverts;
-  m_numTriangles = numtris;
-  m_vertices = vList;
-  m_normals = nList;
-  m_indexes = iList;
-  
-  return;
-error:
-  printf("Error loading model from file \"%s\": error = %s\n",m_fileName.c_str(), error);
-}
-/**/

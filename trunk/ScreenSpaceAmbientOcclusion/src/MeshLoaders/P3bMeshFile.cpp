@@ -1,20 +1,32 @@
-/**********************************************************\
-            Nome:Eduardo Ceretta Dalla Favera
-\**********************************************************/
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  P3B Model Loader. 
+ *  Imports a binary mesh file that load a FiniteElement Model used 
+ *  in TecGraf's Pos3D.
+ *  Permits the render of this model.
+ *  Depends on diverse P3D libs.
+ */
 
 #include "MeshLoaders/P3bMeshFile.h"
 
-//TECGRAF LIBS
+/**
+ * TECGRAF LIBS
+ */
 #include "pos3dlib/model/model.h"
 #include "pos3dlib/io/nfrmodelreader.h"
 #include "pos3dlib/display/fem.h"
 #include "pos3dlib/elemvis.h"
 #include "pos3dlib/elemselection.h"
 
-#include "main.h"
+#include "defines.h"
 
+/**
+ * P3D File Types
+ */
 #define P3D_SUB_TYPE_LUA ".p3i"
-
 string P3bMeshFile :: s_fileType = string(".p3b");
 
 P3bMeshFile::P3bMeshFile(void)
@@ -87,31 +99,6 @@ void P3bMeshFile::readFile(string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
     delete m_p3dRenderer;
   m_p3dRenderer = new P3DFemDisplay();
   m_p3dRenderer->SetModel(m_p3dModel);
-  //m_p3dRenderer->SetColorScale(m_sci_colorscale);
-  //m_p3dRenderer->SetBoundaryMeshColor(r, g, b, 1);
-  //m_p3dRenderer->SetBoundaryMeshWidth((float) i);
-  //m_p3dRenderer->SetBoundaryCohMeshColor(r, g, b, 1);
-  //m_p3dRenderer->SetBoundaryCohMeshWidth((float) i);
-  //m_p3dRenderer->SetBoundaryNodesEnabled(flag);
-  //m_p3dRenderer->SetBoundaryNodesColor(r, g, b, 1);
-  //m_p3dRenderer->SetBoundaryCohNodesColor(r, g, b, 1);
-  //m_p3dRenderer->SetOutlineEnabled(flag);
-  //m_p3dRenderer->SetMaterialOutlineEnabled(flag);
-  //m_p3dRenderer->SetBoundaryElemNumbersEnabled(flag);
-  //m_p3dRenderer->SetBoundaryNodeNumbersEnabled(flag);
-  //m_p3dRenderer->SetDispFactor(factor);
-  //m_p3dRenderer->SetUndeformedEnabled(flag);
-  //m_p3dRenderer->SetMaterialColorScale(m_sci_matcolorscale);
-  //m_p3dRenderer->SetBoundaryElemColor(r, g, b, 1.f);
-  //m_p3dRenderer->SetBoundaryCohElemColor(r, g, b, 1.f);
-  //m_p3dModel* p3d_model = m_model->GetModel();
-  //TopModel* mesh = p3d_model->GetMesh();
-  //m_p3dRenderer->SetBoundaryPerElemColors(mesh->GetNElem(), colors_rgba);
-  //m_p3dRenderer->SetSelectionMode(P3DFemDisplay::SELECT_NODE);
-  //m_p3dRenderer->SetSelectionMode(P3DFemDisplay::SELECT_ELEMENT);
-  //m_p3dRenderer->SetShaderPath(path);
-
-  //m_p3dRenderer->SetViewport(x0, y0, w, h);
 }
 
 

@@ -1,23 +1,47 @@
-#ifndef _KERNEL_BLURR_H_
-#define _KERNEL_BLURR_H_
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Oct 2010  
+ *
+ *  A Kernel that receives a 2D texture as input, applies a blur and 
+ *  produces a output texture.
+ */
+#ifndef _KERNEL_BLUR_H_
+#define _KERNEL_BLUR_H_
 
 #include "Kernels/KernelBase.h"
-#include "GraphBasis/FrameBufferObject.h"
 
-class KernelBlurr : public KernelBase {
+class KernelBlur : public KernelBase {
 
 public:
+  /**
+   * Construct the Kernel and set the input texture ID
+   */
+  KernelBlur(int width, int height, GLuint inputTexId);
 
-  KernelBlurr(int width, int height, GLuint inputTexId);
-	~KernelBlurr();
+  /**
+   * Destroy the kernel
+   */
+	~KernelBlur();
  
+  /**
+   * Get the blurred output texture id
+   */
   GLuint getBlurredTexId() const;
  
+  /**
+   * Performs the blurring process.
+   *  pixelmask_size defines the size of the blurred area
+   *  offsets_size is a value that adds an offset between each pixel read in the pixel texture
+   *  intensity is multiplied by the final color of the pixel
+   */
   void step(float pixelmask_size = 3.0, GLfloat offsets_size = 1.0, GLfloat intensity = 1.0);
-private:
-  GLuint m_blurredTexId;
-  GLuint createSampleTexture();
 
+private:
+  /**
+   * Output texture id
+   */
+  GLuint m_blurredTexId;
 };
 
 
