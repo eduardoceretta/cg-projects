@@ -1,21 +1,25 @@
-/**********************************************************\
-            Nome:Eduardo Ceretta Dalla Favera
-\**********************************************************/
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  May 2011
+ *
+ *  Model Loader. Imports diverse file types.
+ *  Depends of the external Library Open Asset Import Library (Assimp), available on http://assimp.sourceforge.net/
+ */
 
 #include "MeshLoaders/AssimpMeshFile.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string>
-#include "main.h"
+#include "defines.h"
 #include "assimp/assimp.h"
 #include "assimp/aiPostProcess.h"
 #include "assimp/aiScene.h"
 #include "assimp/aiConfig.h"
 
-AssimpMeshFile::AssimpMeshFile(void):MeshFileBase()
-,m_bb_min(Vector3(999999999.,999999999.,999999999.))
-,m_bb_max(Vector3(-999999999.,-999999999.,-999999999.))
+AssimpMeshFile::AssimpMeshFile(void)
+:MeshFileBase()
 {
   m_fileType = "NOFILE";
 }
@@ -36,26 +40,14 @@ void AssimpMeshFile::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/
 
 void AssimpMeshFile::calcVBO()
 {
-  m_vbo = new VertexBufferObject();
-  m_vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, m_numVertices, m_vertices);
-  m_vbo->setVBOBuffer( GL_NORMAL_ARRAY, GL_FLOAT, m_numVertices, m_normals);
+  m_vbo = new GLVertexBufferObject();
+  m_vbo->setVBOBuffer(GL_VERTEX_ARRAY, GL_FLOAT, m_numVertices, m_vertices);
+  m_vbo->setVBOBuffer(GL_NORMAL_ARRAY, GL_FLOAT, m_numVertices, m_normals);
   m_vbo->setVBOIndexBuffer(GL_UNSIGNED_INT, m_numTriangles*3, m_indexes);
   m_vbo->calcVBO();
-  writeBinaryFile(m_fileName);
+  if(m_writeBinaryFile)
+    writeBinaryFile(m_fileName);
 }
-
-void AssimpMeshFile::writeBinaryFile(string fileName)
-{
-  int index = fileName.find_last_of(".");
-  MyAssert("Invalid FileName: " + fileName, index!=string::npos);
-  string sub = fileName.substr(0, index);
-
-  FILE * fp = fopen((sub+".msb").c_str(),"wb");
-  m_vbo->writeToFile(fp);
-  fclose(fp);
-  cout << "File " << sub+".msb" << " write successfully! " <<endl;
-}
-
 
 
 
@@ -106,8 +98,8 @@ void AssimpMeshFile::calcTriangles()
 
   createVbo(nd, vList, nList, iList, vertexOffset, indexOffset, &transform);
 
-  
-  cout << "TRANSLATE TO:"<<((m_bb_max + m_bb_min)*-.5) <<endl;
+  cout << "BoundingBox Size:" << (m_bb_max - m_bb_min) ;
+  cout << "BoundingBox Center:"<<((m_bb_max + m_bb_min)*.5) <<endl;
 
   m_numVertices = nv;
   m_numTriangles = nt;
@@ -216,6 +208,5 @@ bool AssimpMeshFile::isValidFileType(string filetype)
 {
   return aiIsExtensionSupported(filetype.c_str());
 }
-
 
 

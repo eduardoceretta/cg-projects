@@ -7,7 +7,7 @@ KernelDeferred::KernelDeferred()
 
 KernelDeferred::KernelDeferred(int width, int height)
 : KernelBase("./resources/Shaders/deferred.vert", "./resources/Shaders/deferred.frag", width, height){
-  m_fbo->attachToDepthBuffer(BufferType::RenderBufferObject);
+  m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
   
   //Output
   m_texIdPosition = addOutput(0);

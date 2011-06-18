@@ -2,7 +2,6 @@
 #define _KERNEL_DEFERRED_H_
 
 #include "Kernels/KernelBase.h"
-#include "GraphBasis/FrameBufferObject.h"
 
 class KernelDeferred : public KernelBase {
 

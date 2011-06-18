@@ -1,9 +1,12 @@
-/**********************************************************\
-            Nome:Eduardo Ceretta Dalla Favera
-\**********************************************************/
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  MSB Model Loader. Imports a binary mesh file that contain only the VBO.
+ */
 #include "MeshLoaders/MsbMeshFile.h"
-#include <string>
-#include "main.h"
+#include "defines.h"
 
 MsbMeshFile::MsbMeshFile(void):MeshFileBase()
 {
@@ -29,7 +32,7 @@ void MsbMeshFile::calcVBO()
   file = fopen(m_fileName.c_str(), "rb");
   MyAssert("File Not Found: " + m_fileName, file);
 
-  m_vbo = new VertexBufferObject();
+  m_vbo = new GLVertexBufferObject();
   m_vbo->readFromFile(file);
 
   fclose(file);

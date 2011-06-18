@@ -1,11 +1,16 @@
-/**********************************************************\
-            Nome:Eduardo Ceretta Dalla Favera
-\**********************************************************/
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  Generic Model Loader. Imports all the supported model files.
+ *  Try to use all the mesh loaders implemented to open the file given.
+ */
 #include <iostream>
-#include "main.h"
+#include "defines.h"
 
 #include "MeshLoaders/MeshLoader.h"
-#include "GraphBasis/VertexBufferObject.h"
+#include "GLUtils/GLVertexBufferObject.h"
 
 #include "MeshLoaders\MshMeshFile.h"
 #include "MeshLoaders\MsbMeshFile.h"
@@ -14,8 +19,10 @@
 #include "MeshLoaders\AssimpMeshFile.h"
 
 using namespace std;
-
-MeshFileBase* MeshLoader :: sMeshLoaders[] = 
+/**
+ * Instances of the implemented meshloaders
+ */
+MeshFileBase* MeshLoader :: s_meshLoaders[] = 
 {
   new MshMeshFile(),
   new UmMeshFile(),
@@ -24,9 +31,7 @@ MeshFileBase* MeshLoader :: sMeshLoaders[] =
   new AssimpMeshFile(),
 };
 
-///////////////////
-//~ MeshLoader
-//////////////////
+
 MeshLoader :: MeshLoader()
 :MeshFileBase()
 ,m_meshLoader(NULL)
@@ -40,10 +45,10 @@ void MeshLoader::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
   string sub = fileName.substr(index, string::npos);
 
   bool knownFileType = false;
-  for(int i=0;i<sizeof(sMeshLoaders)/sizeof(MeshFileBase*); ++i)  
-    if(sMeshLoaders[i]->isValidFileType(sub))
+  for(int i=0;i<sizeof(s_meshLoaders)/sizeof(MeshFileBase*); ++i)  
+    if(s_meshLoaders[i]->isValidFileType(sub))
     {
-      m_meshLoader = sMeshLoaders[i];
+      m_meshLoader = s_meshLoaders[i];
       m_meshLoader->readFile(fileName, pos, scale);
       m_numVertices = m_meshLoader->getNumVertices();
       m_numTriangles = m_meshLoader->getNumTriangles();
@@ -59,8 +64,8 @@ void MeshLoader::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
 
 bool MeshLoader:: isValidFileType(string filetype)
 {
-  for(int i=0;i<sizeof(sMeshLoaders)/sizeof(MeshFileBase*); ++i)  
-    if(sMeshLoaders[i]->isValidFileType(filetype))
+  for(int i=0;i<sizeof(s_meshLoaders)/sizeof(MeshFileBase*); ++i)  
+    if(s_meshLoaders[i]->isValidFileType(filetype))
       return true;
   return false;
 }

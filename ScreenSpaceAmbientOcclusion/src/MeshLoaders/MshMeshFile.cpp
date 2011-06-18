@@ -1,9 +1,15 @@
-/**********************************************************\
-            Nome:Eduardo Ceretta Dalla Favera
-\**********************************************************/
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  MSH Model Loader. 
+ *  Imports a text mesh file that contains a list of vertexes 
+ *  and a list of triangles.
+ */
 #include "MeshLoaders/MshMeshFile.h"
 #include <string>
-#include "main.h"
+#include "defines.h"
 
 MshMeshFile::MshMeshFile(void):MeshFileBase()
 {
@@ -26,24 +32,13 @@ void MshMeshFile::readFile(string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
 
 void MshMeshFile::calcVBO()
 {
-  m_vbo = new VertexBufferObject();
+  m_vbo = new GLVertexBufferObject();
   m_vbo->setVBOBuffer( GL_VERTEX_ARRAY, GL_FLOAT, m_numVertices, m_vertices);
   m_vbo->setVBOBuffer( GL_NORMAL_ARRAY, GL_FLOAT, m_numVertices, m_normals);
   m_vbo->setVBOIndexBuffer(GL_UNSIGNED_INT, m_numTriangles*3, m_indexes);
   m_vbo->calcVBO();
-  writeBinaryFile(m_fileName);
-}
-
-void MshMeshFile::writeBinaryFile(string fileName)
-{
-  int index = fileName.find_last_of(".");
-  MyAssert("Invalid FileName: " + fileName, index!=string::npos);
-  string sub = fileName.substr(0, index);
-
-  FILE * fp = fopen((sub+".msb").c_str(),"wb");
-  m_vbo->writeToFile(fp);
-  fclose(fp);
-  cout << "File " << sub+".msb" << " write successfully! " <<endl;
+  if(m_writeBinaryFile)
+    writeBinaryFile(m_fileName);
 }
 
 void MshMeshFile::calcTriangles()
@@ -64,9 +59,6 @@ void MshMeshFile::calcTriangles()
   for(int i = 0; i < numVertex; ++i)
   {
     fscanf(file, "%*d %f %f %f\n", &vList[i*3], &vList[i*3+1], &vList[i*3+2]); 
-    //vList[i].x+=pos.x;
-    //vList[i].y+=pos.y;
-    //vList[i].z+=pos.z;
 
     vList[i*3]*=m_scale.x;
     vList[i*3+1]*=m_scale.y;
@@ -75,6 +67,14 @@ void MshMeshFile::calcTriangles()
     nList[i*3] = 0;
     nList[i*3+1] = 0;
     nList[i*3+2] = 0;
+
+    m_bb_min.x = min(vList[i*3]  , m_bb_min.x);
+    m_bb_min.y = min(vList[i*3+1], m_bb_min.y);
+    m_bb_min.z = min(vList[i*3+2], m_bb_min.z);
+
+    m_bb_max.x = max(vList[i*3]  , m_bb_max.x);
+    m_bb_max.y = max(vList[i*3+1], m_bb_max.y);
+    m_bb_max.z = max(vList[i*3+2], m_bb_max.z);
   }
 
   printf("Reading %d Triangles...\n", numTriangles);
@@ -125,6 +125,9 @@ void MshMeshFile::calcTriangles()
   }
 
   fclose(file);
+
+  cout << "BoundingBox Size:" << (m_bb_max - m_bb_min) ;
+  cout << "BoundingBox Center:"<<((m_bb_max + m_bb_min)*.5) <<endl;
 
   m_numVertices = numVertex;
   m_numTriangles = numTriangles;
