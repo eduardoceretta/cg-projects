@@ -1,7 +1,7 @@
 #ifndef _MAIN_H_
 #define _MAIN_H_
 
-#include "GraphBasis/GraphBasisDefines.h"
+#include "MathUtils\MathDefines.h"
 #include <assert.h>
 
 #define APP_NAME "ScreenSpaceAmbientOcclusion"
@@ -12,12 +12,6 @@
 #define APP_NEAR 5.0f
 #define APP_FAR 1000.0f
 
-
-#ifdef NDEBUG
-  #define MyAssert(str, expression)     ((void)0)  
-#else
-  #define MyAssert(str, expression) if(!(expression)){std::cout<<(str)<<std::endl;assert(expression);}
-#endif
 
 
 extern int appWidth;

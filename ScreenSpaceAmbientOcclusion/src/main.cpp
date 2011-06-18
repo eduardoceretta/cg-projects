@@ -3,21 +3,19 @@
 #include <GL\glut.h>
 #include <cmath>
 
-#include "GraphBasis/Vector3.h"
-#include "GraphBasis/Matrix4.h"
-#include "GraphBasis/Shader.h"
-#include "GraphBasis/GLFont.h"
-#include "GraphBasis/Frames.h"
+#include "MathUtils/Vector3.h"
+#include "MathUtils/Matrix4.h"
+#include "GLUtils/GLFont.h"
+#include "Objects/Frames.h"
 
-#include "GraphBasis/TextureObject.h"
+#include "GLUtils/GLTextureObject.h"
 
-#include "Light/PointLight.h"
-#include "Light/SpotLight.h"
-#include "Light/DirectionalLight.h"
+#include "GLLights/GLPointLight.h"
+#include "GLLights/GLSpotLight.h"
+#include "GLLights/GLDirectionalLight.h"
 
-#include "Objects/Scene.h"
+#include "ScScene/ScScene.h"
 #include "MeshLoaders/P3bMeshFile.h"
-#include "Kernels/KernelDeferred.h"
 #include "Kernels/KernelColor.h"
 #include "Kernels/KernelDeferred_Peeling.h"
 #include "Kernels/KernelSSAO.h"
@@ -33,7 +31,7 @@ int appWidth = APP_INITIAL_WIDTH;
 int appHeight = APP_INITIAL_HEIGHT;
 
 //Camera Attributes
-float nearPlane = APP_NEAR;
+float nearPlane = .5;
 float farPlane = APP_FAR;
 float fov = APP_FOV;
 
@@ -59,25 +57,24 @@ bool blurr_on = false;
 //Camera Position
 float camAlpha = 0.0;
 float camBeta = 90.0;
-float camR = 300.0;
+float camR = 10.0;
 float camInc = 5.0;
 
 //Ligths
-PointLight p;
+GLPointLight p;
 //PointLight p2;
-SpotLight sp2;
-DirectionalLight d;
+GLSpotLight sp2;
+GLDirectionalLight d;
 
 Frames fps;
 float fpsec;
 
 //Global Objects
 Scene* rtScene;
-KernelDeferred* kernelDeferred;
 KernelDeferred_Peeling* kernelDeferred_Peeling;
 KernelColor* kernelColor;
 KernelSSAO* kernelSSAO;
-KernelBlurr* kernelBlurr;
+KernelBlur* kernelBlurr;
 KernelCombine* kernelCombine;
 
 P3bMeshFile* p3bMesh;
@@ -93,7 +90,7 @@ GLFont fontRender;
 
 //Debug
 GLenum e;
-TextureObject *texDebug;
+GLTextureObject *texDebug;
 
 
 int main(int argc, char *argv[]){
@@ -245,7 +242,7 @@ void keyboard(unsigned char key, int x, int y){
     case '*':
       camAlpha = 0.0;
       camBeta = 90.0;
-      camR = 10.0;
+      camR = 1.0;
       break;
 
     case '+':
@@ -270,7 +267,6 @@ void keyboard(unsigned char key, int x, int y){
 
     case 'R':
     case 'r':
-      kernelDeferred->reloadShader();
       kernelDeferred_Peeling->reloadShader();
       kernelColor->reloadShader();
       kernelSSAO->reloadShader();
@@ -317,7 +313,7 @@ void mouseActive(int x, int y){
 		camBeta = ((int)(camBeta + angleX))%360;
 	}
 	else if(mouseButton == GLUT_RIGHT_BUTTON && mouseState == GLUT_DOWN){
-		camR += (y - lastMousePosY)/(2.0*(modifier == GLUT_ACTIVE_SHIFT ? 10 : 1) );
+		camR += (y - lastMousePosY)/(2.0*(modifier == GLUT_ACTIVE_SHIFT ? 100.1 : 1000.000001) );
 	}
 	lastMousePosX = x;
 	lastMousePosY = y;
@@ -385,7 +381,7 @@ void renderUIText()
 {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   fontRender.setSize(GLFont::Medium);
-  fontRender.initText();
+  fontRender.initText(appWidth, appHeight);
 
   //fontRender.print(10,appHeight*.05, "(1) Vertex Shading", Color(0., 0., 0.));
   //fontRender.print(10,appHeight*.05+25, "(2) Pixel Shading", Color(0., 0., 0.));
@@ -492,7 +488,6 @@ void createScenes()
   GLfloat amb [] = {0.2f,0.2f,0.2f,1.0f};
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
   
-  kernelDeferred = new KernelDeferred(appWidth, appHeight);
 
 
 
@@ -530,7 +525,7 @@ void createScenes()
     ,kernelDeferred_Peeling->getTexIdNormal(2)
   );
 
-  kernelBlurr = new KernelBlurr(appWidth, appHeight, kernelSSAO->getColorTexId());
+  kernelBlurr = new KernelBlur(appWidth, appHeight, kernelSSAO->getColorTexId());
   kernelCombine = new KernelCombine(appWidth, appHeight, kernelColor->getTexIdColor());
 
 
@@ -541,8 +536,7 @@ void createScenes()
 
 
 
-  texDebug = new TextureObject(kernelSSAO->getColorTexId());
-    //texDebug = new TextureObject(kernelDeferred->getTexIdPosition());
+  texDebug = new GLTextureObject(kernelSSAO->getColorTexId());
 
   //p3bMesh = new P3bMeshFile();
   //p3bMesh->readFile("resources/Models/TecGraf/16metros_30graus.p3b");
@@ -555,7 +549,7 @@ void createScenes()
 
   for(int i=0; i<rtScene->getNumMeshes();++i)
   {
-    Mesh *m = rtScene->getMeshAt(i);
+    ScMesh *m = rtScene->getMeshAt(i);
     P3bMeshFile * p3bMesh2 = m->getP3bMesh();
     if(p3bMesh2!=NULL)
     {
@@ -584,13 +578,21 @@ void drawScene()
     p.render();
   }
   //glEnable(GL_CULL_FACE);
-  rtScene->setLightEnabled(lights_on);
+  rtScene->setSceneLightEnabled(lights_on);
   rtScene->configure();
   rtScene->render();
   glPopAttrib();
 }
 
 
+GLfloat *buffer = NULL;
+float *radiuses = NULL;
+Vector3 *positions = NULL; 
+float mvi [16];
+int numspheres = 0;
+int t = 0;
+void testScreenShpereConverter();
+bool test_sphere = false;
 
 void render(){
   fpsec = fps.getFrames();
@@ -599,6 +601,9 @@ void render(){
   if(!shader_active)
   {
     drawScene();
+    t = 0;
+  }else if(test_sphere){
+    testScreenShpereConverter();
   }else
   {
 //COLOR PASS
@@ -660,7 +665,7 @@ void render(){
     float right = Znear/x;
     float top = Znear/y;
 
-    kernelSSAO->step(Znear, Zfar, right, top, rfar, pixelmask_size,offsets_size, intensity);
+    kernelSSAO->step(projectionMatrix, rfar, pixelmask_size,offsets_size, intensity);
 
 //BLURR PASS
 //BLURR PASS
@@ -698,121 +703,6 @@ void render(){
 
 
 
-/********************************
-///VERIFICADOR DE PONTOS EM ESPAÇO DE TELA
-/********************************
-
-GLfloat *buffer = NULL;
-float *radiuses = NULL;
-Vector3 *positions = NULL; 
-float mvi [16];
-int numspheres = 0;
-int t = 0;
-    
-    
-    if(t == 0)
-    {
-      GLfloat lightModelViewMatrix[16];
-      glGetFloatv(GL_MODELVIEW_MATRIX, lightModelViewMatrix);
-
-      GLfloat modelViewMatrix[16];
-      glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrix);
-
-      Matrix4 mvi = Matrix4((float*)modelViewMatrix);
-      mvi.Inverse();
-      mvi.Transpose();
-     
-      GLfloat projectionMatrix[16];
-      glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
-
-      for(int i=0; i < numPeelings; ++i)
-      {
-        kernelDeferred_Peeling->step(i);
-        kernelDeferred_Peeling->setActive(true);
-
-        glClearColor(.8, .8, 1.0, -1.0);
-        glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-        glDisable(GL_CULL_FACE);
-        //glEnable(GL_CULL_FACE);
-        rtScene->configure();
-        rtScene->render();
-
-        kernelDeferred_Peeling->setActive(false);
-      }
-      //kernelDeferred_Peeling->renderOutput(0);
-
-      float x = projectionMatrix[0*4+0];
-      float y = projectionMatrix[1*4+1];
-      float z = projectionMatrix[2*4+2];
-      float w = projectionMatrix[3*4+2];
-      float Znear = w/(z - 1.0);
-      float Zfar = w * Znear/(w + 2.0 * Znear);
-      float right = Znear/x;
-      float top = Znear/y;
-      
-
-      kernelSSAO->step(Znear, Zfar, right, top);
-      texDebug->setId(kernelSSAO->getColorTexId());
-      
-      
-      
-      buffer = texDebug->getTextureData();
-      int width = texDebug->getTextureWidth();
-      int height = texDebug->getTextureHeight();
-      
-      numspheres = 0;
-      for(int i = height-1; i >= 0; --i)
-      {
-        for(int j = 0; j < width; ++j)
-          if(buffer[i*width*4+j*4 + 3] < 0)
-            ;
-          else numspheres++;
-      }
-
-      if(radiuses)
-        delete[] radiuses;
-      if(positions)
-        delete[] positions;
-
-      radiuses = new float[numspheres];
-      positions = new Vector3[numspheres];
-
-      int k = 0;
-      for(int i = height-1; i >= 0; --i)
-      {
-        for(int j = 0; j < width; ++j)
-          if(buffer[i*width*4+j*4 + 3] < 0)
-            ;
-          else
-          {
-            positions[k] = mvi*Vector3(buffer[i*width*4+j*4 + 0], buffer[i*width*4+j*4 + 1], buffer[i*width*4+j*4 + 2]);
-            radiuses[k] = buffer[i*width*4+j*4 + 3]; 
-            k++;
-          };
-      }
-      
-      t++;
-    }
-
-    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-
-    glColor3f(1,1,1);
-
-    rtScene->configure();
-    rtScene->render();
-    glColor3f(1,0,0);
-    glBegin(GL_POINTS);
-    for(int i=0; i<numspheres; ++i)
-    {
-      glPushMatrix();
-      glTranslatef(positions[i].x,positions[i].y,positions[i].z);
-      glutSolidCube(radiuses[i]);
-      glPopMatrix();
-      //glVertex3f(positions[i].x,positions[i].y,positions[i].z);
-    }
-    glEnd();
-
-  ***************************************************************/
       
     
 
@@ -967,4 +857,157 @@ int t = 0;
   }
   renderUIText();
  // glPopAttrib();
+}
+
+void testScreenShpereConverter()
+{
+/********************************
+///VERIFICADOR DE PONTOS EM ESPAÇO DE TELA
+/********************************/
+
+  
+  
+  if(t == 0)
+  {
+    GLfloat modelViewMatrix[16];
+    glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrix);
+
+    Matrix4 mvi = Matrix4((float*)modelViewMatrix);
+    mvi.Inverse();
+    mvi.Transpose();
+   
+
+
+
+    //GLfloat modelviewMatrix[16];
+    //glGetFloatv(GL_MODELVIEW_MATRIX, modelviewMatrix);
+    GLfloat projectionMatrix[16];
+    glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
+
+    //Matrix4 mv = Matrix4((float*)modelviewMatrix);
+    //Matrix4 mp = Matrix4((float*)projectionMatrix);
+    //Matrix4 mvp = mp;
+    //mvp.Inverse();
+    ////mvp.Transpose();
+    //GLfloat imvp[16];
+    //for(int i=0;i<4;++i)
+    //  for(int j = 0;j<4;++j)
+    //    imvp[i*4 + j] = mvp.getValue(i, j);
+
+    //DEPTH PEELING PASS
+    //DEPTH PEELING PASS
+    //DEPTH PEELING PASS
+    for(int i=0; i < numPeelings; ++i)
+    {
+      kernelDeferred_Peeling->step(i);
+      kernelDeferred_Peeling->setActive(true);
+
+      glClearColor(.8, .8, 1.0, -1.0);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+      glDisable(GL_CULL_FACE);
+      drawScene();
+
+      kernelDeferred_Peeling->setActive(false);
+    }
+    //kernelDeferred_Peeling->renderOutput(0);
+
+
+    //SSAO PASS
+    //SSAO PASS
+    //SSAO PASS
+    float x = projectionMatrix[0*4+0];
+    float y = projectionMatrix[1*4+1];
+    float z = projectionMatrix[2*4+2];
+    float w = projectionMatrix[3*4+2];
+    float Znear = w/(z - 1.0);
+    float Zfar = w * Znear/(w + 2.0 * Znear);
+    float right = Znear/x;
+    float top = Znear/y;
+
+    kernelSSAO->step(projectionMatrix, rfar, pixelmask_size,offsets_size, intensity);
+    texDebug->setId(kernelSSAO->getColorTexId());
+    
+    
+    
+    buffer = texDebug->getTextureData();
+    int width = texDebug->getTextureWidth();
+    int height = texDebug->getTextureHeight();
+    
+    numspheres = 0;
+    for(int i = height-1; i >= 0; --i)
+    {
+      for(int j = 0; j < width; ++j)
+        if(buffer[i*width*4+j*4 + 3] < 0)
+          ;
+        else numspheres++;
+    }
+
+    if(radiuses)
+      delete[] radiuses;
+    if(positions)
+      delete[] positions;
+
+    radiuses = new float[numspheres];
+    positions = new Vector3[numspheres];
+
+    int k = 0;
+    for(int i = height-1; i >= 0; --i)
+    {
+      for(int j = 0; j < width; ++j)
+        if(buffer[i*width*4+j*4 + 3] < 0)
+          ;
+        else
+        {
+          positions[k] = mvi*Vector3(buffer[i*width*4+j*4 + 0], buffer[i*width*4+j*4 + 1], buffer[i*width*4+j*4 + 2]);
+          Vector3 v1 = Vector3(buffer[i*width*4+j*4 + 0], buffer[i*width*4+j*4 + 1], buffer[i*width*4+j*4 + 2]);
+          Vector3 v2 = v1 + Vector3(0,1,0)*buffer[i*width*4+j*4 + 3];
+          Vector3 v3 = v2 - v1;
+          v3 = mvi*v3;
+          float ll =  buffer[i*width*4+j*4 + 3]; 
+          float l = ~v3;
+          radiuses[k] = ll; 
+
+          k++;
+        }
+    }
+    
+    t++;
+  }
+
+  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+
+  glColor3f(1,1,1);
+
+  //rtScene->configure();
+  //rtScene->render();
+  glColor3f(1,0,0);
+  //glBegin(GL_POINTS);
+  
+  for(int i=0; i<numspheres; i+=201)
+      //for(int i=numspheres*.4; i<(numspheres*.4+numspheres/100); ++i)
+  {
+    glPushMatrix();
+    glTranslatef(positions[i].x,positions[i].y,positions[i].z);
+    glutSolidCube(radiuses[i]);
+    glPopMatrix();
+    printf("%d - %f %f %f - %f\n",i,positions[i].x, positions[i].y, positions[i].z, radiuses[i]);
+    //glVertex3f(positions[i].x,positions[i].y,positions[i].z);
+  }
+  //int i = 32000;
+  //glPushMatrix();
+  //glTranslatef(positions[i].x/100,positions[i].y/100,positions[i].z/100);
+  //glutSolidCube(radiuses[i]/10);
+  //glPopMatrix();
+  //printf("%d %f\n",i, radiuses[i]);
+  //i = 0;
+  //glPushMatrix();
+  //glTranslatef(positions[i].x,positions[i].y,positions[i].z);
+  //glutSolidCube(radiuses[i]*2);
+  //glPopMatrix();
+  //printf("%d %f\n",i, radiuses[i]);
+  printf("\n\n");
+  //glEnd();
+  //t = 0;
+
+  /****************************************************************/
 }
