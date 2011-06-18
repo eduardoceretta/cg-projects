@@ -9,7 +9,7 @@
 //#define DEPTH_PEELING
 #define MAX_OVER_PEELING
 #define SPHERE_POSITION
-#define SPHERE_CENTER_MINUS_NORMAL .1
+#define SPHERE_CENTER_MINUS_NORMAL .01
 #define INV_DIST_DIVIDE 2.
 
 //#define Z_MINUS_R -.5
@@ -62,25 +62,28 @@ uniform float intensity;
 #define ORANGE vec4(1.,.5, 0., 1.)
 
 vec4 getSphere(float xw, float yw, float zw);
-float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP);
+float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP,float radiusP);
 float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position, inout int n);
 
 
 
 
-
+vec4 color = vec4(1,1,1,1);
 void main()
 {
   //vec4 diffuse = texture2D(diffuseTex,  gl_TexCoord[0].st);
   //vec4 color = texture2D(colorTex,  gl_TexCoord[0].st);
-  vec4 color = vec4(1,1,1,1);
+
   vec4 depth0_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st);
   float depth = depth0_normal.a;
+  
+ 
   
   #ifdef SPHERE_POSITION
     vec4 position = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth);
   #else
     vec4 position = texture2D(positionTex,  gl_TexCoord[0].st);
+    position.w = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth).w;
   #endif
 
 
@@ -89,6 +92,15 @@ void main()
 		gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
 		return;
 	}
+
+	
+	
+	
+	
+	
+	
+	
+	
   //vec3 nn = (depth0_normal.xyz*1.)*.5 + .5;
   //gl_FragData[0] = vec4(nn, 1.);
   //return;
@@ -165,22 +177,21 @@ void main()
     vec2 sample = texture1D(sampleTex, coord).xy;
     float i = floor(sample.x + .5);
     float j = floor(sample.y + .5);
-    if(i > 3. || j > 3.)
+    //if(i > 1. || j > 1.)
     {
       i *= offsets_size;
       j *= offsets_size;
     }
    
-    
     totalAO += calcLocalAO(i,j, depth, depth0_normal, dx, dy, position, n);
   }
 #endif
 
   //float detph_weight = 1.-pow((depth),50.10);
   float detph_weight = 1.;
-  //gl_FragData[0] = WHITE*detph_weight;
-  //return;
-  totalAO = intensity * detph_weight * totalAO/(PI*float(n));
+
+  totalAO = intensity * detph_weight * totalAO/(2.*PI*position.w*float(n));
+    //totalAO = 10.* detph_weight * totalAO/(float(n));
   totalAO = clamp(totalAO,0.0,1.0);
 
 	if(depth <= 1.0)
@@ -229,7 +240,8 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
   int k = 0;
 #endif
   {
-    vec2 inc = vec2(i*dx, j*dy);
+    vec2 inc = vec2((i)*dx, (j)*dy);
+    //vec2 inc = vec2((i)*dx, (j)*dy);
     vec4 depth_normal;
     switch(k)
     {
@@ -247,6 +259,7 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
       break;
     }
     
+    
     if(depth_normal.a < 0.0)
     #ifdef DEPTH_PEELING
       continue;
@@ -254,13 +267,15 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
       return localAO;
     #endif
 
-    vec4 sphere = getSphere(gl_FragCoord.x + i, gl_FragCoord.y + j, depth_normal.a);
+
+    vec4 sphere = getSphere(gl_FragCoord.x + i , gl_FragCoord.y + j, depth_normal.a);
     #ifdef SPHERE_CENTER_MINUS_NORMAL
       sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL;
     #endif
 
     
     float eye_dist = length(sphere.xyz - position.xyz);
+    //float eye_dist = abs(depth_normal.a - depth);
 
     if(eye_dist > rfar)
     #ifdef DEPTH_PEELING
@@ -268,18 +283,18 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
     #else
       return localAO;
     #endif
-
+    
     #ifdef INV_DIST_DIVIDE
-      float dist_divide = 1./pow(eye_dist,INV_DIST_DIVIDE);
+      float dist_divide = pow((eye_dist/rfar), INV_DIST_DIVIDE);
     #else  
       float dist_divide = 1.;
     #endif  
     
     #ifdef MAX_OVER_PEELING
-      localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz)/dist_divide);
+      localAO = max(localAO, getAproxAO(sphere, position.xyz, depth0_normal.xyz, position.w)/dist_divide);
       nn = 1;
     #else
-      localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz)/dist_divide);
+      localAO += (getAproxAO(sphere, position.xyz, depth0_normal.xyz, position.w)/dist_divide);
       nn++;
     #endif
   }
@@ -342,10 +357,10 @@ vec4 getSphere(float xw, float yw, float zw)
   //else return vec4(-512,-512,-512, r);
 }
 
-float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP)
+float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP, float radiusP)
 {
   vec3 PQ = (sphereQ.xyz - posP);
-  float S = 2.0 * PI * (1.0 - cos(asin(sphereQ.a / length(PQ))));
+  float S = 2.0 * PI * radiusP * (1.0 - cos(asin(sphereQ.a / length(PQ))));
   #ifdef INVERT_NORMAL
     normalP = -normalP;
   #endif
