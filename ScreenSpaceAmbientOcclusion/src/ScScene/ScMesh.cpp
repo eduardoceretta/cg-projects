@@ -41,7 +41,7 @@ void ScMesh :: readFromStr(char buffer[])
 {
    int r = sscanf( buffer, "%d %f %f %f %f %f %f %s\n", &m_materialIndex, &m_pos.x, &m_pos.y, &m_pos.z,
       &m_scale.x, &m_scale.y, &m_scale.z, buffer);
-   cout << "Ler Arquivo " << buffer <<endl;
+   cout << "Reading Model: " << buffer << " ...\n"<<endl;
    assert(r == 8);
 
    string fileName(buffer);

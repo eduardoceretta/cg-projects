@@ -21,7 +21,7 @@
 
 using namespace std;
 
-class Scene
+class ScScene
 {
 protected:
   /**
@@ -69,17 +69,17 @@ public:
   /**
    * Simple Constructor
    */
-  Scene(){};
+  ScScene(){};
 
   /**
    * Read the given file name and import the objects
    */
-  Scene(string rt4FileName);
+  ScScene(string rt4FileName);
 
   /**
    * Delete created textures
    */
-  ~Scene();
+  ~ScScene();
 
   /**
    * Update Scene Objects if needed

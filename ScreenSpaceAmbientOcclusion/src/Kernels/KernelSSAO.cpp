@@ -19,7 +19,7 @@
 
 /**
  * Sampler texture data.
- *  Creates a 1D texture containing the respective index of the neiborhood access
+ *  Creates a 1D texture containing the respective index of the neighborhood access
  */
 #define SAMPLER_VECTOR
 

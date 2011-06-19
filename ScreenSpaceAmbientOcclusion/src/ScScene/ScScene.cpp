@@ -15,7 +15,7 @@
 
 using namespace std;
 
-Scene :: Scene(string rt4FileName)
+ScScene :: ScScene(string rt4FileName)
 :m_calculated(false)
 ,m_lightEnabled(true)
 {
@@ -23,17 +23,18 @@ Scene :: Scene(string rt4FileName)
   configure();
 }
 
-Scene :: ~Scene()
+ScScene :: ~ScScene()
 {
 }
 
-void Scene :: readFromFile(string rt4FileName)
+void ScScene :: readFromFile(string rt4FileName)
 {
 	FILE *file;
 	char buffer[1024];
 
 	file = fopen(rt4FileName.c_str(), "rt");
   MyAssert("File Not Found: " + rt4FileName, file);
+  cout << "Reading Scene: rt4FileName ...\n" << endl;
 
 	int numScene = 0;
 	int numCamera = 0;
@@ -118,14 +119,14 @@ void Scene :: readFromFile(string rt4FileName)
 	assert(numScene == 1);
 }
 
-void Scene :: readFromStr(char buffer[])
+void ScScene :: readFromStr(char buffer[])
 {
    int r = sscanf( buffer, "%f %f %f %f %f %f %*s\n", &m_clear.r, &m_clear.g, &m_clear.b,
       &m_ambient.r, &m_ambient.g, &m_ambient.b); 
    assert(r == 7-1);
 }
 
-void Scene :: configure()
+void ScScene :: configure()
 {
   if(!m_calculated) 
   {
@@ -149,7 +150,7 @@ void Scene :: configure()
 }
 
 
-void Scene :: render()
+void ScScene :: render()
 {
   glPushAttrib(GL_LIGHTING_BIT);
 
@@ -172,23 +173,23 @@ void Scene :: render()
 }
 
 
-bool Scene::isSceneLightEnabled() const
+bool ScScene::isSceneLightEnabled() const
 {
   return m_lightEnabled; 
 }
 
-void Scene::setSceneLightEnabled(bool val) 
+void ScScene::setSceneLightEnabled(bool val) 
 { 
   m_lightEnabled = val; 
 }
 
-int Scene::getNumLights()
+int ScScene::getNumLights()
 {
   return m_lights.size();
 }
 
 
-void Scene::setLightActive( bool op )
+void ScScene::setLightActive( bool op )
 {
   if(op)
   {
@@ -209,7 +210,7 @@ void Scene::setLightActive( bool op )
   }
 }
 
-void Scene::setMaterialActive( bool op , int index)
+void ScScene::setMaterialActive( bool op , int index)
 {
   if(op)
   {
@@ -222,33 +223,33 @@ void Scene::setMaterialActive( bool op , int index)
   }
 }
 
-void Scene::renderMesh(int index)
+void ScScene::renderMesh(int index)
 {
   m_meshes[index].configure();
   m_meshes[index].render();
 }
 
-int Scene::getNumMeshes()
+int ScScene::getNumMeshes()
 {
   return m_meshes.size();
 }
 
-ScMesh* Scene::getMeshAt( int i )
+ScMesh* ScScene::getMeshAt( int i )
 {
   return &m_meshes[i];
 }
 
-Color Scene::getClearColor() const
+Color ScScene::getClearColor() const
 {
   return m_clear;
 }
 
-Color Scene::getAmbientColor() const
+Color ScScene::getAmbientColor() const
 {
   return m_ambient;
 }
 
-ScCamera* Scene::getCamera()
+ScCamera* ScScene::getCamera()
 {
   return &m_camera;
 }
