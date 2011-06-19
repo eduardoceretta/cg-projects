@@ -44,12 +44,14 @@ void MeshFileBase::writeBinaryFile(string fileName)
 {
   int index = fileName.find_last_of(".");
   MyAssert("Invalid FileName: " + fileName, index!=string::npos);
+  
   string sub = fileName.substr(0, index);
 
   FILE * fp = fopen((sub+".msb").c_str(),"wb");
+  cout << "Writing File: " << sub+".msb" << " ...\n " <<endl;
+  
   m_vbo->writeToFile(fp);
   fclose(fp);
-  cout << "File " << sub+".msb" << " write successfully! " <<endl;
 }
 
 int MeshFileBase::getNumVertices() const

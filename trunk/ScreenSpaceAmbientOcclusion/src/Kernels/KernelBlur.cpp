@@ -6,7 +6,7 @@
  *  A Kernel that receives a 2D texture as input, applies a blur and 
  *  produces a output texture.
  */
-#include "KernelBlurr.h"
+#include "KernelBlur.h"
 
 
 KernelBlur::KernelBlur(int width, int height, GLuint inputTexId)

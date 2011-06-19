@@ -148,7 +148,7 @@ void GLShader::loadFiles(char* vertexShaderFile, char* fragShaderFile){
     glCompileShaderARB(m_shaderVert);
     glCompileShaderARB(m_shaderFrag);
 
-    std::cout << "Loading shader files: " << vertexShaderFile << ", " << fragShaderFile <<std::endl;
+    std::cout << "Reading Shaders: " << vertexShaderFile << ", " << fragShaderFile << " ..." <<std::endl;
 
     m_shaderProg = glCreateProgramObjectARB();
 
