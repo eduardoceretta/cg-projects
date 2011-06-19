@@ -58,7 +58,7 @@ protected:
    * Scene's Initial Camera
    */
   ScCamera m_camera;
-
+  
   /**
    * Indicates if the scene lights are on
    */
@@ -105,6 +105,21 @@ public:
    * Get the ith mesh imported
    */
   ScMesh* getMeshAt(int i);
+
+  /**
+   * Get the clear color of the scene
+   */
+  Color getClearColor() const;
+
+  /**
+   * Get the global ambient color of the scene
+   */
+  Color getAmbientColor() const;
+
+  /**
+   * Get the camera of the scene
+   */
+  ScCamera* getCamera();
 
   /**
    * Verify if scene's lights are on

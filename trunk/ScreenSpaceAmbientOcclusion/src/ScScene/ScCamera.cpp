@@ -32,3 +32,42 @@ void ScCamera :: readFromStr(char buffer[])
    assert(r == 14);
 }
 
+Vector3 ScCamera::getPos() const
+{
+  return m_pos;
+}
+
+Vector3 ScCamera::getAt() const
+{
+  return m_at;
+}
+
+Vector3 ScCamera::getUp() const
+{
+  return m_up;
+}
+
+float ScCamera::getFovy() const
+{
+  return m_fovy;
+}
+
+float ScCamera::getNear() const
+{
+  return m_near;
+}
+
+float ScCamera::getFar() const
+{
+  return m_far;
+}
+
+int ScCamera::getScreenWidth() const
+{
+  return m_screenWidth;
+}
+
+int ScCamera::getScreenHeight() const
+{
+  return m_screenHeight;
+}
