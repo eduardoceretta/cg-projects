@@ -16,7 +16,7 @@ protected:
    * Camera World Position
    */
   Vector3 m_pos;
-
+ 
   /**
    * Camera LookAt Position
    */
@@ -52,6 +52,7 @@ protected:
    */
   int m_screenHeight;
 
+
 public:
   /**
    * Simple Constructor
@@ -69,6 +70,18 @@ public:
    *  String format: pos.x pos.y pos.z at.x at.y at.z up.x up.y up.z fovy near far screenWidth screenHeight
    */
   void readFromStr(char buffer[]);
+
+  /**
+   * Getters of Camera Attributes
+   */
+  Vector3 getPos() const;
+  Vector3 getAt() const;
+  Vector3 getUp() const;
+  float getFovy() const;
+  float getNear() const;
+  float getFar() const;
+  int getScreenWidth() const;
+  int getScreenHeight() const;
 };
 
 

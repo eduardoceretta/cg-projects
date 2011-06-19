@@ -237,3 +237,18 @@ ScMesh* Scene::getMeshAt( int i )
 {
   return &m_meshes[i];
 }
+
+Color Scene::getClearColor() const
+{
+  return m_clear;
+}
+
+Color Scene::getAmbientColor() const
+{
+  return m_ambient;
+}
+
+ScCamera* Scene::getCamera()
+{
+  return &m_camera;
+}

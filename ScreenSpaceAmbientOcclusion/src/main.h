@@ -2,7 +2,6 @@
 #define _MAIN_H_
 
 #include "MathUtils\MathDefines.h"
-#include <assert.h>
 
 #define APP_NAME "ScreenSpaceAmbientOcclusion"
 
@@ -19,9 +18,9 @@ extern int appHeight;
 
 int main(int argc, char *argv[]);
 
-void init(int argc, char *argv[]);
+void initGL(int argc, char *argv[]);
 
-void reshape(int w, int h);
+void reshapeGL(int w, int h);
 void keyboard(unsigned char key, int x, int y);
 void keyboardSpecial(int key, int x, int y);
 void mouseButtons(int button, int state, int x, int y);
@@ -29,9 +28,9 @@ void mouseActive(int x, int y);
 void display();
 
 void renderAxis();
-void renderUIText();
-void setupCamera();
-void createScenes();
+void renderGUI();
+void loadScene();
+void createKernels();
 inline void render();
 
 #endif

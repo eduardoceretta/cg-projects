@@ -65,8 +65,6 @@ void ScLight :: readFromStr(char buffer[])
       &m_spotAngle,
       &m_spotDir.x, &m_spotDir.y, &m_spotDir.z);
    
-  m_diffuse *= 1.0/255;
-  m_specular *= 1.0/255;
   m_type = (LightType)(int) floor(type + .5);
 
   switch(m_type)

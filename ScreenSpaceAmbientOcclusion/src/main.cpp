@@ -11,8 +11,6 @@
 #include "GLUtils/GLTextureObject.h"
 
 #include "GLLights/GLPointLight.h"
-#include "GLLights/GLSpotLight.h"
-#include "GLLights/GLDirectionalLight.h"
 
 #include "ScScene/ScScene.h"
 #include "MeshLoaders/P3bMeshFile.h"
@@ -22,86 +20,72 @@
 #include "Kernels/KernelBlurr.h"
 #include "Kernels/KernelCombine.h"
 
-
+#include "Handlers/SphereGLCameraHandler.h"
 
 #include "main.h"
 
-//Screen Attributes
+//Application Parameters
 int appWidth = APP_INITIAL_WIDTH;
 int appHeight = APP_INITIAL_HEIGHT;
-
-//Camera Attributes
-float nearPlane = .5;
+float nearPlane = APP_NEAR;
 float farPlane = APP_FAR;
 float fov = APP_FOV;
+GLfloat clearColor[] = {.8, .8, 1.0, -1.};
 
-//Pipeline Config
-bool polygonModeFill = true;
 
-//Interface control
-int lastMousePosX = 0;
-int lastMousePosY = 0;
-int mouseState = GLUT_UP;
-int mouseButton = GLUT_RIGHT_BUTTON;
-
-bool menu_on = true;
-bool lights_on = false;
-bool mine_light_on = false;
-int outputSelection = 0;
-int numPeelings = 3;
-int outputIndexSelection = 0;
-bool shader_on = true;
-bool shader_active = polygonModeFill & shader_on;
-bool blurr_on = false;
-
-//Camera Position
-float camAlpha = 0.0;
-float camBeta = 90.0;
-float camR = 10.0;
-float camInc = 5.0;
-
-//Ligths
-GLPointLight p;
-//PointLight p2;
-GLSpotLight sp2;
-GLDirectionalLight d;
-
+//Render Objects
+SphereGLCameraHandler *camHandler;
+GLFont fontRender;
 Frames fps;
 float fpsec;
 
-//Global Objects
+//Scene Objects
 Scene* rtScene;
+P3bMeshFile* p3bMesh;
+
+//Kernel Objects
 KernelDeferred_Peeling* kernelDeferred_Peeling;
 KernelColor* kernelColor;
 KernelSSAO* kernelSSAO;
 KernelBlur* kernelBlurr;
 KernelCombine* kernelCombine;
 
-P3bMeshFile* p3bMesh;
+//Interface control
+bool menu_on = true;
+bool lights_on = false;
+bool minerLight_on = false;
+bool wireframe_on = false;
+bool shader_on = true;
+bool shader_active = !wireframe_on & shader_on;
 
-
-//Algorithm
+//Algorithm Parameters
 float rfar = 30.0f;
 float pixelmask_size = .8;
 float offsets_size = 5.0;
 float intensity = 20.0;
-
-GLFont fontRender;
+int numPeelings = 3;
+bool blurr_on = false;
 
 //Debug
 GLenum e;
 GLTextureObject *texDebug;
 
 
-int main(int argc, char *argv[]){
-	init(argc, argv);
 
+int main(int argc, char *argv[]){
+	initGL(argc, argv);
+
+  loadScene();
+
+  createKernels();
+
+  reshapeGL(appWidth, appHeight);
   glutMainLoop();
 }
 
 
 
-void init(int argc, char *argv[]){
+void initGL(int argc, char *argv[]){
 	glutInit(&argc, argv);
 	glewInit();	
 
@@ -116,35 +100,31 @@ void init(int argc, char *argv[]){
 	glutSpecialFunc(keyboardSpecial);
 	glutMotionFunc(mouseActive);
 	glutMouseFunc(mouseButtons);
-	glutReshapeFunc(reshape);
+	glutReshapeFunc(reshapeGL);
   
-  glClearColor(.8, .8, 1.0, 3.0);
+  glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 
   glShadeModel(GL_SMOOTH);
+  // FILLED 
   glPolygonMode(GL_FRONT, GL_FILL);
-  //   glPolygonMode(GL_BACK, GL_LINE);
-  //   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  // WIREFRAME Clean
+  // glPolygonMode(GL_BACK, GL_LINE); 
 
-  glCullFace(GL_BACK);
+  // WIREFRAME Dense
+  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
+
+  glCullFace(GL_BACK); 
+  //Enable Culling
   //glEnable(GL_CULL_FACE);
 
-  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  //glEnable(GL_BLEND);
-
   glEnable(GL_DEPTH_TEST);
-  //glEnable(GL_ALPHA_TEST);
   
-	//glEnable(GL_TEXTURE);
- // glEnable(GL_TEXTURE_1D);
-  //glEnable(GL_TEXTURE_2D);
-
-  // disables cursor
-  //   glutSetCursor(GLUT_CURSOR_NONE);
-  createScenes();
+  //Disables cursor
+  //glutSetCursor(GLUT_CURSOR_NONE);
 }
 
 
-void reshape(int w, int h){
+void reshapeGL(int w, int h){
 	glViewport (0, 0, (GLsizei)w, (GLsizei)h);
   glMatrixMode (GL_PROJECTION);
   glLoadIdentity ();
@@ -158,12 +138,9 @@ void reshape(int w, int h){
 
 
 void keyboardSpecial(int key, int x, int y){
-  int modifier = glutGetModifiers();
+  camHandler->listenKeyboard(key);
 
-	if(key == GLUT_KEY_LEFT) camBeta = (int)(camBeta + camInc)%360;
-	else if(key == GLUT_KEY_RIGHT)  camBeta = (int)(camBeta - camInc)%360;
-	else if(key == GLUT_KEY_UP) camAlpha = (int)(camAlpha - camInc)%360;
-	else if(key == GLUT_KEY_DOWN)camAlpha = (int)(camAlpha + camInc)%360;
+  int modifier = glutGetModifiers();
 
   switch(key)
   {
@@ -179,21 +156,24 @@ void keyboardSpecial(int key, int x, int y){
       break;
 
     case 10: //F10
-      if(polygonModeFill)
+      wireframe_on = !wireframe_on;
+      shader_active = !wireframe_on & shader_on;
+
+      if(wireframe_on)
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       else
          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-      polygonModeFill = !polygonModeFill;
-      shader_active = polygonModeFill & shader_on;
       break;
+
     case 11:
       shader_on = !shader_on;
-      shader_active = polygonModeFill & shader_on;
+      shader_active = wireframe_on & shader_on;
       break;
+
     case GLUT_KEY_PAGE_UP:
       rfar = rfar + 1. * (modifier == GLUT_ACTIVE_SHIFT ? 1. : .1);
       break;
+
     case GLUT_KEY_PAGE_DOWN:
       rfar = max(rfar - 1. * (modifier == GLUT_ACTIVE_SHIFT ? 1. : .1) , 0.0);
       break;
@@ -201,48 +181,35 @@ void keyboardSpecial(int key, int x, int y){
     case GLUT_KEY_HOME:
       pixelmask_size = min(pixelmask_size + .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1), .999f);
       break;
+
     case GLUT_KEY_END:
       pixelmask_size = max(pixelmask_size - .01f * (modifier == GLUT_ACTIVE_SHIFT ? 10 : 1) , 0.001f);
       break;
   }
-
-  
 }
 
 void keyboard(unsigned char key, int x, int y){
   int modifier = glutGetModifiers();
-  if(key > '0' && key < '9' + 1)
-    outputIndexSelection = min(key - '0' - 1, numPeelings - 1);
+
   switch(key)
   {
     case 27://ESC
       exit(42);
     break;
-    case '\'':
-      outputSelection = !outputSelection;
-      break;
-    case '1':
-      break;
-    case '2':
-      break;
-    case '3':
-      break;
+
     case 'M':
     case 'm':
-      mine_light_on = !mine_light_on;
+      minerLight_on = !minerLight_on;
       break;
+
     case 'L':
     case 'l':
       lights_on = !lights_on;
       break;
+
     case 'B':
     case 'b':
       blurr_on = !blurr_on;
-      break;
-    case '*':
-      camAlpha = 0.0;
-      camBeta = 90.0;
-      camR = 1.0;
       break;
 
     case '+':
@@ -274,14 +241,13 @@ void keyboard(unsigned char key, int x, int y){
       kernelCombine->reloadShader();
       break;
 
-
-
     case 'I':
       intensity = intensity + (intensity > 1000.0f? 100.0f :(intensity > 100.0f? 10.0f : 1.0f));
       break;
     case 'i':
       intensity = intensity + .05f;
       break;
+
     case 'U':
       intensity = max(intensity -(intensity > 100.0f? 10.0f : 1.0f), 0.01f);
       break;
@@ -289,106 +255,29 @@ void keyboard(unsigned char key, int x, int y){
       intensity = max(intensity - .05f, 0.01f);
       break;
   }
-  //cout << (int)key<<endl;
 }
 
 void mouseButtons(int button, int state, int x, int y){
-	
-	mouseState = state;
-	mouseButton = button;
-
-	lastMousePosX = x;
-	lastMousePosY = y;
+  camHandler->listenMouseClick(button, state, x, y);
 }
 
 void mouseActive(int x, int y){
-  //int modifier = glutGetModifiers();
-  int modifier = 0;
-	if(mouseButton == GLUT_LEFT_BUTTON && mouseState == GLUT_DOWN){
-		float angleX = (lastMousePosX - x)*.5;
-		float angleY = (y - lastMousePosY)*.5;
-
-
-		camAlpha = ((int)(camAlpha + angleY))%360;
-		camBeta = ((int)(camBeta + angleX))%360;
-	}
-	else if(mouseButton == GLUT_RIGHT_BUTTON && mouseState == GLUT_DOWN){
-		camR += (y - lastMousePosY)/(2.0*(modifier == GLUT_ACTIVE_SHIFT ? 100.1 : 1000.000001) );
-	}
-	lastMousePosX = x;
-	lastMousePosY = y;
+  camHandler->listenMouseMove(x, y);
 }
 
 void display()
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   render();
-  //glFlush();
   glutSwapBuffers();
 }
 
-void renderAxis(){
-  glBegin(GL_LINES);
-  glColor3f(0, 0, 1); glVertex3f(0, 0, 0); glColor3f(0, 0, 1); glVertex3f(0, 0, 1000);
-  glColor3f(0, 1, 0); glVertex3f(0, 0, 0); glColor3f(0, 1, 0); glVertex3f(0, 1000, 0);
-  glColor3f(1, 0, 0); glVertex3f(0, 0, 0); glColor3f(1, 0, 0); glVertex3f(1000, 0, 0);
-  glEnd();
-}
-
-
-
-void renderScreenQuad(GLuint id = 0)
-{
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  gluOrtho2D(0, 1, 0, 1);
-
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
-  if(id != 0)
-  {
-    glEnable(GL_TEXTURE_2D);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, id);
-  }
-  glBegin(GL_QUADS);
-  glTexCoord2d(0,0);
-  glVertex2d(0,0);
-  glTexCoord2d(1,0);
-  glVertex2d(1,0);
-  glTexCoord2d(1,1);
-  glVertex2d(1,1);
-  glTexCoord2d(0,1);
-  glVertex2d(0,1);
-
-  glEnd();
-  if(id != 0)
-  {
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-  }
-  glPopMatrix();
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
-}
-
-
-
-void renderUIText()
+void renderGUI()
 {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   fontRender.setSize(GLFont::Medium);
   fontRender.initText(appWidth, appHeight);
 
-  //fontRender.print(10,appHeight*.05, "(1) Vertex Shading", Color(0., 0., 0.));
-  //fontRender.print(10,appHeight*.05+25, "(2) Pixel Shading", Color(0., 0., 0.));
-  //fontRender.print(10,appHeight*.05+50, "(3) Deferred Shading", Color(0., 0., 0.));
-  //fontRender.print(10,appHeight*.05+75, "  (A) AntiAliasing", Color(0., 0., 0.));
-  //fontRender.print(10,appHeight*.05+100, "    (+) + AntiAliasing", Color(0., 0., 0.));
-  //fontRender.print(10,appHeight*.05+125,"    (-) - AntiAliasing", Color(0., 0., 0.));
   char a[100];
   int i = 0;
   //sprintf(a,"%d K Triangles", rtScene->getSceneNumTriangles()/1000);
@@ -428,7 +317,7 @@ void renderUIText()
     sprintf(a,"(l)Lights %s", lights_on? "On":"Off");
     fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
-    sprintf(a,"(m)Mine Light: %s", mine_light_on? "On":"Off");
+    sprintf(a,"(m)Mine Light: %s", minerLight_on? "On":"Off");
     fontRender.print(appWidth*x,appHeight*y + 25*i++,a, Color(0., 0., 0.));
   }
 
@@ -441,65 +330,14 @@ void renderUIText()
   glPopAttrib();
 }
 
-void setupCamera()
+
+
+void createKernels() 
 {
-  float x = camR*sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
-  float y = camR*sin(DEG_TO_RAD(camAlpha));
-  float z = camR*cos(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(camAlpha));
-
-  float nextAlpha =  min(camAlpha + camInc,360.0f);
-
-  float ux = sin(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(nextAlpha)) - x;
-  float uy = sin(DEG_TO_RAD(nextAlpha)) - y;
-  float uz = cos(DEG_TO_RAD(camBeta))*cos(DEG_TO_RAD(nextAlpha)) - z;
-
-  glLoadIdentity();
-  gluLookAt(x,y,z, 0, 0, 0, ux, uy, uz);
-  p.setPosition(Vector3(x,y,z));
-}
-
-
-void createScenes()
-{
-  p.setAmbientColor(Color(0.0,0.0,0.0));
-  p.setDiffuseColor(Color(.8,.8,.8));
-  p.setSpecularColor(Color(1.,1.,1.));
-  p.setPosition(Vector3(0,100,0));
-
-  //p2.setAmbientColor(Color(0.0,0.0,0.0));
-  //p2.setDiffuseColor(Color(.8,.8,.8));
-  //p2.setSpecularColor(Color(1.,1.,1.));
-  //p2.setPosition(Vector3(100,0,0));
-
-  d.setAmbientColor(Color(0.0,0.0,0.0));
-  d.setDiffuseColor(Color(.8,.8,.8));
-  d.setSpecularColor(Color(1.,1.,1.));
-  d.setPosition(Vector3(0,-1,0));
-
-
-  sp2.setAmbientColor(Color(0.0,0.0,0.0));
-  sp2.setDiffuseColor(Color(.8,.8,.8));
-  sp2.setSpecularColor(Color(1.,1.,1.));
-  sp2.setPosition(Vector3(0,0,100));
-  sp2.setSpotExponent(1.0);
-  sp2.setSpotAngle(30);
-  sp2.setSpotDirection(Vector3(0,0,-1));
-
-  GLfloat amb [] = {0.2f,0.2f,0.2f,1.0f};
-  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
-  
-
-
-
-  
-
-
-
-
   GLfloat *pixels = new GLfloat[appWidth*appHeight*4];
   for(int i=0; i < appWidth*appHeight*4; ++i)
     pixels[i] = 0.0;
-  
+
   GLuint dummyTexId;
   glGenTextures(1, &dummyTexId);
   glBindTexture(GL_TEXTURE_2D, dummyTexId);
@@ -514,7 +352,7 @@ void createScenes()
 
   kernelDeferred_Peeling = new KernelDeferred_Peeling(appWidth, appHeight
     ,dummyTexId ,3
-  );
+    );
 
   kernelColor = new KernelColor(appWidth, appHeight);
 
@@ -523,29 +361,24 @@ void createScenes()
     ,kernelDeferred_Peeling->getTexIdNormal(0)
     ,kernelDeferred_Peeling->getTexIdNormal(1)
     ,kernelDeferred_Peeling->getTexIdNormal(2)
-  );
+    );
 
   kernelBlurr = new KernelBlur(appWidth, appHeight, kernelSSAO->getColorTexId());
   kernelCombine = new KernelCombine(appWidth, appHeight, kernelColor->getTexIdColor());
 
+  texDebug = new GLTextureObject(kernelSSAO->getColorTexId());
+}
 
+void loadScene()
+{
+  camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.f, 5.f);
+  GLLight *minerLight = camHandler->getMinerLight();
+  minerLight->setAmbientColor(Color(0.0,0.0,0.0));
+  minerLight->setDiffuseColor(Color(.8,.8,.8));
+  minerLight->setSpecularColor(Color(1.,1.,1.));
+  minerLight->setPosition(Vector3(0,100,0));
 
   rtScene = new Scene("./resources/scenes/cavalo.rt4");
-  //rtScene->configure();
-  //rtScene->setLightEnabled(false);
-
-
-
-  texDebug = new GLTextureObject(kernelSSAO->getColorTexId());
-
-  //p3bMesh = new P3bMeshFile();
-  //p3bMesh->readFile("resources/Models/TecGraf/16metros_30graus.p3b");
-  // int n = p3bMesh->getNumElements();
-  //bool *b = new bool[n];
-  //for(int i=0;i<n;++i)
-  //  b[i] = rand()%2==0;
-  //p3bMesh->setVisibleElements(b);
-  //delete [] b;
 
   for(int i=0; i<rtScene->getNumMeshes();++i)
   {
@@ -554,7 +387,7 @@ void createScenes()
     if(p3bMesh2!=NULL)
     {
       int n = p3bMesh2->getNumElements();
-      
+
       bool *b = new bool[n];
       for(int i=0;i<n;++i)
         b[i] = rand()%2==0;
@@ -562,8 +395,27 @@ void createScenes()
       delete [] b;
     }
   }
+
   if(rtScene->getNumMeshes() == 0)
     cout << "No Mesh Loaded!!" <<endl;
+  
+  GLfloat amb [4] = {0,0,0,1};
+  Color ambientColor = rtScene->getAmbientColor();
+  amb[0] = ambientColor.r;
+  amb[1] = ambientColor.g;
+  amb[2] = ambientColor.b;
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
+
+  Color sceneClearColor = rtScene->getClearColor();
+  clearColor[0] = sceneClearColor.r;
+  clearColor[1] = sceneClearColor.g;
+  clearColor[2] = sceneClearColor.b;
+
+  nearPlane = rtScene->getCamera()->getNear();
+  farPlane = rtScene->getCamera()->getFar();
+  fov = rtScene->getCamera()->getFovy();
+  appWidth = rtScene->getCamera()->getScreenWidth();
+  appHeight = rtScene->getCamera()->getScreenHeight();
 }
 
 
@@ -572,15 +424,11 @@ void createScenes()
 void drawScene()
 {
   glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
-  if(mine_light_on)
-  {
-    p.configure();
-    p.render();
-  }
-  //glEnable(GL_CULL_FACE);
-  rtScene->setSceneLightEnabled(lights_on);
-  rtScene->configure();
-  rtScene->render();
+    camHandler->setMinerLightOn(minerLight_on);
+    camHandler->renderMinerLight();
+    rtScene->setSceneLightEnabled(lights_on);
+    rtScene->configure();
+    rtScene->render();
   glPopAttrib();
 }
 
@@ -596,7 +444,8 @@ bool test_sphere = false;
 
 void render(){
   fpsec = fps.getFrames();
-  setupCamera();
+  camHandler->setMinerLightOn(false);
+  camHandler->render();
 
   if(!shader_active)
   {
@@ -611,7 +460,7 @@ void render(){
 //COLOR PASS
     kernelColor->setActive(true);
 
-    glClearColor(.8, .8, 1.0, -1.0);
+    glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     drawScene();
@@ -643,7 +492,7 @@ void render(){
       kernelDeferred_Peeling->step(i);
       kernelDeferred_Peeling->setActive(true);
 
-      glClearColor(.8, .8, 1.0, -1.0);
+      glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
       glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
       glDisable(GL_CULL_FACE);
       drawScene();
@@ -684,179 +533,8 @@ void render(){
 //RENDER RESULT
 //RENDER RESULT
   kernelCombine->renderOutput(0);
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-    
-
-
-
-    /*if(outputSelection)
-      texDebug->setId(kernelDeferred_Peeling->getTexIdNormal(outputIndexSelection));
-    else 
-      texDebug->setId(kernelDeferred_Peeling->getTexIdPosition(outputIndexSelection));
-    texDebug->renderTexture();*/
-
-    //GLfloat *buffer = texDebug->getTextureData();
-    //int w = texDebug->getTextureWidth();
-    //int h = texDebug->getTextureHeight();
-    //printf("");
-
-    //kernelDeferred_Peeling->renderOutput(1);
-  /*
-    kernelDeferred_Peeling->step(1);
-    kernelDeferred_Peeling->setActive(true);
-
-    glClearColor(.8, .8, 1.0, -1.0);
-    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-    glDisable(GL_CULL_FACE);
-    rtScene->configure();
-    rtScene->render();
-
-    kernelDeferred_Peeling->setActive(false);
-    //kernelDeferred_Peeling->renderOutput(0);
-    texDebug->setId(kernelDeferred_Peeling->getTexIdNormal(1));
-    //texDebug->setId(kernelDeferred_Peeling->getTexIdPosition(1));
-    texDebug->renderTexture();
-
-    //kernelDeferred_Peeling->setActive(true);
-
-    //glClearColor(.8, .8, 1.0, -1.0);
-    //glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-    //glDisable(GL_CULL_FACE);
-    //rtScene->configure();
-    //rtScene->render();
-
-    //kernelDeferred_Peeling->setActive(false);
-    //kernelDeferred_Peeling->renderOutput(KernelDeferred::Position);
-  /*
-    if(lightModel==Pixel)
-    {
-      pixelShading->setActive(true);
-      GLuint loc = pixelShading->getUniformLocation("numLights");
-      glUniform1i(loc, rtScene->getNumLights());
-    }
-
-    if(lightModel==Deferred)
-    {
-      kernelGeometry->setActive(true);
-      glClearColor(.8, .8, 1.0, -1.0);
-      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-      rtScene->setLightEnabled(false);
-      glDisable(GL_LIGHTING);
-    }else
-    {
-      //rtScene->setLightEnabled(true);
-      //p2.configure();
-	    //p2.render();
-
-      p.configure();
-      p.render();
-
-      d.configure();
-      d.render();
-
-      sp2.configure();
-      sp2.render();
-    }
-
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-
-
-
-    //glPushMatrix();
-
-    //glScalef(10.,1.,10.);
-    rtScene->configure();
-    rtScene->render();
-
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT);
-    glColor3f(1,1,1);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-    glColor3f(1,0,0);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_SPECULAR);
-    glColor3f(1,1,1);
-    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 10.0);
-    ////
-    ////glCullFace(GL_FRONT);
-    ////for(int i=0;i<NL;++i)
-    ////{
-    ////  pp[i].configure();
-    ////  pp[i].render();
-    ////}
-
-
-
-    //glutSolidTeapot(60);
-    //glutSolidSphere(60, 30, 30);
-    ////glutSolidSphere(60, 500, 500);
-    //
-    //glBegin(GL_QUADS);
-    //  glNormal3f(0,0,1);
-    //  glVertex3f(-301,-301,-300);
-    //  glVertex3f(300,-301,-300);
-    //  glVertex3f(300 ,300,-301);
-    //  glVertex3f(-301,300,-301);
-    //glEnd();
-
-    //glPopMatrix();
-    if(lightModel==Pixel)
-      pixelShading->setActive(false);
-    
-    if(lightModel==Deferred)
-    {
-      kernelGeometry->setActive(false);
-      //kernelGeometry->renderOutput(KernelGeometry::Diffuse);
-      
-      kernelShade->step(lightModelViewMatrix);
-      if(!enabledAntialias)
-        kernelShade->renderOutput(0);
-      else 
-      {
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-        gluOrtho2D(0, 1, 0, 1);
-        glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
-        glLoadIdentity();
-
-
-        kernelAntiAliasing->step();
-        //kernelAntiAliasing->renderOutput(0);
-        for(int i=0;i<antialiasNumTimes; ++i)
-          kernelAntiAliasingN->step();
-
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-        glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
-        kernelAntiAliasingN->renderOutput(0);
-      }
-    }
-      //kernelShade->renderShader(lightModelViewMatrix);
-  /**/
   }
-  renderUIText();
- // glPopAttrib();
+  renderGUI();
 }
 
 void testScreenShpereConverter()
@@ -865,8 +543,6 @@ void testScreenShpereConverter()
 ///VERIFICADOR DE PONTOS EM ESPAÇO DE TELA
 /********************************/
 
-  
-  
   if(t == 0)
   {
     GLfloat modelViewMatrix[16];
@@ -902,7 +578,7 @@ void testScreenShpereConverter()
       kernelDeferred_Peeling->step(i);
       kernelDeferred_Peeling->setActive(true);
 
-      glClearColor(.8, .8, 1.0, -1.0);
+      glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
       glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
       glDisable(GL_CULL_FACE);
       drawScene();

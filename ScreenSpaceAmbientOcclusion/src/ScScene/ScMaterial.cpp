@@ -30,9 +30,8 @@ int ScMaterial :: getMyMaterialNumber() const
 void ScMaterial :: readFromStr(char buffer[])
 {
    int r = sscanf( buffer, "%f %f %f %f %f %f %f %f %f %f %*s\n",
-     &m_diffuse.r, &m_diffuse.g, &m_diffuse.b, &m_specular.r, &m_specular.g, &m_specular.b, &m_specularExp, &m_reflective, &m_refractive, &m_opacity);
-   m_diffuse *= 1.0/255;
-   m_specular *= 1.0/255;
+     &m_diffuse.r, &m_diffuse.g, &m_diffuse.b, &m_specular.r, &m_specular.g, &m_specular.b, 
+     &m_specularExp, &m_reflective, &m_refractive, &m_opacity);
    assert(r == 11 - 1);
 }
 
