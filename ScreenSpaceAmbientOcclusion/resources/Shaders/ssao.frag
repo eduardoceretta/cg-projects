@@ -1,53 +1,72 @@
-//////SHADER CONTROLS\\\\\\\\
-//////SHADER CONTROLS\\\\\\\\
-//////SHADER CONTROLS\\\\\\\\
-//////SHADER CONTROLS\\\\\\\\
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  Perform the calculation of the Screen Space Ambient Occlusion.
+ *  Receive projection matrix information and reprojects the pixels obtained from the depth
+ *  input textures and does the calculation of the occlusion that the neighborhood of a pixel 
+ *  causes using spheres as occludes approximation.
+ */
 
 
-#define ONE_MINUS_AO
-//#define SIZE_OVER_DEPTH
-//#define DEPTH_PEELING
-#define MAX_OVER_PEELING
-#define SPHERE_POSITION
-#define SPHERE_CENTER_MINUS_NORMAL .01
-#define INV_DIST_DIVIDE 2.
+/****************************************************************************************/
+/* Shader Controls.                                                                     */
+/*  Each define specificates if a behaviour will affect the shader                      */
+/****************************************************************************************/
+#define ONE_MINUS_AO          /**< Output is 1 - TotalAmbientOcclusion*/
+//#define SIZE_OVER_DEPTH     /**< The Area of the neighborhood will change in function of depth*/
+//#define DEPTH_PEELING       /**< Uses multiple peeling information in the calculation*/
+#define MAX_OVER_PEELING      /**< Considers the Ambient occlusion as the max value of the peelings, else sums they*/
+#define SPHERE_POSITION       /**< Calculate pixel position, else uses positionTex*/
+#define INV_DIST_DIVIDE 2.    /**< Divede the ambient occlusion by the power distance of the pixels*/
+#define SPHERE_CENTER_MINUS_NORMAL .01 /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
+//#define Z_MINUS_R -.5      /**< Modifies the center of each sphere z position using the radius as factor*/
+//#define INVERT_NORMAL      /**< Invert model normals*/
 
-//#define Z_MINUS_R -.5
-//#define INVERT_NORMAL
+/**
+ * Neighborhood mode. Access the 2D texture containing binary information, if the pixel must or not be accessed.
+ *  Must be the same of KernelSSAO.cpp
+ */
+//#define SAMPLER_QUAD     
 
-//#define SAMPLER_QUAD
+/**
+ * Neighborhood mode. Access the 1D texture containing the respective index of the neighborhood access.
+ *  Must be the same of KernelSSAO.cpp
+ */
 #define SAMPLER_VECTOR
 
-//////SHADER BEGIN\\\\\\\\
-//////SHADER BEGIN\\\\\\\\
-//////SHADER BEGIN\\\\\\\\
-//////SHADER BEGIN\\\\\\\\
-varying vec3 lightDir;
-uniform sampler2D positionTex;
-uniform sampler2D depth0_normalTex;
-uniform sampler2D depth1_normalTex;
-uniform sampler2D depth2_normalTex;
+
+/****************************************************************************************/
+/* Shader Begin.                                                                        */
+/****************************************************************************************/
+uniform sampler2D positionTex;       /**< Fragment eye space position*/
+uniform sampler2D depth0_normalTex;  /**< Fragment Peeling level 0. Normal(rbg) Depth(a)*/
+uniform sampler2D depth1_normalTex;  /**< Fragment Peeling level 1. Normal(rbg) Depth(a)*/
+uniform sampler2D depth2_normalTex;  /**< Fragment Peeling level 2. Normal(rbg) Depth(a)*/
 
 #ifdef SAMPLER_QUAD
-  uniform sampler2D sampleTex;
+  uniform sampler2D sampleTex;  /**< 2D Sampler Texture. If 0 do not acess else acess neighbor*/
 #else
-  uniform sampler1D sampleTex;
+  uniform sampler1D sampleTex;  /**< 1D Sampler Texture. Neighborhood indexes*/
 #endif
-uniform float samplerSize;
+uniform float samplerSize;      /**< 2D: Quad half side; 1D: Vector Length*/
 
-uniform float pixelmask;
+uniform float pixelmask;        /**< Depth parameter in case of SIZE_OVER_DEPTH is defined*/
 
-uniform float rfar;
+uniform float rfar;             /**< Neighborhood access distance*/
+uniform float offsets_size;     /**< Controls the search area of the shader in screen space*/ 
+uniform float intensity;        /**< Affects directly the final result*/
 
+/**
+ * Projection Parameters
+ */
 uniform float screenWidth;
 uniform float screenHeight;
 uniform float near;
 uniform float far;
 uniform float right;
 uniform float top;
-
-uniform float offsets_size;
-uniform float intensity;
 
 #define PI 3.14159265
 
@@ -61,65 +80,77 @@ uniform float intensity;
 #define BLACK vec4(0,0,0,1)
 #define ORANGE vec4(1.,.5, 0., 1.)
 
+/**
+ * Calculate the corresponding sphere for the given window cordinates.
+ */
 vec4 getSphere(float xw, float yw, float zw);
+
+/**
+ * Calculate the ambient occlusion caused by the sphereQ a the point P.
+ */
 float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP,float radiusP);
+
+/**
+ * Calculate the Local ambient occlusion that the neighborhood at coord+(i,j) causes in P.
+ */
 float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position, inout int n);
 
-
-
-
-vec4 color = vec4(1,1,1,1);
 void main()
 {
-  //vec4 diffuse = texture2D(diffuseTex,  gl_TexCoord[0].st);
-  //vec4 color = texture2D(colorTex,  gl_TexCoord[0].st);
+  //Output Color 
+  vec4 color = vec4(1,1,1,1);
 
+  //Current Fragment Information Normal(rbg) Depht(a)
   vec4 depth0_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st);
   float depth = depth0_normal.a;
-  
- 
-  
+
+  //Current Fragment Information Position (xyz) Screen Sphere Radius (w)
   #ifdef SPHERE_POSITION
-    vec4 position = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth);
+    vec4 position = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth); 
   #else
     vec4 position = texture2D(positionTex,  gl_TexCoord[0].st);
     position.w = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth).w;
   #endif
 
-
+  // Do nothing if the depth value is negative
 	if(depth < 0.0)
 	{
 		gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
 		return;
 	}
-
 	
-	
-	
-	
-	
-	
-	
-	
-  //vec3 nn = (depth0_normal.xyz*1.)*.5 + .5;
-  //gl_FragData[0] = vec4(nn, 1.);
-  //return;
+  /**
+	 * TEST NORMAL
+	 *  Print the Normal's Color.
+	 *  Result must be Blue for normals facing the screen
+   * /
+    vec3 nn = (depth0_normal.xyz*1.)*.5 + .5;
+    gl_FragData[0] = vec4(nn, 1.);
+    return;
+  */
   
-  //vec4 pp = getSphere(gl_FragCoord.x, gl_FragCoord.y , depth);
-  //if(length(pp.xyz - position.xyz) < .1)
-    //gl_FragData[0] = RED;
-  //else gl_FragData[0] = BLUE;
-  //return;
+  /**
+	 * TEST POSITION
+	 *  Print the Diference between position from positionTex and calculated by getSphere. 
+	 *  Result must be RED so the diference is small
+   * /
+    vec4 pp = getSphere(gl_FragCoord.x, gl_FragCoord.y , depth);
+    if(length(pp.xyz - position.xyz) < .1)
+      gl_FragData[0] = RED;
+    else gl_FragData[0] = BLUE;
+    return;
+  */
   
-  
+  //Calculate the screen width/height rate  
   float dx = 1.0/screenWidth;
   float dy = 1.0/screenHeight;
+  
+  //TotalAmbient Occlusion
   float totalAO = 0.0;
   
-  float samplerTotalSize = samplerSize*2. + 1.;
- 
-  
+  //Determines the size of the neighborhood
 #ifdef SAMPLER_QUAD
+  float samplerTotalSize = samplerSize*2. + 1.;
   #ifdef SIZE_OVER_DEPTH
     float v = pixelmask;
     float n_depth = max(depth - v,0.)*1./(1.-v);
@@ -136,27 +167,37 @@ void main()
     int size = int(samplerSize);
   #endif
 #endif
-  //if (size == samplerSize)
-    //gl_FragData[0] = ORANGE;
-  //else if (size > samplerSize*.9)
-    //gl_FragData[0] = WHITE;
-  //else if (size > samplerSize*.75)
-    //gl_FragData[0] = RED;
-  //else if (size > samplerSize*.6)
-    //gl_FragData[0] = CYAN;
-  //else if (size > samplerSize*.45)
-    //gl_FragData[0] = BLUE;
-  //else if (size > samplerSize*.3)
-    //gl_FragData[0] = BLACK;
-  //else if (size > samplerSize*.15)
-    //gl_FragData[0] = GREEN;
-  //else if (size >= samplerSize*.05)
-    //gl_FragData[0] = YELLOW;
-  //else 
-    //gl_FragData[0] = PINK;
-  //return;
 
+  /**
+	 * TEST SIZE_OVER_DEPTH
+	 *  Render the depth levels 
+	 *  Result must be different colors for the different level of depth.
+   * /
+  if (size == samplerSize)
+    gl_FragData[0] = ORANGE;
+  else if (size > samplerSize*.9)
+    gl_FragData[0] = WHITE;
+  else if (size > samplerSize*.75)
+    gl_FragData[0] = RED;
+  else if (size > samplerSize*.6)
+    gl_FragData[0] = CYAN;
+  else if (size > samplerSize*.45)
+    gl_FragData[0] = BLUE;
+  else if (size > samplerSize*.3)
+    gl_FragData[0] = BLACK;
+  else if (size > samplerSize*.15)
+    gl_FragData[0] = GREEN;
+  else if (size >= samplerSize*.05)
+    gl_FragData[0] = YELLOW;
+  else 
+    gl_FragData[0] = PINK;
+  return;
+  */
+  
+  //Number of Samplers Counter
   int n = 0;
+  
+  //Neighborhood fetch
 #ifdef SAMPLER_QUAD
   for(int i=-size; i < size + 1; ++i)
     for(int j = -size; j < size + 1; ++j)
@@ -177,7 +218,6 @@ void main()
     vec2 sample = texture1D(sampleTex, coord).xy;
     float i = floor(sample.x + .5);
     float j = floor(sample.y + .5);
-    //if(i > 1. || j > 1.)
     {
       i *= offsets_size;
       j *= offsets_size;
@@ -187,47 +227,18 @@ void main()
   }
 #endif
 
-  //float detph_weight = 1.-pow((depth),50.10);
-  float detph_weight = 1.;
-
-  totalAO = intensity * detph_weight * totalAO/(2.*PI*position.w*float(n));
-    //totalAO = 10.* detph_weight * totalAO/(float(n));
+  //Total Ambient Occlusion Normalization
+  totalAO = intensity *  totalAO/(2.*PI*position.w*float(n));
   totalAO = clamp(totalAO,0.0,1.0);
 
-	if(depth <= 1.0)
-	{
-	  #ifdef ONE_MINUS_AO
-	    gl_FragData[0] = color*(1.0 - totalAO);
-	  #else
-	    gl_FragData[0] = color*(totalAO);
-	  #endif
-	  
-	  if(totalAO < 0.0)
-		  gl_FragData[0] = YELLOW;
-	  //else if(totalAO >= 1.0)
-		  //gl_FragData[0] = CYAN;
-		//else if((float(size)/samplerSize) >= 1)
-		  //gl_FragData[0] = GREEN;
-		//else if((float(size)/samplerSize) < 1)
-		  //gl_FragData[0] = BLUE;
-	  //else if(totalAO >= 0.95)
-		  //gl_FragData[0] = BLUE;
-		//else if(totalAO <= 900.0)
-		  //gl_FragData[0] = GREEN;
-		//else  gl_FragData[0] =  PINK;
-		//else   gl_FragData[0] =  RED*totalAO;
-		//if(t == false)
-	    //gl_FragData[0] =  vec4(1,0,0,1) ;
-	  //else 
-	  //gl_FragData[0] =  getSphere(gl_FragCoord.x, gl_FragCoord.y , depth);
-	  //gl_FragData[0] = vec4(1,0,0,1)*(1.0 - totalAO);
-	  	  //gl_FragData[0] = vec4(1,0,0,1)*totalAO;
-  }
-	else gl_FragData[0] = vec4(1,1,1,-1)*pixelmask;
-  //gl_FragData[0] = max(dot(normal, normalize(lightDir)), 0.0) * gl_FrontMaterial.diffuse;
-	//gl_FragData[1] = vec4(normalize(normal), gl_FragCoord.z);
-	//gl_FragData[2] = gl_FrontMaterial.diffuse;
-	//gl_FragData[3] = vec4(vec3(gl_FrontMaterial.specular.rgb), gl_FrontMaterial.shininess);
+  //OutPut
+  #ifdef ONE_MINUS_AO
+    gl_FragData[0] = color*(1.0 - totalAO);
+  #else
+    gl_FragData[0] = color*(totalAO);
+  #endif
+  
+  gl_FragData[1] = RED*pixelmask;
 }
 
 float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, float dy, vec4 position, inout int n)
@@ -241,7 +252,6 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
 #endif
   {
     vec2 inc = vec2((i)*dx, (j)*dy);
-    //vec2 inc = vec2((i)*dx, (j)*dy);
     vec4 depth_normal;
     switch(k)
     {
@@ -275,7 +285,6 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
 
     
     float eye_dist = length(sphere.xyz - position.xyz);
-    //float eye_dist = abs(depth_normal.a - depth);
 
     if(eye_dist > rfar)
     #ifdef DEPTH_PEELING
@@ -334,27 +343,11 @@ vec4 getSphere(float xw, float yw, float zw)
   //assuming r == -l, t == -b
   vec3 ex1 = window2eye(vec3(xw, yw, zw));
   vec3 ex2 = window2eye(vec3(xw + 1., yw, zw));
-  //float rr = abs(ex2.x - ex1.x)/2.;
   float rr = length(ex2 - ex1)/2.;
   #ifdef Z_MINUS_R
     ex1.z -= rr * Z_MINUS_R;
   #endif
   return vec4(ex1,rr);
-    
-  //float xn = 2.0 * xw/screenWidth - 1.0;
-  //float yn = 2.0 * yw/screenHeight - 1.0;
-  //float zn = 2.0 * zw - 1.0;
-  //
-  //float ze = 2.0 * far * near/(zn * (far - near) - (far + near));
-  //float ye = -ze * yn * top/near;
-  //float xe = -ze * xn * right/near;
-//
-  //float r = -ze * right/(screenWidth * near);
-//
-
-  //if(rr - r < 0.00001)
-    //return vec4(xe, ye, ze, r);
-  //else return vec4(-512,-512,-512, r);
 }
 
 float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP, float radiusP)

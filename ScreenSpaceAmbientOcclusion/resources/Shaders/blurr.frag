@@ -1,47 +1,49 @@
-uniform sampler2D inputTex;
-uniform float pixelmask_size;
-uniform float screenWidth;
-uniform float screenHeight;
+/**
+ *	Eduardo Ceretta Dalla Favera
+ *  eduardo.ceretta@gmail.com
+ *  Mar 2011
+ *
+ *  Blurs a 2D Texture.
+ *  Receives a 2D texture as input, applies a blur around each pixel 
+ *  and writes the ouput in the frame buffer.
+ */
+uniform float screenWidth;    
+uniform float screenHeight; 
 
-uniform float offsets_size;
-uniform float intensity;
+uniform sampler2D inputTex;   /**< Input 2D Texture */
+uniform float pixelmask_size; /**< Defines the size of the blurred area */
 
-//uniform sampler1D sampleTex;
-//uniform float samplerSize;
+uniform float offsets_size;   /**< Adds an offset between each pixel read in the pixel texture */
+uniform float intensity;      /**< Is multiplied by the final color of the pixel */
 
-#define PI 3.14159265
-
-#define RED vec4(1,0,0,1)
-#define GREEN vec4(0,1,0,1)
-#define BLUE vec4(0,0,1,1)
-#define CYAN vec4(0,1,1,1)
-#define PINK vec4(1,0,1,1)
-#define YELLOW vec4(1,1,0,1)
-#define WHITE vec4(1,1,1,1)
-#define BLACK vec4(0,0,0,1)
-#define ORANGE vec4(1.,.5, 0., 1.)
 
 void main()
 {
+  //Read the current pixel 
   vec4 input = texture2D(inputTex,  gl_TexCoord[0].st);
-
+  
+  // Do nothing if the alpha value is negative
 	if(input.a < 0.0)
 	{
 		gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
 		return;
-		//discard;
 	}
-  
-  
+	
+	//Initialize the result
+  vec4 sum = vec4(0,0,0,0);
+
+  //Calculate the screen width/height rate  
   float dx = 1.0/screenWidth;
   float dy = 1.0/screenHeight;
 
-  
+  //Define the screen size area of the neighborhood to be visited
   int size = int(floor(pixelmask_size));
   float kernel_size = float(size)*2. + 1.;
 
+  //Weight of each pixel added in the blur prosses
   float weight = intensity/(kernel_size*kernel_size);
-  vec4 sum = BLACK;
+  
+  //Access the neighborhood
   int ssize = size*int(offsets_size);
   for(int i=-ssize; i < ssize + 1; i+=int(offsets_size))
     for(int j = -ssize; j < ssize + 1; j+=int(offsets_size))
@@ -50,19 +52,7 @@ void main()
       vec4 neigh = texture2D(inputTex,  gl_TexCoord[0].st + inc); 
       sum += neigh * weight;
     }
-      
-      
-  //for(int k = 0; k < size ; ++k)
-  //{
-    //float coord = (float(k) + .5) / samplerSize;
-    //vec2 sample = texture1D(sampleTex, coord).xy;
-    //float i = floor(sample.x + .5);
-    //float j = floor(sample.y + .5);
-    //
-    //vec2 inc = vec2(i*dx, j*dy);
-    //vec4 neigh = texture2D(inputTex,  gl_TexCoord[0].st + inc);  
-  //}    
   
-  
+  //Output 
   gl_FragData[0] = sum;
 }
