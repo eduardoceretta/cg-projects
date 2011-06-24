@@ -74,6 +74,8 @@ struct SphereTest
 
 bool screenConvertionTest_on = false;
 #endif
+
+
 /*******************************************/
 /* App                                     */
 /*******************************************/
@@ -115,6 +117,13 @@ App::App()
   m_clearColor[1] = .8f;
   m_clearColor[2] = 1.0f;
   m_clearColor[3] = -1.;
+
+  m_acceptedArgsString["-scenepath"] = &m_scenePath;
+  m_acceptedArgsString["-shaderpath"] = &m_shaderPath;
+
+  m_acceptedArgsFloat["-rfar"] = &m_rfar;
+  m_acceptedArgsFloat["-offset"] = &m_offsetSize;
+  m_acceptedArgsFloat["-intensity"] = &m_intensity;
 }
 
 App::~App()
@@ -172,7 +181,7 @@ void App::initGL(int *argc, char *argv[])
 
   glCullFace(GL_BACK); 
   //Enable Culling
-  //glEnable(GL_CULL_FACE);
+  glEnable(GL_CULL_FACE);
 
   glEnable(GL_DEPTH_TEST);
 
@@ -248,6 +257,13 @@ void App::render()
 
     //RENDER RESULT
     m_kernelCombine->renderOutput(0);
+
+    /**
+     * ScreenShot
+     * /
+      m_texDebug->setId(m_kernelCombine->getColorTexId());
+      m_texDebug->writeToFile("screen.png");
+    /**/
   }
   renderGUI();
 }
@@ -288,9 +304,11 @@ void App::listenKeyboard( int key )
     m_blurr_on = !m_blurr_on;
     break;
 
+  case '=':
   case '+':
     m_numPeelings++;
     break;
+  case '_':
   case '-':
     m_numPeelings = max(m_numPeelings - 1, 1);
     break;
@@ -397,20 +415,41 @@ void App::listenMouseClick( int button, int state, int x, int y )
 
 void App::processArgs()
 {
+  map<string, string*> :: iterator strIt;
+  map<string, int*> :: iterator intIt;
+  map<string, float*> :: iterator floatIt;
+
   for(int i = 1; i < m_argc; ++i)
   {
     if(m_argv[i][0] != '-')
       continue;
 
-    if(!strcmp(m_argv[i], "-scenepath"))
-      if(m_argc > i + 1 && m_argv[i + 1][0] != '-') 
-        m_scenePath = string(m_argv[i + 1]);
-      else cout << "Argument passed to "<< "-scenepath" << " is invalid!" <<endl;
+    string arg = string(m_argv[i]);
 
-    if(!strcmp(m_argv[i], "-shaderpath"))
+    strIt = m_acceptedArgsString.find(arg);
+    if(strIt != m_acceptedArgsString.end())
+    {
       if(m_argc > i + 1 && m_argv[i + 1][0] != '-') 
-        m_shaderPath = string(m_argv[i + 1]);
-      else cout << "Argument passed to "<< "-shaderpath" << " is invalid!" <<endl;
+        *(strIt->second) = string(m_argv[i + 1]);
+      else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
+    }
+    
+
+    floatIt = m_acceptedArgsFloat.find(arg);
+    if(floatIt != m_acceptedArgsFloat.end())
+    {
+      if(m_argc > i + 1 && m_argv[i + 1][0] != '-') 
+        *(floatIt->second) = atof(m_argv[i + 1]);
+      else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
+    }
+
+    intIt = m_acceptedArgsInt.find(arg);
+    if(intIt != m_acceptedArgsInt.end())
+    {
+      if(m_argc > i + 1 && m_argv[i + 1][0] != '-') 
+        *(intIt->second) = atoi(m_argv[i + 1]);
+      else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
+    }
   }
 }
 void App::loadScene()

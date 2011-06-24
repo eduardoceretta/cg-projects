@@ -4,14 +4,18 @@
  *  May 2011
  *
  *  OpenGL Texture information extractor.
+ *  Saves to a output image using the external lib FreeImage
  */
 
 #ifndef _GL_TEXTURE_OBJECT_H_
 #define _GL_TEXTURE_OBJECT_H_
 
 #include <GL/glut.h>
+#include <string>
 
 #include "assert.h"
+
+using namespace std;
 
 class GLTextureObject
 {
@@ -27,6 +31,12 @@ class GLTextureObject
   GLuint m_id;
 
 public:
+  /**
+   * Output Image Supported File Type.
+   *  Could be any supported by FileImage, but only those are garanted.
+   */
+  typedef enum ImageFileType {BMP = 0 , JPG = 1, PNG = 2};
+
   /**
    * Simple Constructor. Sets id as 0.
    */
@@ -78,6 +88,12 @@ public:
    *  Render a screen quad with the texture associated.
    */
   void renderTexture();
+
+  /**
+   * Write the texture to a file.
+   *  The image will be RGBA UNSIGNED CHAR 32 bits
+   */
+  void writeToFile(string fileName, ImageFileType fileType = PNG);
   
 };
 
