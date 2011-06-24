@@ -8,9 +8,9 @@
  */
 #include "KernelCombine.h"
 
-KernelCombine::KernelCombine(int width, int height, 
+KernelCombine::KernelCombine(char* path, int width, int height, 
                              GLuint colorTexId)
-: KernelBase("./resources/Shaders/combine.vert", "./resources/Shaders/combine.frag", width, height){
+: KernelBase(path, "combine.vert", "combine.frag", width, height){
 	//Output
   m_colorTexId = addOutput(0);
 

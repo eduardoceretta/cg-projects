@@ -18,7 +18,7 @@ public:
   /**
   * Construct the kernel, create the shader and set the first texture
   */
-  KernelCombine(int width, int height, 
+  KernelCombine(char* path, int width, int height, 
                 GLuint colorTexId);
 
   /**

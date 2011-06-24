@@ -673,11 +673,11 @@
 
 
 
-KernelSSAO::KernelSSAO(int width, int height, 
+KernelSSAO::KernelSSAO(char* path, int width, int height, 
                        GLuint positionTexId, 
                        GLuint depht0_normalTexId, GLuint depht1_normalTexId, 
                        GLuint depht2_normalTexId)
-: KernelBase("./resources/Shaders/ssao.vert", "./resources/Shaders/ssao.frag", width, height){
+: KernelBase(path, "ssao.vert", "ssao.frag", width, height){
 	//Output
   m_colorTexId = addOutput(0);
 

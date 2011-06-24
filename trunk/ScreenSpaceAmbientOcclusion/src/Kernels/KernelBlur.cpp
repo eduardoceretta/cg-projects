@@ -9,8 +9,8 @@
 #include "KernelBlur.h"
 
 
-KernelBlur::KernelBlur(int width, int height, GLuint inputTexId)
-: KernelBase("./resources/Shaders/blurr.vert", "./resources/Shaders/blurr.frag", width, height){
+KernelBlur::KernelBlur(char* path, int width, int height, GLuint inputTexId)
+: KernelBase(path, "blurr.vert", "blurr.frag", width, height){
 	//Output
   m_blurredTexId = addOutput(0);
 

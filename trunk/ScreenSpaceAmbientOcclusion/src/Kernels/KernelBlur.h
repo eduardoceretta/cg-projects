@@ -17,7 +17,7 @@ public:
   /**
    * Construct the Kernel and set the input texture ID
    */
-  KernelBlur(int width, int height, GLuint inputTexId);
+  KernelBlur(char* path, int width, int height, GLuint inputTexId);
 
   /**
    * Destroy the kernel

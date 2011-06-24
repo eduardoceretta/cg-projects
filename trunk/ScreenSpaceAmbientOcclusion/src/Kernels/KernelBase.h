@@ -27,6 +27,11 @@ public:
   /**
    * Creates a FBO and a Shader with the filenames received.
    */
+	KernelBase(char* path, char* vert, char* frag, int width, int height);
+
+  /**
+   * Creates a FBO and a Shader with the filenames received.
+   */
 	KernelBase(char* vert, char* frag, int width, int height);
 
   /**

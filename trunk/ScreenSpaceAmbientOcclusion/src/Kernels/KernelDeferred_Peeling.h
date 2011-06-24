@@ -28,7 +28,7 @@ public:
    *  The depthTexId is an input texture that is the initial depth of the scene.
    *  for a cleared scene should be all 0.0.
    */
-  KernelDeferred_Peeling(int width, int height, GLuint dephtTexId, int numPeelings = 1);
+  KernelDeferred_Peeling(char* path, int width, int height, GLuint dephtTexId, int numPeelings = 1);
 	
   /**
    * Destroy the kernel

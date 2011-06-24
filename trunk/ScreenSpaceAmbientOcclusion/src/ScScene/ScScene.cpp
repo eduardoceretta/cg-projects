@@ -34,7 +34,7 @@ void ScScene :: readFromFile(string rt4FileName)
 
 	file = fopen(rt4FileName.c_str(), "rt");
   MyAssert("File Not Found: " + rt4FileName, file);
-  cout << "Reading Scene: rt4FileName ...\n" << endl;
+  cout << "Reading Scene: " << rt4FileName << "...\n" << endl;
 
 	int numScene = 0;
 	int numCamera = 0;
