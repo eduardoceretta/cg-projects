@@ -4,10 +4,14 @@
  *  May 2011
  *
  *  OpenGL Texture information extractor.
+ *  Saves to a output image using the external lib FreeImage.
  */
 #include <GL/glew.h>
 #include <iostream>
 #include "GLTextureObject.h"
+
+#include "FreeImage/FreeImage.h"
+
 
 using namespace std;
 
@@ -108,3 +112,74 @@ void GLTextureObject::renderTexture()
   glPopMatrix();
 }
 
+void GLTextureObject::writeToFile(string fileName, ImageFileType fileType /*= PNG*/ )
+{
+  int w = getTextureWidth();
+  int h = getTextureHeight();
+  float *data = getTextureData();
+
+  int bpp;
+  FREE_IMAGE_FORMAT fif;
+  switch(fileType)
+  {
+  case BMP:
+    fif = FIF_BMP;
+    bpp = 32;
+    break;
+
+  case JPG:
+    fif = FIF_JPEG;
+    bpp = 24;
+    break;
+
+  case PNG:
+    fif = FIF_PNG;
+    bpp = 32;
+    break;
+
+  default:
+    fif = (FREE_IMAGE_FORMAT)fileType;
+    bpp = 32;
+    break;
+  }
+
+
+  // FreeImage_Initialise();
+  FIBITMAP *dib = FreeImage_Allocate(w, h, bpp);
+
+  unsigned width  = FreeImage_GetWidth(dib);
+  unsigned height = FreeImage_GetHeight(dib);
+  unsigned pitch  = FreeImage_GetPitch(dib);
+  unsigned bitspp = FreeImage_GetBPP(dib);
+  FREE_IMAGE_TYPE image_type = FreeImage_GetImageType(dib);
+
+  if((image_type == FIT_BITMAP)) {
+    BYTE *bits = (BYTE*)FreeImage_GetBits(dib);
+    for(int y = 0; y < height; y++) {
+      BYTE *pixel = (BYTE*)bits;
+      for(int x = 0; x < width; x++) {
+
+        pixel[FI_RGBA_RED]   = (BYTE) int(data[y*width*4 + x*4]*255.f);
+        pixel[FI_RGBA_GREEN] = (BYTE) int(data[y*width*4 + x*4+1]*255.f);
+        pixel[FI_RGBA_BLUE]  = (BYTE) int(data[y*width*4 + x*4+2]*255.f);
+        if(bitspp == 32)
+        {
+          pixel[FI_RGBA_ALPHA] = (BYTE) int(255.f);
+          pixel += 4;
+        }else {
+          pixel += 3;
+        }
+      }
+      // next line
+      bits += pitch;
+    }
+  }
+
+
+
+  if (FreeImage_Save(fif, dib, fileName.c_str())) {
+    // bitmap successfully saved!
+  }
+  //FreeImage_DeInitialise();
+
+}

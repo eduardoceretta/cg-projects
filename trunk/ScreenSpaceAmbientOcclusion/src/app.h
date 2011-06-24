@@ -13,6 +13,7 @@
 #define _APP_H_
 
 #include <string>
+#include <map>
 
 /**
  * Application Initial Definitions
@@ -55,6 +56,13 @@ class App
   int m_argc;
   char **m_argv;
 
+  map<string, string*> m_acceptedArgsString;
+  map<string, int*> m_acceptedArgsInt;
+  map<string, float*> m_acceptedArgsFloat;
+
+  /**
+   * App Resources Paths
+   */
   string m_scenePath;
   string m_shaderPath;  
 
