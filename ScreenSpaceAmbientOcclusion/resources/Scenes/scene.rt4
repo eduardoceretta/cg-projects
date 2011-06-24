@@ -1,0 +1,49 @@
+RT 4.0
+#SCENE (clear)r g b (ambient) r g b
+SCENE .8 .8 1.  .2  .2  .2 
+
+#CAMERA  (pos)x y z (at)x y z (up)x y z  fov  near  far  width  height
+CAMERA   100 100 40  0 0 0     0 1 0     60    .5   1000   512    512
+
+#MATERIAL (dif)r g b (spec)r g b spec_exponent reflectiveIndex refractiveIndex opacity 
+MATERIAL   .8 .8 .8     1. 1. 1.    50.   0.  0.8  0.4 
+MATERIAL   .8 .8 .8     0. 0. 0.   50.   0.  0.8  0.4 
+
+#LIGHT (pos)x y z (dif)r g b (spec)r g b [type]{Dir=0 Pnt=1 Spt=2} [spotExponent] [spotAngle] [spotDir] x y z
+LIGHT 100. 100. 100.   .8 .8 .8   1. 1. 1.   
+
+#MESH materialIndex (pos)x y z (scale)x y z  path
+
+############UM UM UM UM#############
+# MESH 1  0.324326 -0.267604 0.406447  0.00689655172 0.00689655172 0.00689655172 resources/Models/cavalo.um
+
+############MSH MSH MSH MSH#############
+# MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_C.msh
+# MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/box.msh
+
+############PLY PLY PLY PLY#############
+# MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/bun_zipper_res2.msb
+# MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/dragon_vrip.msb
+# MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/dragon_vrip.ply
+# MESH 1  0. -100. 0.     1000. 1000. 1000.  resources/Models/Stanford/happy_vrip_res2.msb
+# MESH 1 0.027468 -0.751269 0.0337839  5.049918 5.049918 5.049918  resources/Models/Stanford/happy_vrip.msb
+# MESH 1  0. 90. -30.     .5 .5 .5  resources/Models/Stanford/blade.msb
+# MESH 1  -100. -100. -100.     30 30 30  resources/Models/Stanford/hand.msb
+# MESH 1  0 -50 0     1 1 1  resources/Models/Stanford/buddha1.5M.msb
+# MESH 1  0 100 0     1 1 1  resources/Models/Stanford/knot.msb
+# MESH 1  0 -100 0     .1 .1 .1  resources/Models/Stanford/elegiusply.msb
+# MESH 1  0 0 0     .1 .1 .1  resources/Models/Stanford/bareliefply.msb
+# MESH 1  0 0 200     1 1 1  resources/Models/Stanford/karburator-500k.msb
+# MESH 1  0 -35 200     .3 .3 .3  resources/Models/Stanford/jsyrlin.msb
+# MESH 1  0 -35 70     .1 .1 .1  resources/Models/Stanford/portal08.msb
+# MESH 1  0 -35 350     .5 .5 .5  resources/Models/Stanford/sappho.ply
+
+############3DS 3DS 3DS 3DS#############
+# MESH 1  -3.88182 4.76837e-007 0.205042 4.927807e-4 4.927807e-4 4.927807e-4  resources/Models/3DS/65aphrodite-statue.3ds
+# MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/TableSinger.3ds
+# MESH 1  0 0 0     8.1684664521082811912891473754717e-5 8.1684664521082811912891473754717e-5 8.1684664521082811912891473754717e-5  resources/Models/3DS/CarToyotaCrown.3ds
+# MESH 1  0 0 0     10. 10. 10.  resources/Models/3DS/lunarlandernofoil_carbajal.3ds
+# MESH 1  0 0 0     .01 .01 .01  resources/Models/3DS/Figurine.3ds
+
+############TEC TEC TEC TEC#############
+MESH 1  0. 0. 0.     .08 .08 .08  resources/Models/TecGraf/16metros_30graus.p3b
