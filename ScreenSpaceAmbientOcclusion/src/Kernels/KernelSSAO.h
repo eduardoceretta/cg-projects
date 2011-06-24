@@ -20,7 +20,7 @@ public:
    * Construct the kernel. 
    *  Receive 3 depth peelings textures. 
    */
-  KernelSSAO(int width, int height, 
+  KernelSSAO(char* path, int width, int height, 
               GLuint positionTexId, 
               GLuint depht0_normalTexId, GLuint depht1_normalTexId, 
               GLuint depht2_normalTexId);

@@ -15,13 +15,25 @@ KernelBase::KernelBase(){
 
 }
 
+KernelBase::KernelBase(char* path, char* vert, char* frag, int width, int height){
+  if(!vert || !frag)
+    m_shader = NULL;
+  else
+  {
+    string v = string(path) + vert;
+    string f = string(path) + frag;
+    m_shader = new GLShader((char*)v.c_str(), (char*)f.c_str());
+  }
+  
+  m_fbo = new GLFrameBufferObject(width, height);
+}
+
 KernelBase::KernelBase(char* vert, char* frag, int width, int height){
   if(!vert || !frag)
     m_shader = NULL;
   else
 	  m_shader = new GLShader(vert, frag);
 	m_fbo = new GLFrameBufferObject(width, height);
-  //m_fbo->attachToDepthBuffer(BufferType::RenderBufferObject);
 }
 
 KernelBase::~KernelBase(){

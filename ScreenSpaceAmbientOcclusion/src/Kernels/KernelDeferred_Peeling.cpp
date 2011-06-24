@@ -10,8 +10,8 @@
 
 #include "KernelDeferred_Peeling.h"
 
-KernelDeferred_Peeling::KernelDeferred_Peeling(int width, int height, GLuint dephtTexId, int numPeelings)
-: KernelBase("./resources/Shaders/deferred_peeling.vert", "./resources/Shaders/deferred_peeling.frag", width, height){
+KernelDeferred_Peeling::KernelDeferred_Peeling(char* path, int width, int height, GLuint dephtTexId, int numPeelings)
+: KernelBase(path, "deferred_peeling.vert", "deferred_peeling.frag", width, height){
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
   //Output

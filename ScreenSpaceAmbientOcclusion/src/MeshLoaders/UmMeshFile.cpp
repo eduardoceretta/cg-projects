@@ -65,6 +65,14 @@ void UmMeshFile::calcTriangles()
     nList[i*3] = 0;
     nList[i*3+1] = 0;
     nList[i*3+2] = 0;
+
+    m_bb_min.x = min(vList[i*3]  , m_bb_min.x);
+    m_bb_min.y = min(vList[i*3+1], m_bb_min.y);
+    m_bb_min.z = min(vList[i*3+2], m_bb_min.z);
+
+    m_bb_max.x = max(vList[i*3]  , m_bb_max.x);
+    m_bb_max.y = max(vList[i*3+1], m_bb_max.y);
+    m_bb_max.z = max(vList[i*3+2], m_bb_max.z);
   }
 
   fscanf(file, "\n%d\n", &numTriangles);
@@ -118,6 +126,9 @@ void UmMeshFile::calcTriangles()
   }
 
   fclose(file);
+
+  cout << "BoundingBox Size:" << (m_bb_max - m_bb_min) ;
+  cout << "BoundingBox Center:"<<((m_bb_max + m_bb_min)*.5) <<endl;
 
   m_numVertices = numVertex;
   m_numTriangles = numTriangles;
