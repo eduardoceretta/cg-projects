@@ -11,34 +11,43 @@
 #include <stdio.h>
 #include <time.h>
 
-#define FRAMES 50
+/**
+ * Time in seconds to update the value of FPS
+ */
+#define UPDATE_TIME .5f
 
 class Frames
 {
   /**
    * Time instants
    */
-  clock_t t1, t2;
+  clock_t m_currT;
 
   /**
    * Frame counter
    */
-  long    cont_frames;
+  long m_numFrames;
+
+  /**
+   * Update Time counter. When is equal to UPDATE_TIME the value of 
+   *  m_fps will be updated.
+   */
+  double m_updateTime;
 
   /**
    * Frames per second variable
    */
-  float   fps, fps_old;
+  float m_fps;
 
   /**
    * Time to render last frame
    */
-  float   timeFromLastFrame;
+  float m_timeSinceLastFrame;
 
   /**
    * Indicates if the counter is paused
    */
-  bool paused;
+  bool m_paused;
 public:
   /**
    * Simple Constructor
@@ -57,46 +66,40 @@ public:
   void resetClock();
 
   /**
-   * Calculate the Frame Rate and return it
+   * Update the clock. Must be called once per frame.
    */
-  float getFrames();
+  inline void update();
 
   /**
-   *  Calculate the Time to render last frame and return it
+   * Return the Frames Per second
    */
-  inline float getTimeFromLastFrame();
+  float getFPS();
 
   /**
-   * Get the time to render last fratme
+   *  Return the Time since last frame.
    */
-  inline float accessTimeFromLastFrame();
-  
-  /**
-   * Get number of frames
-   */
-  long getFrameNum();
+  float getTimeSinceLastFrame();
 };
 
 
-inline float Frames :: getTimeFromLastFrame()
+void Frames::update()
 {
-   if(paused)
-      return 0.0;
-   t2 = clock();
-   timeFromLastFrame  = (double)(t2 - t1) / CLOCKS_PER_SEC;
-   t1 = t2;
+  if(m_paused)
+    return;
 
-   cont_frames++;
+  clock_t t = clock();
+  m_timeSinceLastFrame = (double)(t - m_currT)/CLOCKS_PER_SEC;
+  m_currT = t;
 
-   return timeFromLastFrame;
+  m_numFrames++;
+  m_updateTime += m_timeSinceLastFrame;
+
+  if(m_updateTime >= UPDATE_TIME)
+  {
+    m_fps = (double)m_numFrames / m_updateTime;
+    m_updateTime = 0.0;
+    m_numFrames = 0;
+  }
 }
-
-inline float Frames :: accessTimeFromLastFrame()
-{
-  return timeFromLastFrame;
-}
-
-
-
 
 #endif

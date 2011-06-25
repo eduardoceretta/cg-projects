@@ -119,3 +119,18 @@ void SphereGLCameraHandler::setMinerLightOn(bool val )
 {
   m_minerOn = val;
 }
+
+void SphereGLCameraHandler::setSphereAlpha( float alpha )
+{
+  m_alpha = alpha;
+}
+
+void SphereGLCameraHandler::setSphereBeta( float beta )
+{
+  m_beta = beta;
+}
+
+void SphereGLCameraHandler::setSphereRadius( float radius )
+{
+  m_r = radius;
+}

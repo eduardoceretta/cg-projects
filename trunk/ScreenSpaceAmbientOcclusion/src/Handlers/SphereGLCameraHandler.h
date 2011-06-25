@@ -94,6 +94,13 @@ public:
   void listenMouseClick(int button, int state, int x, int y);
 
   /**
+   * Sphere parameters setters.
+   */
+  void setSphereAlpha(float alpha);
+  void setSphereBeta(float beta);
+  void setSphereRadius(float radius);
+
+  /**
    * Get the Miner Light Pointer
    */ 
   GLLight* getMinerLight() const;
