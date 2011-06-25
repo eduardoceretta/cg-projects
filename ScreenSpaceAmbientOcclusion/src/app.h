@@ -44,9 +44,8 @@ class KernelSSAO;
 class KernelBlur;
 class KernelCombine;
 
-class GLTextureObject;
-
 using namespace std;
+
 
 class App 
 {
@@ -124,7 +123,6 @@ class App
    * Debug
    */
   GLenum e;
-  GLTextureObject *m_texDebug;
 
 public:
   App();
@@ -171,7 +169,7 @@ private:
   /**
    * Process the application arguments
    */
-  void processArgs();
+  void loadArgs();
 
   /**
    * Load and Initializes the Scene to be rendered

@@ -18,7 +18,6 @@
 #include "MathUtils/Matrix4.h"
 
 #include "GLUtils/GLFont.h"
-#include "GLUtils/GLTextureObject.h"
 #include "GLLights/GLPointLight.h"
 
 #include "Objects/Frames.h"
@@ -39,40 +38,14 @@
 /**
  * Tests
  */
-//#define SPHERE_TEST
-#ifdef SPHERE_TEST
-struct SphereTest
-{
-  GLfloat *buffer;    /**< Receives the texture data */
+#include "tests.h"
 
-  float *radiuses;    /**< Array of sphere's radius of screen points */
+#ifdef TIME_TEST
+TimeTest timeTest;
+#endif
 
-  Vector3 *positions; /**< Array of sphere's positions of screen points */
-
-  float mvi[16];      /**< Scene Inverse Model View */
-
-  int numspheres;     /**< Number of spheres in the screen */
-
-  /**
-   * Test status.
-   *  If reset is 0 the screen will be updated
-   */
-  int reset;
-
-  /**
-   * Simple Constructor
-   */
-  SphereTest();
-
-  /**
-   * Read the screen pixels, considering that each pixel contains the
-   *  a sphere with its position as rgb and its radius as a. 
-   *  Plots all the spheres in the screen as world cubes.
-   */
-  void screenConvertionTest();
-}sphereTest;
-
-bool screenConvertionTest_on = false;
+#ifdef SCREENSHOT_TEST
+ScreenShotTest screenShotTest;
 #endif
 
 
@@ -118,6 +91,7 @@ App::App()
   m_clearColor[2] = 1.0f;
   m_clearColor[3] = -1.;
 
+  //Initializes Arguments
   m_acceptedArgsString["-scenepath"] = &m_scenePath;
   m_acceptedArgsString["-shaderpath"] = &m_shaderPath;
 
@@ -154,6 +128,11 @@ App::~App()
 
   if(m_kernelCombine)
     delete m_kernelCombine;
+
+
+#ifdef TIME_TEST
+  timeTest.logResults();
+#endif
 }
 
 
@@ -181,7 +160,7 @@ void App::initGL(int *argc, char *argv[])
 
   glCullFace(GL_BACK); 
   //Enable Culling
-  glEnable(GL_CULL_FACE);
+  //glEnable(GL_CULL_FACE);
 
   glEnable(GL_DEPTH_TEST);
 
@@ -194,28 +173,35 @@ void App::initGL(int *argc, char *argv[])
 
 void App::loadResources()
 {
-  processArgs();
+  loadArgs();
   loadScene();
   loadKernels();
 }
 
 void App::render()
 {
-  m_fps = m_frames->getFrames();
+#ifdef TIME_TEST
+  timeTest.update();
+  timeTest.totalTimer.reset();
+#endif
+
+#ifdef SCREENSHOT_TEST
+  screenShotTest.update();
+  screenShotTest.configureCamera(m_camHandler);
+#endif
+
+  m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
 
   if(!m_shader_active)
   {
     drawScene();
-#ifdef SPHERE_TEST
-    sphereTest.reset = 0;
-
-  }else if(screenConvertionTest_on){
-    sphereTest.screenConvertionTest();
-#endif
   }else
   {
+#ifdef TIME_TEST
+    timeTest.resetTimer();
+#endif
     //COLOR PASS
     m_kernelColor->setActive(true);
 
@@ -225,10 +211,18 @@ void App::render()
     drawScene();
 
     m_kernelColor->setActive(false);
+#ifdef TIME_TEST
+  timeTest.kColorTime += timeTest.getTime();    
+#endif
+    
 
     GLfloat projectionMatrix[16];
     glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
+
+#ifdef TIME_TEST
+    timeTest.resetTimer();
+#endif
     //DEPTH PEELING PASS
     for(int i=0; i < m_numPeelings; ++i)
     {
@@ -242,34 +236,61 @@ void App::render()
 
       m_kernelDeferred_Peeling->setActive(false);
     }
+#ifdef TIME_TEST
+    timeTest.kDeferedPeelingTime += timeTest.getTime();
+#endif
 
+#ifdef TIME_TEST
+    timeTest.resetTimer();
+#endif
     //SSAO PASS
     m_kernelSSAO->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
+#ifdef TIME_TEST
+    timeTest.kSSAOTime += timeTest.getTime();
+#endif
 
+#ifdef TIME_TEST
+    timeTest.resetTimer();
+#endif
     //BLURR PASS
     if(m_blurr_on)
       m_kernelBlur->step(1);
+#ifdef TIME_TEST
+    timeTest.kBlurTime += timeTest.getTime();
+#endif
 
+#ifdef TIME_TEST
+    timeTest.resetTimer();
+#endif
     //COMBINE PASS
     if(m_blurr_on)
       m_kernelCombine->step(m_kernelBlur->getBlurredTexId());
     else m_kernelCombine->step(m_kernelSSAO->getColorTexId());
+#ifdef TIME_TEST
+    timeTest.kCombineTime += timeTest.getTime();
+#endif
+
 
     //RENDER RESULT
     m_kernelCombine->renderOutput(0);
-
-    /**
-     * ScreenShot
-     * /
-      m_texDebug->setId(m_kernelCombine->getColorTexId());
-      m_texDebug->writeToFile("screen.png");
-    /**/
   }
   renderGUI();
+
+#ifdef TIME_TEST
+  timeTest.totalTime += timeTest.totalTimer.getTime();
+  //timeTest.printPartialResults();
+#endif
+
+#ifdef SCREENSHOT_TEST
+  if(screenShotTest.isTestEnded())
+    exit(42);
+  screenShotTest.save(m_kernelCombine->getColorTexId());
+#endif
 }
 
 void App::listenReshape( int w, int h )
 {
+  //Do not resize 
   //appWidth = w;
   //appHeight = h;
   glViewport (0, 0, (GLsizei)m_appWidth, (GLsizei)m_appHeight);
@@ -413,7 +434,7 @@ void App::listenMouseClick( int button, int state, int x, int y )
   m_camHandler->listenMouseClick(button, state, x, y);
 }
 
-void App::processArgs()
+void App::loadArgs()
 {
   map<string, string*> :: iterator strIt;
   map<string, int*> :: iterator intIt;
@@ -535,8 +556,6 @@ void App::loadKernels()
 
   m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelSSAO->getColorTexId());
   m_kernelCombine = new KernelCombine((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelColor->getTexIdColor());
-
-  m_texDebug = new GLTextureObject(m_kernelSSAO->getColorTexId());
 }
 
 void App::drawScene()
@@ -594,7 +613,7 @@ void App::renderGUI()
     sprintf(a,"(m)Mine Light: %s", m_minerLight_on? "On":"Off");
     m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
   }
-  sprintf(a,"%.2f FPS", m_fps);
+  sprintf(a,"%.2f FPS", m_frames->getFPS());
   m_fontRender->print(m_appWidth*.85,m_appHeight*.85+55,a, Color(0., 0., 0.));
 
   m_fontRender->endText();
@@ -602,105 +621,3 @@ void App::renderGUI()
 }
 
 
-#ifdef SPHERE_TEST
-/*******************************************/
-/* SphereTest                              */
-/*******************************************/
-SphereTest :: SphereTest() 
-:buffer(NULL)
-,radiuses(NULL)
-,positions(NULL) 
-,numspheres(0)
-,reset(0)
-{
-}
-
-
-void SphereTest :: screenConvertionTest()
-{
-  if(reset == 0)
-  {
-    GLfloat modelViewMatrix[16];
-    glGetFloatv(GL_MODELVIEW_MATRIX, modelViewMatrix);
-
-    GLfloat projectionMatrix[16];
-    glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
-
-    Matrix4 mvi = Matrix4((float*)modelViewMatrix);
-    mvi.Inverse();
-    mvi.Transpose();
-
-    //DEPTH PEELING PASS
-    for(int i=0; i < numPeelings; ++i)
-    {
-      kernelDeferred_Peeling->step(i);
-      kernelDeferred_Peeling->setActive(true);
-
-      glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-      glDisable(GL_CULL_FACE);
-      drawScene();
-
-      kernelDeferred_Peeling->setActive(false);
-    }
-
-    //SSAO PASS
-    kernelSSAO->step(projectionMatrix, rfar, pixelmask_size,offsets_size, intensity);
-
-    //Read output
-    texDebug->setId(kernelSSAO->getColorTexId());
-
-    buffer = texDebug->getTextureData();
-    int width = texDebug->getTextureWidth();
-    int height = texDebug->getTextureHeight();
-
-    numspheres = 0;
-    for(int i = height-1; i >= 0; --i)
-    {
-      for(int j = 0; j < width; ++j)
-        if(buffer[i*width*4+j*4 + 3] < 0)
-          ;
-        else numspheres++;
-    }
-
-    if(radiuses)
-      delete[] radiuses;
-    if(positions)
-      delete[] positions;
-
-    radiuses = new float[numspheres];
-    positions = new Vector3[numspheres];
-
-    int k = 0;
-    for(int i = height-1; i >= 0; --i)
-    {
-      for(int j = 0; j < width; ++j)
-        if(buffer[i*width*4+j*4 + 3] >= 0)
-        {
-          positions[k] = mvi*Vector3(buffer[i*width*4+j*4 + 0], buffer[i*width*4+j*4 + 1], buffer[i*width*4+j*4 + 2]);
-          radiuses[k] = buffer[i*width*4+j*4 + 3]; 
-
-          k++;
-        }
-    }
-    reset++;
-  }
-
-  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-  glColor3f(1,1,1);
-
-  rtScene->configure();
-  rtScene->render();
-
-  glColor3f(1,0,0);
-
-  for(int i=0; i<numspheres; i++)
-  {
-    glPushMatrix();
-    glTranslatef(positions[i].x,positions[i].y,positions[i].z);
-    glutSolidCube(radiuses[i]);
-    glPopMatrix();
-  }
-  printf("\n\n");
-}
-#endif

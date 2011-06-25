@@ -11,51 +11,36 @@
 #include "Objects\Frames.h"
 
 Frames :: Frames()
+:m_currT(clock())
+,m_numFrames(0)
+,m_updateTime(0.0)
+,m_timeSinceLastFrame(0.0)
+,m_fps(0.0)
+,m_paused(false)
 {
-   t1 = clock();
-   cont_frames = 0;
-   fps_old = 80;
-   paused = false;
 }
 
-float Frames :: getFrames()
+float Frames :: getFPS()
 {
-   if(paused)
-      return 0.0;
-
-   double tempo;
-
-   t2 = clock();
-   tempo  = (double)(t2 - t1) / CLOCKS_PER_SEC;
-   cont_frames++;
-
-   if(cont_frames==FRAMES)
-   {
-      t1 = t2;
-      fps = FRAMES/tempo;
-      cont_frames=0;
-      fps_old = fps;
-
-      return fps;
-   }
-   return fps_old;
+  return m_fps;
 }
 
 void Frames :: resetClock()
 {
-   t1 = clock();
-   cont_frames = 0;
-   fps_old = 80;
-   paused = false;
-}
-
-long Frames :: getFrameNum()
-{
-   return cont_frames;
+  m_currT = clock();
+  m_numFrames = 0;
+  m_updateTime = 0.0;
+  m_timeSinceLastFrame = 0.0;
+  m_fps = 0.0;
+  m_paused = false;
 }
 
 void Frames :: pauseClock()
 {
-   paused = true;
+   m_paused = true;
 }
 
+float Frames::getTimeSinceLastFrame()
+{
+  return m_timeSinceLastFrame;
+}
