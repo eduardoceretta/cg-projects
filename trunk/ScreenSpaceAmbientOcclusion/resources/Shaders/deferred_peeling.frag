@@ -32,7 +32,6 @@ void main()
 	  discard;
 
   //Write the render targets
-  
   //Eye position
 	gl_FragData[0] = pos;
 	 
@@ -41,5 +40,14 @@ void main()
 	
 	//Diffuse Color
 	gl_FragData[2] = gl_FrontMaterial.diffuse;
+	
+	/**
+	 * TEST PEEL
+	 *  Print the Iluminated Peel.
+	 *  Result must the model withou the first layer
+   * /
+    gl_FragData[0] = vec4(vec3(max( dot(normalize(normal), -normalize(pos)) , 0.)),1);
+    return;
+  /**/
 }
 
