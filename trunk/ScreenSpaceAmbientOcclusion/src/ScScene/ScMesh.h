@@ -60,6 +60,7 @@ protected:
    * This instance mesh number
    */
   int m_myMeshNum;
+
 public:
    /**
    * Simple Constructor
@@ -90,6 +91,14 @@ public:
   int getMaterialIndex();
   GLVertexBufferObject* getVbo() const;
   P3bMeshFile * getP3bMesh() const;
+
+  /**
+   * Get Bounding Box info
+   */
+  Vector3 getBoundingBoxSize() const;
+  Vector3 getBoundingBoxCenter() const;
+  Vector3 getBoundingBoxMin() const;
+  Vector3 getBoundingBoxMax() const;
 
   /**
    * Update Light Attributes if needed

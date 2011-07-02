@@ -35,7 +35,7 @@ protected:
    * Sphere Radius
    */
   float m_r;
-
+  
   /**
    * Sphere alpha angle
    */
@@ -47,15 +47,16 @@ protected:
   float m_beta;
 
   /**
-   * Increment of cammera movements
+   * Increment of camera movements
    */
   float m_inc;
+  float m_rinc;
 
   /**
-   * Mouse Controll Atrributes
+   * Mouse control Attributes
    */
-  int m_lastMousePosX;
-  int m_lastMousePosY;
+  float m_lastMousePosX;
+  float m_lastMousePosY;
   int m_mouseState;
   int m_mouseButton;
   
@@ -73,6 +74,7 @@ protected:
    * Indicates if the Miner Light is On
    */
   bool m_minerOn;
+  
 public:
   /**
    * Construct the handler and initialize the sphere attributes
@@ -89,16 +91,20 @@ public:
   /**
    * Interface Listeners
    */
-  void listenKeyboard(int key);
-  void listenMouseMove(int x, int y);
-  void listenMouseClick(int button, int state, int x, int y);
+  void listenSpecialKeyboard(int key);
+  void listenMouseMove(float x, float y);
+  void listenMouseClick(int button, int state, float x, float y);
 
   /**
-   * Sphere parameters setters.
+   * Sphere parameters getters and setters.
    */
   void setSphereAlpha(float alpha);
   void setSphereBeta(float beta);
   void setSphereRadius(float radius);
+
+  float getSphereAlpha() const;
+  float getSphereBeta() const;
+  float getSphereRadius() const;
 
   /**
    * Get the Miner Light Pointer
@@ -126,6 +132,11 @@ public:
    * Render only the light if it is on
    */
   void renderMinerLight();
+
+  /**
+   * Make the sphere centered in the bounding box with the appropriated radius size
+   */
+  void setViewBoundingBox(Vector3 bb_min, Vector3 bb_max , float fovy);
 };
 
 

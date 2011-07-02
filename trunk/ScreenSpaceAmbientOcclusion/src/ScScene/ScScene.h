@@ -148,6 +148,14 @@ public:
    */
   void renderMesh(int index);
 
+  /**
+   * Get Bounding Box info
+   */
+  Vector3 getSceneBoundingBoxSize() const;
+  Vector3 getSceneBoundingBoxCenter() const;
+  Vector3 getSceneBoundingBoxMin() const;
+  Vector3 getSceneBoundingBoxMax() const;
+
 protected:
   /**
    * Read the attributes from a space separated string.

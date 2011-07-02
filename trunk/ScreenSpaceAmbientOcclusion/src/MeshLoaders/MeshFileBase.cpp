@@ -28,6 +28,7 @@ MeshFileBase::MeshFileBase(void)
 ,m_indexes(NULL)
 ,m_bb_min(Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( )))
 ,m_bb_max(Vector3(-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( )))
+,m_writeBinaryFile(true)
 {
 }
 

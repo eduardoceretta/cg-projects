@@ -270,16 +270,16 @@ void App::render()
     timeTest.kCombineTime += timeTest.getTime();
 #endif
 
-
+#ifdef TIME_TEST
+    timeTest.totalTime += timeTest.totalTimer.getTime();
+    //timeTest.printPartialResults();
+#endif
     //RENDER RESULT
     m_kernelCombine->renderOutput(0);
   }
   renderGUI();
 
-#ifdef TIME_TEST
-  timeTest.totalTime += timeTest.totalTimer.getTime();
-  //timeTest.printPartialResults();
-#endif
+
 
 #ifdef SCREENSHOT_TEST
   if(screenShotTest.isTestEnded())
@@ -374,7 +374,7 @@ void App::listenKeyboard( int key )
 
 void App::listenKeyboardSpecial( int key )
 {
-  m_camHandler->listenKeyboard(key);
+  m_camHandler->listenSpecialKeyboard(key);
 
   int modifier = glutGetModifiers();
 
@@ -426,12 +426,12 @@ void App::listenKeyboardSpecial( int key )
 
 void App::listenMouseMove( int x, int y )
 {
-  m_camHandler->listenMouseMove(x, y);
+  m_camHandler->listenMouseMove((float)x/m_appWidth, (float)y/m_appHeight);
 }
 
 void App::listenMouseClick( int button, int state, int x, int y )
 {
-  m_camHandler->listenMouseClick(button, state, x, y);
+  m_camHandler->listenMouseClick(button, state, (float)x/m_appWidth, (float)y/m_appHeight);
 }
 
 void App::loadArgs()
@@ -472,17 +472,23 @@ void App::loadArgs()
       else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
     }
   }
+#ifdef LOG_TESTS
+  TestLogger::inst()->logLine("Program and argument list:");
+  TestLogger::inst()->logLine(string("  ") + m_argv[0]);
+  for(int i = 1; i < m_argc; ++i)
+    TestLogger::inst()->log(string("  ") + m_argv[i]);
+  TestLogger::inst()->logLine("\nActiveDebugs:");
+#ifdef TIME_TEST
+  TestLogger::inst()->logLine("  TIME_TEST");
+#endif // TIME_TEST
+#ifdef SCREENSHOT_TEST
+  TestLogger::inst()->logLine("  SCREENSHOT_TEST");
+#endif // SCREENSHOT_TEST
+  TestLogger::inst()->logLine("\n\n");
+#endif // LOG_TESTS
 }
 void App::loadScene()
 {
-  m_camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.f, 5.f);
-
-  GLLight *minerLight = m_camHandler->getMinerLight();
-  minerLight->setAmbientColor(Color(0.0,0.0,0.0));
-  minerLight->setDiffuseColor(Color(.8,.8,.8));
-  minerLight->setSpecularColor(Color(1.,1.,1.));
-  minerLight->setPosition(Vector3(0,100,0));
-
   m_rtScene = new ScScene(m_scenePath);
 
   for(int i=0; i<m_rtScene->getNumMeshes();++i)
@@ -516,11 +522,24 @@ void App::loadScene()
   m_clearColor[1] = sceneClearColor.g;
   m_clearColor[2] = sceneClearColor.b;
 
-  m_nearPlane = m_rtScene->getCamera()->getNear();
-  m_farPlane = m_rtScene->getCamera()->getFar();
+  Vector3 bbSize = m_rtScene->getSceneBoundingBoxSize();
+  float bbMaxSize = max(bbSize.x, max(bbSize.y, bbSize.z));
+
   m_fov = m_rtScene->getCamera()->getFovy();
   m_appWidth = m_rtScene->getCamera()->getScreenWidth();
   m_appHeight = m_rtScene->getCamera()->getScreenHeight();
+
+  m_camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.f, 5.f);
+  m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+
+  m_nearPlane = m_camHandler->getSphereRadius()*.1f;
+  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
+
+  GLLight *minerLight = m_camHandler->getMinerLight();
+  minerLight->setAmbientColor(Color(0.0,0.0,0.0));
+  minerLight->setDiffuseColor(Color(.8,.8,.8));
+  minerLight->setSpecularColor(Color(1.,1.,1.));
+  minerLight->setPosition(Vector3(0,100,0));
 }
 
 void App::loadKernels()

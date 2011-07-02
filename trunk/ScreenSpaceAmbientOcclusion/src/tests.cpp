@@ -9,6 +9,7 @@
 #include <GL\glew.h>
 #include <GL\glut.h>
 #include <cmath>
+#include <ctime>
 
 
 #include "tests.h"
@@ -133,12 +134,13 @@ std::string TimeTest::results()
   string str = "";
   char tmp[500] = "";
   str+=tmp; sprintf(tmp, "\n-----------TIMER TEST-----------------\n"); 
-  str+=tmp; sprintf(tmp, "KernelColor           Time:%lf sec - %.2f ", kColorTime/framesCounter, 100. * kColorTime / totalTime); 
-  str+=tmp; sprintf(tmp, "KernelColor           Time:%lf sec - %.2f ", kColorTime/framesCounter, 100. * kColorTime / totalTime); str+= "%%\n";
-  str+=tmp; sprintf(tmp, "KernelDeferredPeeling Time:%lf sec - %.2f ", kDeferedPeelingTime/framesCounter, 100. * kDeferedPeelingTime / totalTime); str+= "%%\n";
-  str+=tmp; sprintf(tmp, "KernelSSAO            Time:%lf sec - %.2f ", kSSAOTime/framesCounter, 100. * kSSAOTime / totalTime); str+= "%%\n";
-  str+=tmp; sprintf(tmp, "KernelBlur            Time:%lf sec - %.2f ", kBlurTime/framesCounter, 100. * kBlurTime / totalTime); str+= "%%\n";
-  str+=tmp; sprintf(tmp, "KernelCombine         Time:%lf sec - %.2f ", kCombineTime/framesCounter, 100. * kCombineTime / totalTime); str+= "%%\n";
+  str+=tmp; sprintf(tmp, "Num Frames  Tested:%d\n", framesCounter);
+  str+=tmp; sprintf(tmp, "Total         Time:%lf sec\n", totalTime/framesCounter); 
+  str+=tmp; sprintf(tmp, "KernelColor   Time:%lf sec - %.2f ", kColorTime/framesCounter, 100. * kColorTime / totalTime);
+  str+=tmp; sprintf(tmp, "KernelDefPeel Time:%lf sec - %.2f ", kDeferedPeelingTime/framesCounter, 100. * kDeferedPeelingTime / totalTime); str+= "%%\n";
+  str+=tmp; sprintf(tmp, "KernelSSAO    Time:%lf sec - %.2f ", kSSAOTime/framesCounter, 100. * kSSAOTime / totalTime); str+= "%%\n";
+  str+=tmp; sprintf(tmp, "KernelBlur    Time:%lf sec - %.2f ", kBlurTime/framesCounter, 100. * kBlurTime / totalTime); str+= "%%\n";
+  str+=tmp; sprintf(tmp, "KernelCombine Time:%lf sec - %.2f ", kCombineTime/framesCounter, 100. * kCombineTime / totalTime); str+= "%%\n";
   str+=tmp; sprintf(tmp, "--------------------------------------\n\n"); str+= "%%\n";
   str+=tmp;
   return str;

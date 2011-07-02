@@ -3,7 +3,7 @@
  *  eduardo.ceretta@gmail.com
  *  Jun 2011
  *
- *  Tests the aplication
+ *  Tests the application
  */
 #ifndef _TESTS_H_
 #define _TESTS_H_
@@ -13,7 +13,7 @@
 /**
  * Tests Defines
  */
-#define TESTS
+//#define TESTS
 #ifdef TESTS
 #  define LOG_TESTS
 #  define TIME_TEST
