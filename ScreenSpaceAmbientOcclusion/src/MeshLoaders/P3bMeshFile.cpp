@@ -9,7 +9,7 @@
  *  Permits the render of this model.
  *  Depends on diverse P3D libs.
  */
-
+#include <limits>
 #include "MeshLoaders/P3bMeshFile.h"
 
 /**
@@ -35,6 +35,10 @@ P3bMeshFile::P3bMeshFile(void)
 ,m_p3dRenderer(NULL)
 ,m_elemvis(NULL)
 ,m_elemsel(NULL)
+,m_bb_size(Vector3(-1, -1, -1))
+,m_bb_center(Vector3(0, 0, 0))
+,m_bb_min(Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( )))
+,m_bb_max(Vector3(-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( )))
 {
 }
 
@@ -99,6 +103,13 @@ void P3bMeshFile::readFile(string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
     delete m_p3dRenderer;
   m_p3dRenderer = new P3DFemDisplay();
   m_p3dRenderer->SetModel(m_p3dModel);
+
+
+  m_p3dModel->GetBoundingBox(&m_bb_min.x, &m_bb_max.x,
+                             &m_bb_min.y, &m_bb_max.y,
+                             &m_bb_min.z, &m_bb_max.z);
+  m_bb_size = m_bb_max - m_bb_min;
+  m_bb_center = (m_bb_max + m_bb_min)*.5;
 }
 
 
@@ -121,7 +132,8 @@ void P3bMeshFile::render()
   glPushMatrix();
     glTranslatef(m_pos.x, m_pos.y, m_pos.z);
     glScalef(m_scale.x, m_scale.y, m_scale.z);
-    glPushAttrib(GL_CURRENT_BIT);
+    glPushAttrib(GL_CURRENT_BIT|GL_ENABLE_BIT);
+      glEnable(GL_NORMALIZE);
       glColor3f(1,1,1);
       m_p3dRenderer->Render();
     glPopAttrib();
@@ -131,3 +143,25 @@ bool P3bMeshFile::isValidFileType( string filetype )
 {
   return strcmp(s_fileType.c_str(), strlwr((char*)filetype.c_str())) == 0;
 }
+
+
+Vector3 P3bMeshFile::getBoundingBoxSize() const
+{
+  return m_bb_size;
+}
+
+Vector3 P3bMeshFile::getBoundingBoxCenter() const
+{
+  return m_bb_center;
+}
+
+Vector3 P3bMeshFile::getBoundingBoxMin() const
+{
+  return m_bb_min;
+}
+
+Vector3 P3bMeshFile::getBoundingBoxMax() const
+{
+  return m_bb_max;
+}
+

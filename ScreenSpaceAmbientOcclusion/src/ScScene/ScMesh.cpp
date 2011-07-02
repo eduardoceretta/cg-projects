@@ -8,6 +8,7 @@
  */
 
 #include <iostream>
+#include <limits>
 #include "defines.h"
 
 #include "ScScene/ScMesh.h"
@@ -101,3 +102,70 @@ P3bMeshFile * ScMesh::getP3bMesh() const
 {
   return m_p3bMesh;
 }
+
+Vector3 ScMesh::getBoundingBoxSize() const
+{
+  Vector3 bb_max = getBoundingBoxMax();
+  Vector3 bb_min = getBoundingBoxMin();
+  return bb_max - bb_min;
+}
+
+Vector3 ScMesh::getBoundingBoxCenter() const
+{
+  Vector3 bb_max = getBoundingBoxMax();
+  Vector3 bb_min = getBoundingBoxMin();
+  return (bb_max + bb_min)*.5;
+}
+
+Vector3 ScMesh::getBoundingBoxMin() const
+{
+  if(m_vbo && m_p3bMesh)
+  {
+    Vector3 v_bb = m_vbo->getBoundingBoxMin();
+    Vector3 p_bb = m_p3bMesh->getBoundingBoxMin();
+    return m_pos + Vector3(min(v_bb.x, p_bb.x), 
+                   min(v_bb.y, p_bb.y), 
+                   min(v_bb.z, p_bb.z));
+  }
+
+  if(m_vbo)
+    return  m_pos + m_vbo->getBoundingBoxMin();
+
+  if(m_p3bMesh)
+  {
+    Vector3 bb_min =  m_p3bMesh->getBoundingBoxMin();
+    bb_min.x *= m_scale.x;
+    bb_min.y *= m_scale.y;
+    bb_min.z *= m_scale.z;
+    return  m_pos + bb_min;
+  }
+
+  return Vector3(-numeric_limits<float>::infinity( ), -numeric_limits<float>::infinity( ), -numeric_limits<float>::infinity( ));
+}
+
+Vector3 ScMesh::getBoundingBoxMax() const
+{
+  if(m_vbo && m_p3bMesh)
+  {
+    Vector3 v_bb = m_vbo->getBoundingBoxMax();
+    Vector3 p_bb = m_p3bMesh->getBoundingBoxMax();
+    return  m_pos + Vector3(max(v_bb.x, p_bb.x), 
+                   max(v_bb.y, p_bb.y), 
+                   max(v_bb.z, p_bb.z));
+  }
+
+  if(m_vbo)
+    return  m_pos + m_vbo->getBoundingBoxMax();
+
+  if(m_p3bMesh)
+  {
+    Vector3 bb_max =  m_p3bMesh->getBoundingBoxMax();
+    bb_max.x *= m_scale.x;
+    bb_max.y *= m_scale.y;
+    bb_max.z *= m_scale.z;
+    return  m_pos + bb_max;
+  }
+
+  return Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ));
+}
+

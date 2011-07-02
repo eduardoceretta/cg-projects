@@ -361,7 +361,7 @@ void PlyMeshFile::calcTriangles()
     {
       Vertex v;
       get_element_ply(ply,(void*)&v);
-      vList[j*3] = v.x * m_scale.x;
+      vList[j*3]   = v.x * m_scale.x;
       vList[j*3+1] = v.y * m_scale.y;
       vList[j*3+2] = v.z * m_scale.z;
 

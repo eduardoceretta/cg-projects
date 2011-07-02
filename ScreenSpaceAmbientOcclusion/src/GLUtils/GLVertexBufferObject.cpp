@@ -8,6 +8,7 @@
  */
 #include <GL/glew.h>
 #include <iostream>
+#include <limits>
 #include "defines.h"
 
 #include "GLVertexBufferObject.h"
@@ -117,6 +118,10 @@ GLVertexBufferObject::GLVertexBufferObject(GLenum primitive)
 ,m_vboId(0)
 ,m_vboIndicesId(0)
 ,m_VBOBuffersTotalSize(0)
+,m_bb_size(Vector3(-1, -1, -1))
+,m_bb_center(Vector3(0, 0, 0))
+,m_bb_min(Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( )))
+,m_bb_max(Vector3(-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( )))
 {
    m_supported = s_IsSupported();
 
@@ -137,6 +142,9 @@ void GLVertexBufferObject :: clear()
 {
    m_VBOBuffers.clear();
    m_calculated = false;
+
+   m_bb_size = Vector3(-1, -1, -1);
+   m_bb_center = Vector3(0, 0, 0);
   
    glDeleteBuffersARB(1, &m_vboId);
    if(m_hasIndices == true)
@@ -172,6 +180,8 @@ void GLVertexBufferObject :: calcVBO()
       glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, m_vboIndicesId);
       glBufferDataARB(GL_ELEMENT_ARRAY_BUFFER_ARB, m_VBOIndexBuffer.sizeInBytes(), m_VBOIndexBuffer.data, GL_STATIC_DRAW_ARB);
    }
+
+   calcBoundingBox();
 
    m_calculated = true;
 }
@@ -303,5 +313,94 @@ void GLVertexBufferObject::readFromFile( FILE * fp )
   }
 
   m_calculated = false;
+}
+
+int GLVertexBufferObject::getNumElements()
+{
+  int size = -1;
+  if(m_hasIndices)
+    size = m_VBOIndexBuffer.n;
+  else
+  {
+    vector<GLVBOBuffer> :: iterator it;
+
+    for(it = m_VBOBuffers.begin(); it != m_VBOBuffers.end(); ++it)
+      if(it->clientState == GL_VERTEX_ARRAY)
+        size = it->n;
+  }
+
+  switch(m_primitive)
+  {
+    case GL_POINTS:
+    case GL_LINE_LOOP:
+    case GL_POLYGON:
+      return size;
+    case GL_LINE_STRIP:
+      return size - 1;
+    case GL_LINES:
+      return size/2;
+    case GL_TRIANGLE_STRIP:
+    case GL_TRIANGLE_FAN:
+      return size - 2;
+    case GL_TRIANGLES:
+      return size/3;
+    case GL_QUAD_STRIP:
+      return size/2 - 1;
+    case GL_QUADS:
+      return size/4;
+  }
+  return size;
+}
+
+int GLVertexBufferObject::getNumVertexes()
+{
+  vector<GLVBOBuffer> :: iterator it;
+
+  for(it = m_VBOBuffers.begin(); it != m_VBOBuffers.end(); ++it)
+    if(it->clientState == GL_VERTEX_ARRAY)
+      return it->n;
+  return -1;
+}
+
+void GLVertexBufferObject::calcBoundingBox()
+{
+  vector<GLVBOBuffer> :: iterator it;
+
+  for(it = m_VBOBuffers.begin(); it != m_VBOBuffers.end(); ++it)
+    if(it->clientState == GL_VERTEX_ARRAY)
+    {
+      for(int i = 0; i < it->n; ++i)
+      {
+        m_bb_min.x = min(((float*)it->data)[i*3]  , m_bb_min.x);
+        m_bb_min.y = min(((float*)it->data)[i*3+1], m_bb_min.y);
+        m_bb_min.z = min(((float*)it->data)[i*3+2], m_bb_min.z);
+
+        m_bb_max.x = max(((float*)it->data)[i*3]  , m_bb_max.x);
+        m_bb_max.y = max(((float*)it->data)[i*3+1], m_bb_max.y);
+        m_bb_max.z = max(((float*)it->data)[i*3+2], m_bb_max.z);
+      }
+      m_bb_size = m_bb_max - m_bb_min;
+      m_bb_center = (m_bb_max + m_bb_min)*.5;
+    }
+}
+
+Vector3 GLVertexBufferObject::getBoundingBoxSize() const
+{
+  return m_bb_size;
+}
+
+Vector3 GLVertexBufferObject::getBoundingBoxCenter() const
+{
+  return m_bb_center;
+}
+
+Vector3 GLVertexBufferObject::getBoundingBoxMin() const
+{
+  return m_bb_min;
+}
+
+Vector3 GLVertexBufferObject::getBoundingBoxMax() const
+{
+  return m_bb_max;
 }
 

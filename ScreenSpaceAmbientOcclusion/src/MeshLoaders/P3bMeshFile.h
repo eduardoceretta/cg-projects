@@ -68,6 +68,16 @@ class P3bMeshFile
    */
   P3DElemSelection *m_elemsel;
 
+  /**
+   * Bounding Box Info
+   */
+  Vector3 m_bb_size;
+  Vector3 m_bb_center;
+  Vector3 m_bb_min;
+  Vector3 m_bb_max;
+  
+  
+
 public:
   /**
    * Simple Constructor
@@ -83,6 +93,14 @@ public:
    * Get the number of elements of the P3DModel
    */
   int getNumElements();
+
+  /**
+   * Get Bounding Box info
+   */
+  Vector3 getBoundingBoxSize() const;
+  Vector3 getBoundingBoxCenter() const;
+  Vector3 getBoundingBoxMin() const;
+  Vector3 getBoundingBoxMax() const;
 
   /**
    * Set the array of booleans indicating if each element is visible.

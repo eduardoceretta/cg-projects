@@ -23,8 +23,9 @@ SphereGLCameraHandler::SphereGLCameraHandler(float r /*= 100.0f*/, float a /*= 0
 ,m_alpha(a)
 ,m_beta(b)
 ,m_inc(inc)
-,m_lastMousePosX(0)
-,m_lastMousePosY(0)
+,m_rinc(m_r*.3)
+,m_lastMousePosX(0.0f)
+,m_lastMousePosY(0.0f)
 ,m_mouseState(GLUT_UP)
 ,m_mouseButton(GLUT_RIGHT_BUTTON)
 ,m_modifier(0)
@@ -33,7 +34,7 @@ SphereGLCameraHandler::SphereGLCameraHandler(float r /*= 100.0f*/, float a /*= 0
 {
 }
 
-void SphereGLCameraHandler::listenKeyboard(int key)
+void SphereGLCameraHandler::listenSpecialKeyboard(int key)
 {
   m_modifier = glutGetModifiers();
 
@@ -45,25 +46,26 @@ void SphereGLCameraHandler::listenKeyboard(int key)
     m_alpha = (int)(m_alpha - m_inc)%360;
   else if(key == GLUT_KEY_DOWN)
     m_alpha = (int)(m_alpha + m_inc)%360;
+  
 }
 
-void SphereGLCameraHandler::listenMouseMove(int x, int y)
+void SphereGLCameraHandler::listenMouseMove(float x, float y)
 {
   if(m_mouseButton == GLUT_LEFT_BUTTON && m_mouseState == GLUT_DOWN){
-    float angleX = (m_lastMousePosX - x)*.5;
-    float angleY = (y - m_lastMousePosY)*.5;
+    float angleX = (m_lastMousePosX - x)*180.f;
+    float angleY = (y - m_lastMousePosY)*180.f;
 
     m_alpha = ((int)(m_alpha + angleY))%360;
     m_beta = ((int)(m_beta + angleX))%360;
   }
   else if(m_mouseButton == GLUT_RIGHT_BUTTON && m_mouseState == GLUT_DOWN){
-    m_r += (y - m_lastMousePosY)/(2.0*(m_modifier == GLUT_ACTIVE_SHIFT ? 100.1 : 1000.000001) );
+    m_r += (y - m_lastMousePosY)*m_rinc;
   }
   m_lastMousePosX = x;
   m_lastMousePosY = y;
 }
 
-void SphereGLCameraHandler::listenMouseClick(int button, int state, int x, int y)
+void SphereGLCameraHandler::listenMouseClick(int button, int state, float x, float y)
 {
   m_mouseState = state;
   m_mouseButton = button;
@@ -85,7 +87,7 @@ void SphereGLCameraHandler::render()
   m_up.z = cos(DEG_TO_RAD(m_beta))*cos(DEG_TO_RAD(nextAlpha)) - m_pos.z;
 
   glLoadIdentity();
-  gluLookAt(m_pos.x, m_pos.y, m_pos.z, 
+  gluLookAt(m_pos.x + m_at.x, m_pos.y + m_at.y, m_pos.z + m_at.z, 
             m_at.x, m_at.y, m_at.z,
             m_up.x, m_up.y, m_up.z);
 
@@ -133,4 +135,30 @@ void SphereGLCameraHandler::setSphereBeta( float beta )
 void SphereGLCameraHandler::setSphereRadius( float radius )
 {
   m_r = radius;
+  m_rinc = m_r*.3;
+}
+
+void SphereGLCameraHandler::setViewBoundingBox(Vector3 bb_min, Vector3 bb_max , float fovy)
+{
+  Vector3 bb_center =  (bb_max + bb_min)*.5;
+  Vector3 bb_size = bb_max - bb_min;
+  m_at = bb_center;
+  float size = max(max(bb_size.x, bb_size.y), bb_size.z)/2;
+  m_r = (size/tan(DEG_TO_RAD(fovy/2)) + size)*1.2f;
+  m_rinc = m_r*.3;
+}
+
+float SphereGLCameraHandler::getSphereAlpha() const
+{
+  return m_alpha;
+}
+
+float SphereGLCameraHandler::getSphereBeta() const
+{
+  return m_beta;
+}
+
+float SphereGLCameraHandler::getSphereRadius() const
+{
+  return m_r;
 }

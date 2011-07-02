@@ -12,6 +12,8 @@
 #include <GL/glut.h>
 #include <vector>
 
+#include "MathUtils/Vector3.h"
+
 
 using namespace std;
 
@@ -124,6 +126,13 @@ class GLVertexBufferObject
    */
   GLVBOBuffer m_VBOIndexBuffer;
 
+  /**
+   * Bounding Box Info
+   */
+  Vector3 m_bb_size;
+  Vector3 m_bb_center;
+  Vector3 m_bb_min;
+  Vector3 m_bb_max;
 public:
   /**
    * Constructs a VBO of the respective primitive type.
@@ -188,9 +197,33 @@ public:
    */
   void readFromFile(FILE * fp);
 
+
+  /**
+   * Get the number of elements depending on the type of primitive.
+   *  If cannot be calculated return -1
+   */
+  int getNumElements();
+
+  /**
+   * Get the number of vertexes in the array
+   */
+  int getNumVertexes();
+
+  /**
+   * Get Bounding Box info
+   */
+  Vector3 getBoundingBoxSize() const;
+  Vector3 getBoundingBoxCenter() const;
+  Vector3 getBoundingBoxMin() const;
+  Vector3 getBoundingBoxMax() const;
 private:
   /**
    * Verifies if VBO is supported.
    */
   static bool s_IsSupported();
+
+  /**
+   * Calculate Bounding Box
+   */
+  void calcBoundingBox();
 };
