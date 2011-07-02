@@ -19,7 +19,7 @@
 //#define DEPTH_PEELING       /**< Uses multiple peeling information in the calculation*/
 #define MAX_OVER_PEELING      /**< Considers the Ambient occlusion as the max value of the peelings, else sums they*/
 #define SPHERE_POSITION       /**< Calculate pixel position, else uses positionTex*/
-#define INV_DIST_DIVIDE 2.    /**< Divede the ambient occlusion by the power distance of the pixels*/
+//#define INV_DIST_DIVIDE 2.    /**< Divide the ambient occlusion by the power distance of the pixels*/
 #define SPHERE_CENTER_MINUS_NORMAL .01 /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
 //#define Z_MINUS_R -.5      /**< Modifies the center of each sphere z position using the radius as factor*/
 //#define INVERT_NORMAL      /**< Invert model normals*/
@@ -111,6 +111,7 @@ void main()
     vec4 position = texture2D(positionTex,  gl_TexCoord[0].st);
     position.w = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth).w;
   #endif
+  position = position/far;
 
   // Do nothing if the depth value is negative
 	if(depth < 0.0)
@@ -119,15 +120,25 @@ void main()
 		return;
 	}
 	
+	  //float f = length(position.xyz)/far;
+	  //if(f < 0)
+	    //gl_FragData[0] = BLUE;
+	  //else if(f < 1)
+	    //gl_FragData[0] = WHITE*f;
+	  //else
+	    //gl_FragData[0] = RED;
+	  //
+    //return;
+	
   /**
 	 * TEST NORMAL
 	 *  Print the Normal's Color.
 	 *  Result must be Blue for normals facing the screen
    * /
-    vec3 nn = (depth0_normal.xyz*1.)*.5 + .5;
+    vec3 nn = (depth0_normal.xyz)*.5 + .5;
     gl_FragData[0] = vec4(nn, 1.);
     return;
-  */
+  /**/
   
   /**
 	 * TEST POSITION
@@ -135,11 +146,11 @@ void main()
 	 *  Result must be RED so the diference is small
    * /
     vec4 pp = getSphere(gl_FragCoord.x, gl_FragCoord.y , depth);
-    if(length(pp.xyz - position.xyz) < .1)
+    if(length(pp.xyz - texture2D(positionTex,  gl_TexCoord[0].st).xyz) < .00009)
       gl_FragData[0] = RED;
     else gl_FragData[0] = BLUE;
     return;
-  */
+  /**/
   
   //Calculate the screen width/height rate  
   float dx = 1.0/screenWidth;
@@ -192,7 +203,7 @@ void main()
   else 
     gl_FragData[0] = PINK;
   return;
-  */
+  /**/
   
   //Number of Samplers Counter
   int n = 0;
@@ -228,7 +239,7 @@ void main()
 #endif
 
   //Total Ambient Occlusion Normalization
-  totalAO = intensity *  totalAO/(2.*PI*position.w*float(n));
+  totalAO = intensity *  totalAO/(2*PI*pow(position.w,2));//(float(n));
   totalAO = clamp(totalAO,0.0,1.0);
 
   //OutPut
@@ -278,11 +289,10 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
     #endif
 
 
-    vec4 sphere = getSphere(gl_FragCoord.x + i , gl_FragCoord.y + j, depth_normal.a);
+    vec4 sphere = getSphere(gl_FragCoord.x + i , gl_FragCoord.y + j, depth_normal.a)/far;
     #ifdef SPHERE_CENTER_MINUS_NORMAL
-      sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL;
+      sphere.xyz = sphere.xyz - normalize(depth_normal.xyz)*SPHERE_CENTER_MINUS_NORMAL/far;
     #endif
-
     
     float eye_dist = length(sphere.xyz - position.xyz);
 
@@ -294,7 +304,7 @@ float calcLocalAO(float i, float j, float depth, vec4 depth0_normal, float dx, f
     #endif
     
     #ifdef INV_DIST_DIVIDE
-      float dist_divide = pow((eye_dist/rfar), INV_DIST_DIVIDE);
+      float dist_divide = pow(eye_dist, INV_DIST_DIVIDE);
     #else  
       float dist_divide = 1.;
     #endif  
@@ -327,7 +337,7 @@ vec3 window2ndc(vec3 w)
   //--assuming r == -l, t == -b
   float xn = 2. * w.x/screenWidth - 1.;
   float yn = 2. * w.y/screenHeight - 1.;
-  float zn = (2. * w.z - 1.)/1.;
+  float zn = (2. * w.z -1.);
   
   return vec3(xn, yn, zn);
 }
@@ -353,7 +363,8 @@ vec4 getSphere(float xw, float yw, float zw)
 float getAproxAO(vec4 sphereQ, vec3 posP, vec3 normalP, float radiusP)
 {
   vec3 PQ = (sphereQ.xyz - posP);
-  float S = 2.0 * PI * radiusP * (1.0 - cos(asin(sphereQ.a / length(PQ))));
+  float i = 1.;
+  float S = 2.0 * PI  * (i*radiusP) * (i*radiusP) * (1.0 - cos(asin((sphereQ.a)/ length(PQ))));
   #ifdef INVERT_NORMAL
     normalP = -normalP;
   #endif
