@@ -41,3 +41,10 @@ void KernelBlur::step(float pixelmask_size, GLfloat offsets_size, GLfloat intens
   m_shader->setActive(false);
   KernelBase::step();
 }
+
+void KernelBlur::setInputTexId(GLuint inputTexId)
+{
+  m_shader->setActive(true);
+    setInputTexture(GL_TEXTURE_2D, "inputTex", inputTexId, 0);
+  m_shader->setActive(false);
+}

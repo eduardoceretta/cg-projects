@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include "MathUtils\Vector3.h"
+#include "MathUtils\Vector4.h"
 
 class Matrix4
 {
@@ -61,7 +62,7 @@ public:
   /**
    * Inverset the current matrix
    */
-  void Inverse();
+  void Invert();
 
   /**
    * Transpose the current matrix
@@ -94,11 +95,19 @@ public:
   Matrix4 operator* (const float val) const;
   Matrix4 operator* (const double val) const;
   Matrix4 operator* (const Matrix4& m) const;
-
+  Vector4 operator* (const Vector4& v) const;
+  
   /**
-   * Considers only the 3x3 part of the matrix and multiplies m*v
+   * Considers only the Vector3 as a Vec4 with w = 1
    */  
   Vector3 operator* (const Vector3& m) const;
+
+  /**
+   * Considers only the Vector3 as a Vec4 with w = 1
+   */  
+
+
+  Vector3 mulVec4 (const Vector3& m, float w, float &outw) const;
 };
 
 /**

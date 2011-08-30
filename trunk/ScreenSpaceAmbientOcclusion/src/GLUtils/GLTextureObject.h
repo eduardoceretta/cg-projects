@@ -24,16 +24,31 @@ class GLTextureObject
    *  GL_FLOAT RGBA. 
    *  Size equals w*h*4
    */
-  GLfloat *m_buffer; 
+  GLfloat *m_fbuffer; 
+  
+  /**
+   * Texture's buffer. 
+   *  GL_UNSIGNED_INT RGBA. 
+   *  Size equals w*h*4
+   */
+  GLuint *m_uibuffer; 
   /**
    * Texture's OpenGL id.
    */
   GLuint m_id;
 
+  /**
+   * Specifies the target texture [GL_TEXTURE_1D, GL_TEXTURE_2D]
+   */
+  GLenum m_target;
+  
+
+
+
 public:
   /**
    * Output Image Supported File Type.
-   *  Could be any supported by FileImage, but only those are garanted.
+   *  Could be any supported by FileImage, but only those are granted.
    */
   typedef enum ImageFileType {BMP = 0 , JPG = 1, PNG = 2};
 
@@ -43,21 +58,64 @@ public:
   GLTextureObject();
 
   /**
-   * Receives texture id and allocates memory space.
+   * Receives texture id .
    */
-  GLTextureObject(GLuint id);
+  GLTextureObject(GLuint id, GLenum target = GL_TEXTURE_2D);
   
 
   /**
    * Frees memory.
    */
   ~GLTextureObject();
+
+  /**
+   * Create a 1D texture.
+   *  InternalFormat: Specifies the number of color components in the texture. [GL_ALPHA, GL_RGB, GL_RGBA, GL_RGBA32F_ARB, GL_RGBA32UI_EXT...]
+   *  Format: Specifies the format of the pixel data. [GL_ALPHA, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE, GL_LUMINANCE_ALPHA...]
+   *  Type: Specifies the data type of the pixel data. [GL_UNSIGNED_BYTE, GL_BYTE, GL_UNSIGNED_INT, GL_INT, GL_FLOAT...]
+   *  Data: Specifies a pointer to the image data in memory. 
+   */
+  void createTexture1D(int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0);
+
+  /**
+   * Create a 2D texture.
+   *  InternalFormat: Specifies the number of color components in the texture. [GL_ALPHA, GL_RGB, GL_RGBA, GL_RGBA32F_ARB, GL_RGBA32UI_EXT...]
+   *  Format: Specifies the format of the pixel data. [GL_ALPHA, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE, GL_LUMINANCE_ALPHA...]
+   *  Type: Specifies the data type of the pixel data. [GL_UNSIGNED_BYTE, GL_BYTE, GL_UNSIGNED_INT, GL_INT, GL_FLOAT...]
+   *  Data: Specifies a pointer to the image data in memory. 
+   */
+  void createTexture2D(int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0);
+
+  /**
+   * Create a 2D texture that is used for FBO Data.
+   *  InternalFormat: GL_RGBA32F_ARB
+   *  Format: GL_RGBA
+   *  Type: GL_FLOAT
+   *  Data: 0 
+   *  MinFilter, MagFilter: GL_NEAREST
+   *  sWrap, tWrap: GL_CLAMP_TO_EDGE
+   */
+  void createFBODataTexture(int width, int height);
+
+  /**
+   * Set Texture Filters
+   *  MinFilter: The texture minifying function is used whenever the pixel being textured maps to an area greater than one texture element. 
+   *  MagFilter: The texture magnification function is used when the pixel being textured maps to an area less than or equal to one texture element. 
+   *  [GL_NEAREST, GL_LINEAR]
+   */
+  void setFilters(GLfloat minFilter, GLfloat magFilter);
+
+  /**
+   * Set Texture Wraps
+   *  [GL_CLAMP, GL_CLAMP_TO_BORDER, GL_CLAMP_TO_EDGE, GL_MIRRORED_REPEAT]
+   */
+  void setWraps(GLfloat sWrap, GLfloat tWrap = GL_CLAMP_TO_EDGE);
   
   /**
    * Sets the texture id and allocates memory space.
    *  If there is memory allocated it is deleted.
    */
-  void setId(GLuint id);
+  void setId(GLuint id, GLenum target = GL_TEXTURE_2D);
 
   /**
    * Returns associated id.
@@ -69,31 +127,32 @@ public:
    * Returns texture data.
    *  Copies memory from the GPU.
    */
-  GLfloat* getTextureData();
+  GLfloat* read2DTextureFloatRGBAData();
+  GLuint* read2DTextureUIntRGBAData();
   
   /**
    * Returns texture height.
    *  Copies information from the GPU.
    */
-  GLuint getTextureHeight();
+  GLuint readTextureHeight();
 
   /**
    * Returns texture width.
    *  Copies information from the GPU.
    */
-  GLuint getTextureWidth();
+  GLuint readTextureWidth();
 
   /**
    * Render the texture in the screen.
    *  Render a screen quad with the texture associated.
    */
-  void renderTexture();
+  void render2DTexture();
 
   /**
    * Write the texture to a file.
    *  The image will be RGBA UNSIGNED CHAR 32 bits
    */
-  void writeToFile(string fileName, ImageFileType fileType = PNG);
+  void write2DToFile(string fileName, ImageFileType fileType = PNG);
   
 };
 

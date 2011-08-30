@@ -16,76 +16,106 @@
 using namespace std;
 
 GLTextureObject::GLTextureObject()
-:m_buffer(NULL)
+:m_fbuffer(NULL)
+,m_uibuffer(NULL)
 ,m_id(0)
+,m_target(GL_TEXTURE_2D)
 {
 
 }
 
-GLTextureObject::GLTextureObject(GLuint id)
-:m_buffer(NULL)
+GLTextureObject::GLTextureObject(GLuint id, GLenum target)
+:m_fbuffer(NULL)
+,m_uibuffer(NULL)
 ,m_id(0)
+,m_target(target)
 {
-  setId(id);
+  setId(id, m_target);
 }
 
 GLTextureObject :: ~GLTextureObject()
 {
-  delete[] m_buffer;
+  delete[] m_fbuffer;
+  delete[] m_uibuffer;
 }
 
 GLuint GLTextureObject :: getId()
 {
-   return m_id;
+  return m_id;
 }
 
-void GLTextureObject :: setId(GLuint id)
+void GLTextureObject :: setId(GLuint id, GLenum target)
 {
   if(id == m_id)
     return;
 
-  if(m_buffer)
-    delete[] m_buffer;
+  if(m_fbuffer)
+    delete[] m_fbuffer;
+  m_fbuffer = NULL;
+
+  if(m_uibuffer)
+    delete[] m_uibuffer;
+  m_uibuffer = NULL;
+
   m_id = id;
-  m_buffer = new GLfloat[getTextureWidth()*getTextureHeight()*4];
+  m_target = target;
 }
 
 
-GLuint GLTextureObject :: getTextureWidth()
+GLuint GLTextureObject :: readTextureWidth()
 {
   GLint textureWidth;
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, m_id);
-  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &textureWidth);
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glDisable(GL_TEXTURE_2D);
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(m_target);
+  glBindTexture(m_target, m_id);
+  glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_WIDTH, &textureWidth);
+  glPopAttrib();
   return textureWidth;
 }
 
-GLuint GLTextureObject :: getTextureHeight()
+GLuint GLTextureObject :: readTextureHeight()
 {
   GLint  textureHeight;
-  glEnable(GL_TEXTURE_2D);
-  glBindTexture(GL_TEXTURE_2D, m_id);
-  glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &textureHeight);
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glDisable(GL_TEXTURE_2D);
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(m_target);
+  glBindTexture(m_target, m_id);
+  glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_HEIGHT, &textureHeight);
+  glPopAttrib();
   return textureHeight;
 }
 
-GLfloat* GLTextureObject :: getTextureData()
+GLfloat* GLTextureObject :: read2DTextureFloatRGBAData()
 {
+  if(!m_fbuffer)
+    m_fbuffer = new GLfloat[readTextureWidth()*readTextureHeight()*4];
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, m_id);
 
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, m_buffer);
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, m_fbuffer);
   glBindTexture(GL_TEXTURE_2D, 0);
-  glDisable(GL_TEXTURE_2D);
-  return m_buffer;
+  glPopAttrib();
+  return m_fbuffer;
 }
 
-void GLTextureObject::renderTexture()
+GLuint* GLTextureObject :: read2DTextureUIntRGBAData()
 {
+  if(!m_uibuffer)
+    m_uibuffer = new GLuint[readTextureWidth()*readTextureHeight()*4];
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, m_id);
+
+  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT, m_uibuffer);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glPopAttrib();
+  return m_uibuffer;
+}
+
+
+void GLTextureObject::render2DTexture()
+{
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT|GL_CURRENT_BIT);
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
@@ -110,13 +140,14 @@ void GLTextureObject::renderTexture()
   glPopMatrix();
   glMatrixMode(GL_MODELVIEW);
   glPopMatrix();
+  glPopAttrib();
 }
 
-void GLTextureObject::writeToFile(string fileName, ImageFileType fileType /*= PNG*/ )
+void GLTextureObject::write2DToFile(string fileName, ImageFileType fileType /*= PNG*/ )
 {
-  int w = getTextureWidth();
-  int h = getTextureHeight();
-  float *data = getTextureData();
+  int w = readTextureWidth();
+  int h = readTextureHeight();
+  float *data = read2DTextureFloatRGBAData();
 
   int bpp;
   FREE_IMAGE_FORMAT fif;
@@ -175,11 +206,67 @@ void GLTextureObject::writeToFile(string fileName, ImageFileType fileType /*= PN
     }
   }
 
-
-
   if (FreeImage_Save(fif, dib, fileName.c_str())) {
     // bitmap successfully saved!
   }
   //FreeImage_DeInitialise();
 
+}
+
+void GLTextureObject::createTexture1D(int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
+{
+  GLuint textureId;
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glGenTextures(1, &textureId);
+  setId(textureId, GL_TEXTURE_1D);
+  glEnable(GL_TEXTURE_1D);
+  glBindTexture(GL_TEXTURE_1D, m_id);
+
+  glTexParameteri(GL_TEXTURE_1D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+  glTexImage1D(GL_TEXTURE_1D, 0, internalFormat, width, 0, format, type, data);
+  glPopAttrib();
+}
+
+void GLTextureObject::createTexture2D( int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
+{
+  GLuint textureId;
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glGenTextures(1, &textureId);
+  setId(textureId, GL_TEXTURE_2D);
+  glEnable(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, m_id);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); // automatic mipmap generation included in OpenGL v1.4
+  glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
+  glPopAttrib();
+}
+
+void GLTextureObject::setFilters( GLfloat minFilter, GLfloat magFilter)
+{
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(m_target);
+  glBindTexture(m_target, m_id);
+
+  glTexParameterf(m_target, GL_TEXTURE_MAG_FILTER, magFilter);
+  glTexParameterf(m_target, GL_TEXTURE_MIN_FILTER, minFilter);
+  glPopAttrib();
+}
+
+void GLTextureObject::setWraps( GLfloat sWrap, GLfloat tWrap)
+{
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(m_target);
+  glBindTexture(m_target, m_id);
+
+  glTexParameterf(m_target, GL_TEXTURE_WRAP_S, sWrap);
+  if(m_target == GL_TEXTURE_2D)
+    glTexParameterf(m_target, GL_TEXTURE_WRAP_T, tWrap);
+  glPopAttrib();
+}
+
+void GLTextureObject::createFBODataTexture(int width, int height)
+{
+  createTexture2D(width, height, GL_RGBA32F_ARB, GL_RGBA, GL_FLOAT);
+  setFilters(GL_NEAREST, GL_NEAREST);
+  setWraps(GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
 }

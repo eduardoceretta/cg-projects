@@ -30,8 +30,12 @@
 #include "Kernels/KernelColor.h"
 #include "Kernels/KernelDeferred_Peeling.h"
 #include "Kernels/KernelSSAO.h"
+#include "Kernels/KernelSSAO_Visibility.h"
 #include "Kernels/KernelBlur.h"
 #include "Kernels/KernelCombine.h"
+#include "Kernels/KernelVoxelization.h"
+
+#include "GLUtils/GLTextureObject.h"
 
 #include "app.h"
 
@@ -71,20 +75,25 @@ App::App()
 ,m_kernelDeferred_Peeling(NULL)
 ,m_kernelColor(NULL)
 ,m_kernelSSAO(NULL)
+,m_kernelSSAO_Visibility(NULL)
 ,m_kernelBlur(NULL)
 ,m_kernelCombine(NULL)
-,m_menu_on(true)
+,m_kernelVoxelization(NULL)
+,m_menu_on(false)
 ,m_lights_on(false)
 ,m_minerLight_on(false)
+,m_renderMode(0.0f)
 ,m_wireframe_on(false)
 ,m_shader_on(true)
 ,m_shader_active(!m_wireframe_on & m_shader_on)
+,m_vox_ssao_active(true)
 ,m_rfar(30.0f)
 ,m_pixelmaskSize(.8f)
 ,m_offsetSize(5.0f)
 ,m_intensity(20.0f)
 ,m_numPeelings(3)
 ,m_blurr_on(false)
+,m_ssao_visibility(true)
 {
   m_clearColor[0] = .8f;
   m_clearColor[1] = .8f;
@@ -123,11 +132,17 @@ App::~App()
   if(m_kernelSSAO)
     delete m_kernelSSAO;
 
+  if(m_kernelSSAO_Visibility)
+    delete m_kernelSSAO_Visibility;
+
   if(m_kernelBlur)
     delete m_kernelBlur;
 
   if(m_kernelCombine)
     delete m_kernelCombine;
+
+  if(m_kernelVoxelization)
+    delete m_kernelVoxelization;
 
 
 #ifdef TIME_TEST
@@ -170,7 +185,13 @@ void App::initGL(int *argc, char *argv[])
   m_argc = *argc;
   m_argv = argv;
 }
-
+GLuint * voxData;
+bool voxelize = true;
+int voxelizeCont;
+GLTextureObject texObj;
+Vector3 camPos, camAt, camUp;
+GLfloat projectionMatrix[16];
+GLfloat modelviewMatrix[16];
 void App::loadResources()
 {
   loadArgs();
@@ -197,6 +218,76 @@ void App::render()
   if(!m_shader_active)
   {
     drawScene();
+  }else if(m_vox_ssao_active)
+  {
+    if(voxelize)
+    {
+      glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
+      glGetFloatv(GL_MODELVIEW_MATRIX, modelviewMatrix);
+
+      m_kernelVoxelization->setActive(true, projectionMatrix);
+      glPushAttrib(GL_ALL_ATTRIB_BITS);
+      
+      glClearColor(0,0,0,0);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+      //glEnableIndexedEXT(GL_BLEND, 0);
+
+      glEnable(GL_DEPTH_CLAMP_NV);//ONLY WORKS ON NVIDIA!!!!!!!!!!!
+      glEnable(GL_COLOR_LOGIC_OP);
+      glDisable(GL_DEPTH_TEST);
+      glLogicOp(GL_XOR);
+
+      drawScene();
+
+      glPopAttrib();
+      m_kernelVoxelization->setActive(false);
+      //m_kernelVoxelization->renderOutput(2);
+
+      texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(1));
+      voxData = texObj.read2DTextureUIntRGBAData();
+      //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
+      //GLfloat* f = t2.read2DTextureFloatRGBAData();
+
+      voxelize = voxelizeCont < 1;
+      voxelizeCont++;
+      camPos = m_camHandler->getPos();
+      camAt = m_camHandler->getAt();
+      camUp = m_camHandler->getUp();
+    }else
+    {
+      glMatrixMode (GL_PROJECTION);
+      glPushMatrix();
+      glLoadIdentity ();
+      gluPerspective(m_fov, (GLfloat)m_appWidth / (GLfloat)m_appHeight, 0.0001, 1000.);
+      glMatrixMode (GL_MODELVIEW);
+      glPushMatrix();
+
+      glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
+
+      m_camHandler->setMinerLightOn(m_minerLight_on);
+      m_camHandler->renderMinerLight();
+      m_rtScene->setSceneLightEnabled(m_lights_on);
+      m_rtScene->setMaterialActive(true, 2);
+      m_rtScene->setLightActive(true);
+
+      m_kernelVoxelization->renderVoxelization(voxData, m_rtScene->getSceneBoundingBoxSize(), 
+        m_rtScene->getSceneBoundingBoxCenter(), 
+        camPos, camAt, camUp, projectionMatrix, modelviewMatrix, m_renderMode);
+
+      m_rtScene->setLightActive(false);
+      m_rtScene->setMaterialActive(false, 2);
+      glPopAttrib();
+
+      glPopMatrix();
+      glMatrixMode (GL_PROJECTION);
+      glPopMatrix();
+      glMatrixMode (GL_MODELVIEW);
+
+      //glPushAttrib(GL_ALL_ATTRIB_BITS);
+      //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      //drawScene();
+      //glPopAttrib();
+    }
   }else
   {
 #ifdef TIME_TEST
@@ -214,11 +305,9 @@ void App::render()
 #ifdef TIME_TEST
   timeTest.kColorTime += timeTest.getTime();    
 #endif
-    
 
     GLfloat projectionMatrix[16];
     glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
-
 
 #ifdef TIME_TEST
     timeTest.resetTimer();
@@ -244,7 +333,10 @@ void App::render()
     timeTest.resetTimer();
 #endif
     //SSAO PASS
-    m_kernelSSAO->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
+    if(m_ssao_visibility)
+      m_kernelSSAO_Visibility->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
+    else
+      m_kernelSSAO->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
 #ifdef TIME_TEST
     timeTest.kSSAOTime += timeTest.getTime();
 #endif
@@ -254,7 +346,13 @@ void App::render()
 #endif
     //BLURR PASS
     if(m_blurr_on)
+    {
+      if(m_ssao_visibility)
+        m_kernelBlur->setInputTexId(m_kernelSSAO_Visibility->getColorTexId());
+      else
+        m_kernelBlur->setInputTexId(m_kernelSSAO->getColorTexId());
       m_kernelBlur->step(1);
+    }
 #ifdef TIME_TEST
     timeTest.kBlurTime += timeTest.getTime();
 #endif
@@ -265,7 +363,10 @@ void App::render()
     //COMBINE PASS
     if(m_blurr_on)
       m_kernelCombine->step(m_kernelBlur->getBlurredTexId());
-    else m_kernelCombine->step(m_kernelSSAO->getColorTexId());
+    else if(m_ssao_visibility)
+     m_kernelCombine->step(m_kernelSSAO_Visibility->getColorTexId());
+    else
+      m_kernelCombine->step(m_kernelSSAO->getColorTexId());
 #ifdef TIME_TEST
     timeTest.kCombineTime += timeTest.getTime();
 #endif
@@ -310,6 +411,11 @@ void App::listenKeyboard( int key )
     exit(42);
     break;
 
+  case 'V':
+  case 'v':
+    m_renderMode = !m_renderMode;
+    break;
+
   case 'M':
   case 'm':
     m_minerLight_on = !m_minerLight_on;
@@ -352,8 +458,10 @@ void App::listenKeyboard( int key )
     m_kernelDeferred_Peeling->reloadShader();
     m_kernelColor->reloadShader();
     m_kernelSSAO->reloadShader();
+    m_kernelSSAO_Visibility->reloadShader();
     m_kernelBlur->reloadShader();
     m_kernelCombine->reloadShader();
+    m_kernelVoxelization->reloadShader();
     break;
 
   case 'I':
@@ -389,6 +497,21 @@ void App::listenKeyboardSpecial( int key )
     m_pixelmaskSize = .8;
     m_offsetSize = 5.0;
     m_intensity = 20.0;
+    m_ssao_visibility = false;
+    m_vox_ssao_active = false;
+    break;
+
+  case 6: //F6
+    m_rfar = .01f;
+    m_intensity = 1.0;
+    m_ssao_visibility = true;
+    m_vox_ssao_active = false;
+    break;
+  
+  case 7: //F7
+    voxelize = true;
+    voxelizeCont = 0;
+    m_vox_ssao_active = true;
     break;
 
   case 10: //F10
@@ -573,8 +696,16 @@ void App::loadKernels()
     ,m_kernelDeferred_Peeling->getTexIdNormal(2)
     );
 
+
+  m_kernelSSAO_Visibility = new KernelSSAO_Visibility((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelDeferred_Peeling->getTexIdNormal(0)
+    );
+
   m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelSSAO->getColorTexId());
   m_kernelCombine = new KernelCombine((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelColor->getTexIdColor());
+
+  //CREATE GRID FUNCTION TEXTURE
+  m_kernelVoxelization = new KernelVoxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, 1, 0);
 }
 
 void App::drawScene()

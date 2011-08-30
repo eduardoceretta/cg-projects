@@ -228,8 +228,8 @@ void ScScene::setMaterialActive( bool op , int index)
   if(op)
   {
     glPushAttrib(GL_LIGHTING_BIT);
-    m_materials[m_meshes[index].getMaterialIndex()].configure();
-    m_materials[m_meshes[index].getMaterialIndex()].render();
+    m_materials[index].configure();
+    m_materials[index].render();
   }else
   {
     glPopAttrib();
