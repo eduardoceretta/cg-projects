@@ -41,8 +41,10 @@ class Frames;
 class KernelColor;
 class KernelDeferred_Peeling;
 class KernelSSAO;
+class KernelSSAO_Visibility;
 class KernelBlur;
 class KernelCombine;
+class KernelVoxelization;
 
 using namespace std;
 
@@ -96,8 +98,10 @@ class App
   KernelColor* m_kernelColor;
   KernelDeferred_Peeling* m_kernelDeferred_Peeling;
   KernelSSAO* m_kernelSSAO;
+  KernelSSAO_Visibility* m_kernelSSAO_Visibility;
   KernelBlur* m_kernelBlur;
   KernelCombine* m_kernelCombine;
+  KernelVoxelization* m_kernelVoxelization;
 
   /**
    * Interface control
@@ -108,6 +112,7 @@ class App
   bool m_wireframe_on;
   bool m_shader_on;
   bool m_shader_active;
+  float m_renderMode;
 
   /**
    * Algorithm Parameters
@@ -118,6 +123,8 @@ class App
   float m_intensity;
   int m_numPeelings;
   bool m_blurr_on;
+  bool m_ssao_visibility;
+  bool m_vox_ssao_active;
 
   /**
    * Debug

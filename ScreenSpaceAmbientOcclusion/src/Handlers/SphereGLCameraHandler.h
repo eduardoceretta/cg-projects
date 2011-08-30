@@ -20,7 +20,7 @@ protected:
    * Camera World Position
    */
   Vector3 m_pos;
- 
+
   /**
    * Camera LookAt Position
    */
@@ -101,10 +101,17 @@ public:
   void setSphereAlpha(float alpha);
   void setSphereBeta(float beta);
   void setSphereRadius(float radius);
+  void setPos(Vector3 val);
+  void setAt(Vector3 val);
+  void setUp(Vector3 val);
 
   float getSphereAlpha() const;
   float getSphereBeta() const;
   float getSphereRadius() const;
+  Vector3 getPos() const;
+  Vector3 getAt() const;
+  Vector3 getUp() const;
+
 
   /**
    * Get the Miner Light Pointer

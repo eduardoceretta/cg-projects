@@ -177,7 +177,7 @@ void ScreenShotTest::save(GLint texid, string type /*= ""*/)
   sprintf(date, "_%d_%d_%d-%d_%d_%d-%ld", ttm->tm_year + 1900, ttm->tm_mon, ttm->tm_mday,
                                          ttm->tm_hour, ttm->tm_min, ttm->tm_sec, clock());
   string fileName = string("screen_") + type + string(date) + ".png";
-  m_texDebug->writeToFile(fileName);
+  m_texDebug->write2DToFile(fileName);
   
   TestLogger::inst()->logLine(string("ScreenShot Test - Created File: ") + fileName);
 }

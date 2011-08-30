@@ -57,19 +57,19 @@ public:
   /**
    * Activate/Deactivate the Kernel's FBO and shader
    */
-  void setActive(bool op);
+  virtual void setActive(bool op);
 
   /**
    * Activate/Deactivate the Kernel's shader
    */
-  void setActiveShaderOnly(bool op);
+  virtual void setActiveShaderOnly(bool op);
 
   /**
    * Does a kernel pass cycle.
    *  Activate the FBO and shader, bind the input texture, draw a screen quad
    *  and deactivate the shader and the FBO.
    */
-  void step();
+  virtual void step();
 
   /**
    * Return the Texture ID of the respective index.

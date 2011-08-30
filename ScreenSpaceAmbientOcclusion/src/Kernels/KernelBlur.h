@@ -23,6 +23,11 @@ public:
    * Destroy the kernel
    */
 	~KernelBlur();
+  
+  /**
+   * Set the input texture ID to be blurred
+   */
+  void setInputTexId(GLuint inputTexId);
  
   /**
    * Get the blurred output texture id

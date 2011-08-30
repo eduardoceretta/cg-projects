@@ -162,3 +162,33 @@ float SphereGLCameraHandler::getSphereRadius() const
 {
   return m_r;
 }
+
+Vector3 SphereGLCameraHandler::getPos() const
+{
+  return m_pos + m_at;
+}
+
+void SphereGLCameraHandler::setPos( Vector3 val )
+{
+  m_pos = val;
+}
+
+Vector3 SphereGLCameraHandler::getAt() const
+{
+  return m_at;
+}
+
+void SphereGLCameraHandler::setAt( Vector3 val )
+{
+  m_at = val;
+}
+
+Vector3 SphereGLCameraHandler::getUp() const
+{
+  return m_up;
+}
+
+void SphereGLCameraHandler::setUp( Vector3 val )
+{
+  m_up = val;
+}

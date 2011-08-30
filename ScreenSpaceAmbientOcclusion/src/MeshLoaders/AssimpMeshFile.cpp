@@ -168,7 +168,7 @@ void  AssimpMeshFile:: createVbo(struct aiNode* nd, GLfloat * vList, GLfloat * n
       nList[vertexOffset + i*3+1] = normal.y;
       nList[vertexOffset + i*3+2] = normal.z;
 
-      m_bb_min.x = min(vList[vertexOffset + i*3]  , m_bb_min.x);
+      m_bb_min.x =min(vList[vertexOffset + i*3]  , m_bb_min.x);
       m_bb_min.y = min(vList[vertexOffset + i*3+1], m_bb_min.y);
       m_bb_min.z = min(vList[vertexOffset + i*3+2], m_bb_min.z);
 

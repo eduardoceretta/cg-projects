@@ -236,12 +236,22 @@ Vector3 Matrix4 :: operator* (const Vector3& v) const
 {
    Vector3 aux(m_mat[0][0]*v.x + m_mat[0][1]*v.y + m_mat[0][2]*v.z  + m_mat[0][3],
                m_mat[1][0]*v.x + m_mat[1][1]*v.y + m_mat[1][2]*v.z  + m_mat[1][3],
-               m_mat[2][0]*v.x + m_mat[2][1]*v.y + m_mat[2][2]*v.z  + m_mat[2][3]  );
+               m_mat[2][0]*v.x + m_mat[2][1]*v.y + m_mat[2][2]*v.z  + m_mat[2][3] );
    return aux;
 }
 
+Vector4 Matrix4::operator*( const Vector4& v ) const
+{
+  return Vector4(
+    m_mat[0][0]*v.x + m_mat[0][1]*v.y + m_mat[0][2]*v.z  + m_mat[0][3]*v.w,
+    m_mat[1][0]*v.x + m_mat[1][1]*v.y + m_mat[1][2]*v.z  + m_mat[1][3]*v.w,
+    m_mat[2][0]*v.x + m_mat[2][1]*v.y + m_mat[2][2]*v.z  + m_mat[2][3]*v.w,
+    m_mat[3][0]*v.x + m_mat[3][1]*v.y + m_mat[3][2]*v.z  + m_mat[3][3]*v.w);
+}
 
-void Matrix4::Inverse()
+
+
+void Matrix4::Invert()
 {
   float Adj[16];    // Cofactors and adjoint matrix
   float Det2x2[12]; // 2x2 sub matrix determinants
@@ -348,6 +358,7 @@ void Matrix4::Transpose()
   swap((double*)m_mat,7,13);
   swap((double*)m_mat,11,14);
 }
+
 
 
 
