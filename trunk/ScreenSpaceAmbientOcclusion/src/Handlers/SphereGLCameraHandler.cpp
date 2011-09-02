@@ -60,6 +60,9 @@ void SphereGLCameraHandler::listenMouseMove(float x, float y)
   }
   else if(m_mouseButton == GLUT_RIGHT_BUTTON && m_mouseState == GLUT_DOWN){
     m_r += (y - m_lastMousePosY)*m_rinc;
+  }else if(m_mouseButton == GLUT_MIDDLE_BUTTON && m_mouseState == GLUT_DOWN){
+    m_at += (m_up^m_pos).unitary()*(m_lastMousePosX - x)*m_rinc;
+    m_at += ((m_up^m_pos)^m_pos).unitary()*(y - m_lastMousePosY)*-m_rinc;
   }
   m_lastMousePosX = x;
   m_lastMousePosY = y;
@@ -91,7 +94,7 @@ void SphereGLCameraHandler::render()
             m_at.x, m_at.y, m_at.z,
             m_up.x, m_up.y, m_up.z);
 
-  m_minerLight->setPosition(m_pos);
+  m_minerLight->setPosition(m_pos + m_at);
   renderMinerLight();
 }
 

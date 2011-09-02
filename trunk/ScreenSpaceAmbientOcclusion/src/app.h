@@ -44,6 +44,7 @@ class KernelSSAO;
 class KernelSSAO_Visibility;
 class KernelBlur;
 class KernelCombine;
+class KernelVoxDepth;
 class KernelVoxelization;
 
 using namespace std;
@@ -101,6 +102,7 @@ class App
   KernelSSAO_Visibility* m_kernelSSAO_Visibility;
   KernelBlur* m_kernelBlur;
   KernelCombine* m_kernelCombine;
+  KernelVoxDepth* m_kernelVoxDepth;
   KernelVoxelization* m_kernelVoxelization;
 
   /**
@@ -112,11 +114,14 @@ class App
   bool m_wireframe_on;
   bool m_shader_on;
   bool m_shader_active;
-  float m_renderMode;
+  bool m_updateCamHandler;
+  bool m_orthographicProjection_on;
+  
 
   /**
    * Algorithm Parameters
    */
+  int m_voxTexGridFuncPower;
   float m_rfar;
   float m_pixelmaskSize;
   float m_offsetSize;

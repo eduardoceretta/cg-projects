@@ -84,29 +84,71 @@ GLuint GLTextureObject :: readTextureHeight()
   return textureHeight;
 }
 
-GLfloat* GLTextureObject :: read2DTextureFloatRGBAData()
+GLuint GLTextureObject::readTextureNumColors()
+{
+  GLint rs, gs, bs, as, ls, is;
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(m_target);
+  glBindTexture(m_target, m_id);
+  glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_RED_SIZE, &rs);
+  glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_GREEN_SIZE, &gs);
+  glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_BLUE_SIZE, &bs);
+  glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_ALPHA_SIZE, &as);
+  glPopAttrib();
+  return int(rs!=0) + int(gs!=0) + int(gs!=0) + int(as!=0);
+}
+GLfloat* GLTextureObject::read1DTextureFloatData(GLenum format /*= GL_RGBA*/)
 {
   if(!m_fbuffer)
-    m_fbuffer = new GLfloat[readTextureWidth()*readTextureHeight()*4];
+    m_fbuffer = new GLfloat[readTextureWidth()*readTextureNumColors()];
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(GL_TEXTURE_1D);
+  glBindTexture(GL_TEXTURE_1D, m_id);
+
+  glGetTexImage(GL_TEXTURE_1D, 0, format, GL_FLOAT, m_fbuffer);
+  glBindTexture(GL_TEXTURE_1D, 0);
+  glPopAttrib();
+  return m_fbuffer;
+}
+GLfloat* GLTextureObject :: read2DTextureFloatData(GLenum format /*= GL_RGBA*/)
+{
+  if(!m_fbuffer)
+    m_fbuffer = new GLfloat[readTextureWidth()*readTextureHeight()*readTextureNumColors()];
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, m_id);
 
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, m_fbuffer);
+  glGetTexImage(GL_TEXTURE_2D, 0, format, GL_FLOAT, m_fbuffer);
   glBindTexture(GL_TEXTURE_2D, 0);
   glPopAttrib();
   return m_fbuffer;
 }
 
-GLuint* GLTextureObject :: read2DTextureUIntRGBAData()
+
+GLuint* GLTextureObject::read1DTextureUIntData(GLenum format /*= GL_RGBA_INTEGER_EXT*/)
 {
   if(!m_uibuffer)
-    m_uibuffer = new GLuint[readTextureWidth()*readTextureHeight()*4];
+    m_uibuffer = new GLuint[readTextureWidth()*readTextureNumColors()];
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
+  glEnable(GL_TEXTURE_1D);
+  glBindTexture(GL_TEXTURE_1D, m_id);
+
+  glGetTexImage(GL_TEXTURE_1D, 0, format, GL_UNSIGNED_INT, m_uibuffer);
+  glBindTexture(GL_TEXTURE_1D, 0);
+  glPopAttrib();
+  return m_uibuffer;
+}
+
+
+GLuint* GLTextureObject :: read2DTextureUIntData(GLenum format /*= GL_RGBA_INTEGER_EXT*/)
+{
+  if(!m_uibuffer)
+    m_uibuffer = new GLuint[readTextureWidth()*readTextureHeight()*readTextureNumColors()];
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, m_id);
 
-  glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT, m_uibuffer);
+  glGetTexImage(GL_TEXTURE_2D, 0, format, GL_UNSIGNED_INT, m_uibuffer);
   glBindTexture(GL_TEXTURE_2D, 0);
   glPopAttrib();
   return m_uibuffer;
@@ -147,7 +189,7 @@ void GLTextureObject::write2DToFile(string fileName, ImageFileType fileType /*= 
 {
   int w = readTextureWidth();
   int h = readTextureHeight();
-  float *data = read2DTextureFloatRGBAData();
+  float *data = read2DTextureFloatData();
 
   int bpp;
   FREE_IMAGE_FORMAT fif;
@@ -270,3 +312,7 @@ void GLTextureObject::createFBODataTexture(int width, int height)
   setFilters(GL_NEAREST, GL_NEAREST);
   setWraps(GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
 }
+
+
+
+

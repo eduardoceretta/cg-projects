@@ -11,6 +11,8 @@
 #define _KERNEL_VOXELIZATION_H_
 
 #include "Kernels/KernelBase.h"
+#include "GLUtils/GLTextureObject.h"
+#include "GLUtils/GLProjectionMatrix.h"
 #include <vector>
 
 using namespace std;
@@ -27,7 +29,7 @@ public:
    * Create the kernel, the textures of the grid and the model information.
    *  Size is the grid dimensions number of textures (depends of the number of render targets)
    */
-  KernelVoxelization(char* path, int width, int height, int size, GLuint gridFuncTexId);
+  KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyeNearest);
 	
   /**
    * Destroy the kernel
@@ -41,23 +43,36 @@ public:
   GLuint getTexIdColor(int index) const;
   GLuint getTexIdGrid0(int index) const;
 
-  
+  /**
+   * Get Voxelization Render Bounding Box
+   */
+  Vector3 getVoxBBMin();
+  Vector3 getVoxBBMax();
+  int getRenderMode() const;
+  void setRenderMode(int val);
+
+
   /**
    * Activate/Deactivate the Kernel's FBO and shader
    *  Calculate the projection parameters needed by the shader
    */
-  void setActive(bool op, GLfloat *projectionMatrix = NULL);
+  void setActive(bool op);
 
   /**
    * Activate/Deactivate the Kernel's shader
    *  Calculate the projection parameters needed by the shader
    */
-  void setActiveShaderOnly(bool op, GLfloat *projectionMatrix = NULL);
+  void setActiveShaderOnly(bool op);
   
   /**
    * Render the voxelization done by the algorithm.
    */
-  void renderVoxelization(GLuint *data, Vector3 sizeBB, Vector3 centerBB, Vector3 camPos, Vector3 camAt, Vector3 camUp, GLfloat *projection, GLfloat* modelviewMatrix, float fov);
+  void renderVoxelization();
+
+  /**
+   * Changes the Grid Function
+   */
+  void reloadGridFuncTextures(float power);
 private:
   /**
    * Create the grid size texture.
@@ -66,15 +81,26 @@ private:
   void createGridBitMapTexture();
 
   /**
-   * Create the grid function texture.
+   * Create the grid function textures[Normal and Inverse].
    *  Maps the normalized distance to the respective normalized index of the grid.
+   *  Power is a function modificator
    */
-  void createGridFuncTexture();
+  void createGridFuncTextures(float power);
 
   /**
    *  Render the Camera Frustum	
    */
-  void renderFrustum(GLfloat* projectionMatrix, GLfloat* modelviewMatrix);
+  void renderFrustum();
+
+  /**
+   * Calculate the BoundingBox
+   */
+  void updateBB();
+
+  /**
+   * Update Voxelization Texture and bring it to main memory
+   */
+  void updateData();
 
   /**
    * Grid Dimensions	
@@ -90,16 +116,40 @@ private:
   GLuint m_texIdColor;
   GLuint m_texIdGrid0;
 
+  GLTextureObject m_texObj;
+
+  /**
+   * Voxelization Render Parameters	
+   */
+  int m_renderMode;
+  bool m_BBCalculated;
+  float m_far;
+  float m_top;
+  float m_near;
+  float m_right;
+  Vector3 m_voxBBMin;
+  Vector3 m_voxBBMax;
+  GLuint* m_voxData;
+  GLProjectionMatrix m_projectionMatrix;
+  GLfloat m_modelviewMatrix[16];
+  int m_stepX;
+  int m_stepY;
+  int m_stepZ;
+
   
   /**
    * Input textures ids of the grid information
    */
+  GLuint m_texIdEyeNearest;
+
   GLuint m_texIdGridBitMap;
   int m_gridBitMapWidth;
   int m_gridBitMapHeight;
 
   GLuint m_texIdGridFunc;
+  GLuint m_texIdGridInvFunc;
   int m_gridFuncWidth;
+  
 };
 
 
