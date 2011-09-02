@@ -111,7 +111,15 @@ void main()
     vec4 position = texture2D(positionTex,  gl_TexCoord[0].st);
     position.w = getSphere(gl_FragCoord.x , gl_FragCoord.y , depth).w;
   #endif
+  
+  //vec4 sphere_l = getSphere(gl_FragCoord.x + 1, gl_FragCoord.y, texture2D(depth0_normalTex,  gl_TexCoord[0].st + vec2(1./screenWidth,0)).a);
+  //vec4 sphere_d = getSphere(gl_FragCoord.x, gl_FragCoord.y + 1, texture2D(depth0_normalTex,  gl_TexCoord[0].st + vec2(0, 1./screenHeight)).a);
+  //depth0_normal.xyz = normalize(cross((sphere_l.xyz - position.xyz), (sphere_d.xyz - position.xyz))); 
+  
   position = position/far;
+
+  
+  
 
   // Do nothing if the depth value is negative
 	if(depth < 0.0)
