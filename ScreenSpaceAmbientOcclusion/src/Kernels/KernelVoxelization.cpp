@@ -9,24 +9,41 @@
  */
 
 #include "KernelVoxelization.h"
-#include "GLUtils/GLTextureObject.h"
 #include <cmath>
+#include <limits>
 
 #include "MathUtils/Matrix4.h"
 #include "MathUtils/Vector4.h"
+#include "GLUtils/GLProjectionMatrix.h"
 
 #define UINT_BIT_SIZE 32
+#define VOXELIZATION_BITMAP_FULLONE 
 
-KernelVoxelization::KernelVoxelization(char* path, int width, int height, int size, GLuint gridFuncTexId)
+KernelVoxelization::KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyeNearest)
 : KernelBase(path, "voxelization.vert", "voxelization.frag", width, height)
 ,m_width(width)
 ,m_height(height)
 ,m_depth(size*UINT_BIT_SIZE)
+,m_renderMode(0)
+,m_BBCalculated(false)
+,m_far(0.0f)
+,m_top(0.0f)
+,m_near(0.0f)
+,m_right(0.0f)
+,m_voxBBMin(0,0,0)
+,m_voxBBMax(1,1,1)
+,m_voxData(NULL)
+,m_projectionMatrix(GLProjectionMatrix())
+,m_texObj(GLTextureObject())
+,m_stepX(1)
+,m_stepY(1)
+,m_stepZ(1)
+,m_texIdEyeNearest(texIdEyeNearest)
 {
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
   createGridBitMapTexture();
-  createGridFuncTexture();
+  createGridFuncTextures(4.0f);
 
   GLTextureObject t;
   t.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
@@ -55,8 +72,11 @@ KernelVoxelization::KernelVoxelization(char* path, int width, int height, int si
     addInputFloat("gridBitMapWidth", (float)m_gridBitMapWidth);
     addInputFloat("gridBitMapHeight", (float)m_gridBitMapHeight);
     addInputFloat("gridFuncWidth", (float)m_gridFuncWidth);
+    
+    addInputTexture(GL_TEXTURE_2D, "eyeNearest", m_texIdEyeNearest);
     addInputTexture(GL_TEXTURE_2D, "gridBitMap", m_texIdGridBitMap);
     addInputTexture(GL_TEXTURE_1D, "gridFunction", m_texIdGridFunc);
+    addInputTexture(GL_TEXTURE_1D, "gridInvFunction", m_texIdGridInvFunc);
 	m_shader->setActive(false);
 }
 
@@ -81,50 +101,83 @@ GLuint KernelVoxelization::getTexIdGrid0(int index) const
   return m_texIdGrid0;
 }
 
-void KernelVoxelization::setActive(bool op, GLfloat *projectionMatrix)
+void KernelVoxelization::setActive(bool op)
 {
-  if(op && projectionMatrix)
+  m_BBCalculated = false;
+  if(op)
   {
-    float x = projectionMatrix[0*4+0];
-    float y = projectionMatrix[1*4+1];
-    float z = projectionMatrix[2*4+2];
-    float w = projectionMatrix[3*4+2];
-    float z_near = w/(z - 1.0);
-    float z_far = w * z_near/(w + 2.0 * z_near);
-    float right = z_near/x;
-    float top = z_near/y;
+    m_voxData = NULL;
+    glGetFloatv(GL_MODELVIEW_MATRIX, m_modelviewMatrix);
+    m_projectionMatrix.readGLProjection();
+    m_near = m_projectionMatrix.getNear();
+    m_far = m_projectionMatrix.getFar();
+    m_right = m_projectionMatrix.getRight();
+    m_top = m_projectionMatrix.getTop();
 
     m_shader->setActive(true);
-    addInputFloat("near", z_near);
-    addInputFloat("far", z_far);
-    addInputFloat("right", right);
-    addInputFloat("top", top);
+    addInputFloat("near", m_near);
+    addInputFloat("far", m_far);
+    addInputFloat("right", m_right);
+    addInputFloat("top", m_top);
     m_shader->setActive(false);
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+  }else
+  {
+    glPopAttrib();
   }
+
   KernelBase::setActive(op);
+
+  if(op)
+  {
+    glClearColor(0,0,0,0);
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    //glEnableIndexedEXT(GL_BLEND, 0);
+
+    glEnable(GL_DEPTH_CLAMP_NV);//ONLY WORKS ON NVIDIA!!!!!!!!!!!
+    glEnable(GL_COLOR_LOGIC_OP);
+    glDisable(GL_DEPTH_TEST);
+    glLogicOp(GL_XOR);
+  }
 }
 
-void KernelVoxelization::setActiveShaderOnly( bool op, GLfloat *projectionMatrix)
+void KernelVoxelization::setActiveShaderOnly( bool op)
 {
-  if(op && projectionMatrix)
+  m_BBCalculated = false;
+  if(op)
   {
-    float x = projectionMatrix[0*4+0];
-    float y = projectionMatrix[1*4+1];
-    float z = projectionMatrix[2*4+2];
-    float w = projectionMatrix[3*4+2];
-    float z_near = w/(z - 1.0);
-    float z_far = w * z_near/(w + 2.0 * z_near);
-    float right = z_near/x;
-    float top = z_near/y;
+    glGetFloatv(GL_MODELVIEW_MATRIX, m_modelviewMatrix);
+    m_projectionMatrix.readGLProjection();
+    m_near = m_projectionMatrix.getNear();
+    m_far = m_projectionMatrix.getFar();
+    m_right = m_projectionMatrix.getRight();
+    m_top = m_projectionMatrix.getTop();
 
     m_shader->setActive(true);
-      addInputFloat("near", z_near);
-      addInputFloat("far", z_far);
-      addInputFloat("right", right);
-      addInputFloat("top", top);
+    addInputFloat("near", m_near);
+    addInputFloat("far", m_far);
+    addInputFloat("right", m_right);
+    addInputFloat("top", m_top);
     m_shader->setActive(false);
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+  }else
+  {
+    glPopAttrib();
   }
+
   KernelBase::setActiveShaderOnly(op);
+
+  if(op)
+  {
+    glClearColor(0,0,0,0);
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    //glEnableIndexedEXT(GL_BLEND, 0);
+
+    glEnable(GL_DEPTH_CLAMP_NV);//ONLY WORKS ON NVIDIA!!!!!!!!!!!
+    glEnable(GL_COLOR_LOGIC_OP);
+    glDisable(GL_DEPTH_TEST);
+    glLogicOp(GL_XOR);
+  }
 }
 
 void printBitLine(unsigned int v)
@@ -159,7 +212,7 @@ bool isBitActive(unsigned int v, int index)
   return v&i;
 }
 
-#define FULL_ONE 
+
 void KernelVoxelization::createGridBitMapTexture()
 {
   int texsize = m_depth*4*4;
@@ -168,7 +221,7 @@ void KernelVoxelization::createGridBitMapTexture()
   for(unsigned int i = 0; i < (unsigned int)m_depth; ++i)
   {
     
-#ifdef FULL_ONE
+#ifdef VOXELIZATION_BITMAP_FULLONE
     unsigned int v = ~0 << (m_depth%UINT_BIT_SIZE - 1 - i);
 #else
     unsigned int v = 1 << (m_depth%UINT_BIT_SIZE - 1 - i);
@@ -181,7 +234,7 @@ void KernelVoxelization::createGridBitMapTexture()
       for(int k = j+1; k < 4 ;++k)
         texData[4*(i+UINT_BIT_SIZE*j)+k] = *((float*)&v);
 
-#ifdef FULL_ONE
+#ifdef VOXELIZATION_BITMAP_FULLONE
     v = ~0;
 #endif // FULL_ONE
     for(int j = 0; j < 3;++j) //Down Triangle
@@ -214,7 +267,7 @@ void KernelVoxelization::createGridBitMapTexture()
 
 
 
-void KernelVoxelization::createGridFuncTexture()
+void KernelVoxelization::createGridFuncTextures(float power)
 {
   GLint max_tex_size;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
@@ -225,9 +278,8 @@ void KernelVoxelization::createGridFuncTexture()
   for(int i = 0; i < m_gridFuncWidth; ++i)
   {
     float value = float(i)/(m_gridFuncWidth-1); 
-    texData[i] = value*value;
+    texData[i] = pow(value,power);
   }
-
 
   GLTextureObject t;
   t.createTexture1D(m_gridFuncWidth, GL_ALPHA32F_ARB, GL_ALPHA, GL_FLOAT, texData);
@@ -235,28 +287,39 @@ void KernelVoxelization::createGridFuncTexture()
   t.setWraps(GL_CLAMP_TO_EDGE);
   m_texIdGridFunc = t.getId();
 
+  for(int i = 0; i < m_gridFuncWidth; ++i)
+  {
+    float value = float(i)/(m_gridFuncWidth-1); 
+    texData[i] = pow(value, 1.0f/power);
+  }
+
+  t.createTexture1D(m_gridFuncWidth, GL_ALPHA32F_ARB, GL_ALPHA, GL_FLOAT, texData);
+  t.setFilters(GL_NEAREST, GL_NEAREST);
+  t.setWraps(GL_CLAMP_TO_EDGE);
+  m_texIdGridInvFunc = t.getId();
+
   delete [] texData;
 }
 
-void KernelVoxelization::renderFrustum(GLfloat* projectionMatrix, 
-                                       GLfloat* modelviewMatrix)
+
+void KernelVoxelization::reloadGridFuncTextures( float power )
 {
-  Matrix4 mvInvT(modelviewMatrix);
+  createGridFuncTextures(power);
+  m_shader->setActive(true);
+    addInputTexture(GL_TEXTURE_1D, "gridFunction", m_texIdGridFunc);
+    addInputTexture(GL_TEXTURE_1D, "gridInvFunction", m_texIdGridInvFunc);
+  m_shader->setActive(false);
+}
+
+void KernelVoxelization::renderFrustum()
+{
+  Matrix4 mvInvT(m_modelviewMatrix);
   mvInvT.Invert();
   mvInvT.Transpose();
 
-  Matrix4 prjInvT(projectionMatrix);
+  Matrix4 prjInvT(m_projectionMatrix);
   prjInvT.Invert();
   prjInvT.Transpose();
-
-  float px = projectionMatrix[0*4+0];
-  float py = projectionMatrix[1*4+1];
-  float pz = projectionMatrix[2*4+2];
-  float pw = projectionMatrix[3*4+2];
-  float z_near = pw/(pz - 1.0);
-  float z_far = pw * z_near/(pw + 2.0 * z_near);
-  float right = z_near/px;
-  float top = z_near/py;
   
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glDisable(GL_LIGHTING);
@@ -274,173 +337,215 @@ void KernelVoxelization::renderFrustum(GLfloat* projectionMatrix,
 
   glBegin(GL_LINE_STRIP);
     glColor3f(1,0,0);
-    p = mvInvT*Vector3(right, top, -z_near);
+    p = mvInvT*Vector3(m_right, m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(-right, top, -z_near);
+    p = mvInvT*Vector3(-m_right, m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(-right, -top, -z_near);
+    p = mvInvT*Vector3(-m_right, -m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(right, -top, -z_near);
-    glVertex3f(p.x, p.y, p.z);
-
-    p = mvInvT*Vector3(right, top, -z_near);
+    p = mvInvT*Vector3(m_right, -m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
 
-    float c = z_far/z_near;
-    p = mvInvT*Vector3(right*c, top*c, -z_far);
-    glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(-right*c, top*c, -z_far);
-    glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(-right*c, -top*c, -z_far);
-    glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(right*c, -top*c, -z_far);
+    p = mvInvT*Vector3(m_right, m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
 
-    p = mvInvT*Vector3(right*c, top*c, -z_far);
+    float c;
+    if(m_projectionMatrix.isOrthographic())
+      c = 1.0f;
+    else c = m_far/m_near;
+    p = mvInvT*Vector3(m_right*c, m_top*c, -m_far);
+    glVertex3f(p.x, p.y, p.z);
+    p = mvInvT*Vector3(-m_right*c, m_top*c, -m_far);
+    glVertex3f(p.x, p.y, p.z);
+    p = mvInvT*Vector3(-m_right*c, -m_top*c, -m_far);
+    glVertex3f(p.x, p.y, p.z);
+    p = mvInvT*Vector3(m_right*c, -m_top*c, -m_far);
+    glVertex3f(p.x, p.y, p.z);
+
+    p = mvInvT*Vector3(m_right*c, m_top*c, -m_far);
     glVertex3f(p.x, p.y, p.z);
   glEnd();
 
   glBegin(GL_LINES);
     glColor3f(1,0,0);
-    p = mvInvT*Vector3(-right, top, -z_near);
+    p = mvInvT*Vector3(-m_right, m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(-right*c, top*c, -z_far);
-    glVertex3f(p.x, p.y, p.z);
-
-
-    p = mvInvT*Vector3(-right, -top, -z_near);
-    glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(-right*c, -top*c, -z_far);
+    p = mvInvT*Vector3(-m_right*c, m_top*c, -m_far);
     glVertex3f(p.x, p.y, p.z);
 
-    p = mvInvT*Vector3(right, -top, -z_near);
+
+    p = mvInvT*Vector3(-m_right, -m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(right*c, -top*c, -z_far);
+    p = mvInvT*Vector3(-m_right*c, -m_top*c, -m_far);
     glVertex3f(p.x, p.y, p.z);
 
-    p = mvInvT*Vector3(right, top, -z_near);
+    p = mvInvT*Vector3(m_right, -m_top, -m_near);
     glVertex3f(p.x, p.y, p.z);
-    p = mvInvT*Vector3(right*c, top*c, -z_far);
+    p = mvInvT*Vector3(m_right*c, -m_top*c, -m_far);
+    glVertex3f(p.x, p.y, p.z);
+
+    p = mvInvT*Vector3(m_right, m_top, -m_near);
+    glVertex3f(p.x, p.y, p.z);
+    p = mvInvT*Vector3(m_right*c, m_top*c, -m_far);
     glVertex3f(p.x, p.y, p.z);
   glEnd();
   glPopMatrix();
   glPopAttrib();
 }
 
-//#define RENDER_UNPROJECT
-void KernelVoxelization::renderVoxelization(GLuint  *data, Vector3 sizeBB, Vector3 centerBB, 
-                                            Vector3 camPos, Vector3 camAt, Vector3 camUp, 
-                                            GLfloat* projectionMatrix, 
-                                            GLfloat* modelviewMatrix,
-                                            float fovy)
+
+void KernelVoxelization::renderVoxelization()
 {
-  Matrix4 mv(modelviewMatrix);
-  mv.Transpose();
-  Matrix4 mvInvT(modelviewMatrix);
-  mvInvT.Invert();
-  mvInvT.Transpose();
-
-  Matrix4 prj(projectionMatrix);
-  Matrix4 prjInvT(projectionMatrix);
-  prjInvT.Invert();
-  prjInvT.Transpose();
-
-  float px = projectionMatrix[0*4+0];
-  float py = projectionMatrix[1*4+1];
-  float pz = projectionMatrix[2*4+2];
-  float pw = projectionMatrix[3*4+2];
-  float z_near = pw/(pz - 1.0);
-  float z_far = pw * z_near/(pw + 2.0 * z_near);
-  float right = z_near/px;
-  float top = z_near/py;
+  updateData();
 
   glPushMatrix();
-  //glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   glPushAttrib(GL_ALL_ATTRIB_BITS);
-
-//  renderFrustum(projectionMatrix, modelviewMatrix);
-
+  
+  //renderFrustum();
+  
   glPushMatrix();
-
-  int y = 256;
-  int x = 256;
-  int step = 10;
-  int stepZ = 2;
-
-  if(fovy >= .5)
+  int maxZ = -1;
+  if(m_renderMode == 1)
   {
-    for(int y = 0; y < m_height; y+=step)
-      for(int x = 0; x < m_width; x+=step)
-      {
-        unsigned int *p = (GLuint*)&data[y*m_width*4+x*4];
+    //Matrix4 mv(m_modelviewMatrix);
+    //mv.Transpose();
+    //Matrix4 mvInvT(m_modelviewMatrix);
+    //mvInvT.Invert();
+    //mvInvT.Transpose();
 
-        for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += 1)
-        {
-          unsigned int pp = *(p + z/UINT_BIT_SIZE);
-          if(isBitActive(pp, z%UINT_BIT_SIZE))
-          {
-            float xn = 2. * float(x+.5)/m_width - 1.;
-            float yn = 2. * float(y+.5)/m_height- 1.;
+    //Matrix4 prjInvT(m_projectionMatrix);
+    //prjInvT.Invert();
+    //prjInvT.Transpose();
 
-            float ze = -((float(z)/(m_gridBitMapHeight*m_gridBitMapWidth))*z_far + z_near);
-            float zn = - ze * (z_far + z_near)/(z_far - z_near) - 2. * z_far * z_near/(z_far - z_near);
-            zn = zn / -ze;
-
-            Vector4 pe = Vector4(xn, yn, zn, 1.0f);
-            pe = (prjInvT * pe);
-            pe = pe.homogeneous();
-            Vector3 pw = (mvInvT * pe).vec3();
-
-            glPushMatrix();
-
-            glTranslatef(pw.x, pw.y, pw.z);
-
-            //glScalef(10./m_width, 10./m_height,1./(m_gridBitMapHeight*m_gridBitMapWidth));
-            //glScalef(1./(m_gridBitMapHeight*m_gridBitMapWidth), 10./m_height, 10./m_width);
-            //glEnable(GL_NORMALIZE);
-            //glutSolidCube(1);
-            //glutSolidSphere(10./512, 5,5);
-            glutSolidCube(2.0f*float(step)/512);
-            glPopMatrix();
-          }
-        }
-      }
+    //for(int y = 0; y < m_height; y += m_stepX)
+    //  for(int x = 0; x < m_width; x += m_stepX)
+    //  {
+    //    unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
+   
+    //    for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += 1)
+    //    {
+    //      unsigned int pp = *(p + z/UINT_BIT_SIZE);
+    //      if(isBitActive(pp, z%UINT_BIT_SIZE))
+    //      {
+    //        float xn = 2. * float(x+.5)/m_width - 1.;
+    //        float yn = 2. * float(y+.5)/m_height- 1.;
+   
+    //        float ze = -((float(z)/(m_gridBitMapHeight*m_gridBitMapWidth))*m_far + m_near);
+    //        float zn = - ze * (m_far + m_near)/(m_far - m_near) - 2. * m_far * m_near/(m_far - m_near);
+    //        zn = zn / -ze;
+   
+    //        Vector4 pe = Vector4(xn, yn, zn, 1.0f);
+    //        pe = (prjInvT * pe);
+    //        pe = pe.homogeneous();
+    //        Vector3 pw = (mvInvT * pe).vec3();
+   
+    //        glPushMatrix();
+   
+    //        glTranslatef(pw.x, pw.y, pw.z);
+   
+    //        //glScalef(10./m_width, 10./m_height,1./(m_gridBitMapHeight*m_gridBitMapWidth));
+    //        //glScalef(1./(m_gridBitMapHeight*m_gridBitMapWidth), 10./m_height, 10./m_width);
+    //        //glEnable(GL_NORMALIZE);
+    //        //glutSolidCube(1);
+    //        //glutSolidSphere(10./512, 5,5);
+    //        glutSolidCube(2.0f*float(m_stepX)/512);
+    //        glPopMatrix();
+    //      }
+    //    }
+    //  }
   }
   else
   {
-    for(int y = 0; y < m_height; y+=step)
-    {
-      for(int x = 0; x < m_width; x+=step)
-      {
-        unsigned int *p = (GLuint*)&data[y*m_width*4+x*4];
+    m_stepX = m_stepY = 5;
+    m_stepZ = 1;
+    int x = 256;
+    int y = 256;
+    int z = 64;
+    GLTextureObject funcTex(m_texIdGridFunc, GL_TEXTURE_1D);
+    GLfloat* func = funcTex.read1DTextureFloatData(GL_ALPHA);
+    int funcSize = funcTex.readTextureWidth();
 
-        for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += stepZ)
+
+    for(int y = 3.37*m_height/5; y < 4*m_height/5; y += m_stepY)
+    //for(int y = 4*m_height/5; y < m_height; y += m_stepY)
+    //for(int y = 0; y < m_height; y += m_stepY)
+    {
+      for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
+      //for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
+      //for(int x = 0; x < m_width; x+=m_stepX)
+      {
+        int somZ = 0;
+        unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
+        for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += m_stepZ)
         {
           unsigned int pp = *(p + z/UINT_BIT_SIZE);
           if(isBitActive(pp, z%UINT_BIT_SIZE))
           {
-            Vector3 centerE = mv*centerBB;
-            float xe = 2.0f * float(x + .5)/(m_width ) - 1.0f;
-            float ye = 2.0f * float(y + .5)/(m_height) - 1.0f;
+            float xm; 
+            float ym;
+            if(m_projectionMatrix.isOrthographic())
+            {
+              xm = (2.0f*m_top)/m_width; 
+              ym = (2.0f*m_right)/m_height;
+            }else
+            {
+              xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
+              ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
+            }
 
-            float ze = 2.0f * (float(z)/(m_gridBitMapHeight*m_gridBitMapWidth)) - 1.0f;
-            Vector3 pw = mvInvT*(Vector3(xe, ye, -ze*5.0f) + centerE);
+            //float zm = (m_far - m_near)/(m_gridBitMapHeight*m_gridBitMapWidth);
+            //float zm2 = (m_far - m_near)/((m_gridBitMapHeight*m_gridBitMapWidth)*(m_gridBitMapHeight*m_gridBitMapWidth));
+            float zm = (m_far - m_near);
+
+            float xe = xm*float(x + .5);
+            float ye = ym*float(y + .5);
+            //float ze = zm*float(z + .5);
+            //float ze2 = zm2*(float(z + .5)*float(z + .5));
+            //float ze = zm*func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)];
+            float ze = func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]*m_far + m_near ;
+
+
+            Vector3 pw = (Vector3(xe, ye, -ze));
             glPushMatrix();
-
+            glEnable(GL_POLYGON_OFFSET_FILL);
+            glPolygonOffset(1.1,.0);
             glTranslatef(pw.x, pw.y, pw.z);
-            //glTranslatef(xe, ye, ze);
 
-            glScalef(float(step)/m_width, float(step)/m_height,float(stepZ*5.0f)/(m_gridBitMapHeight*m_gridBitMapWidth));
-            //glScalef(1./(m_gridBitMapHeight*m_gridBitMapWidth), 10./m_height, 10./m_width);
-            glEnable(GL_NORMALIZE);
-            glEnable(GL_COLOR_MATERIAL);
-            glColorMaterial(GL_FRONT, GL_DIFFUSE);
-            glColor3f(.5,.2,.2);
-            //glutSolidCube(float(step)/512);
-            glutSolidCube(1);
-            glDisable(GL_COLOR_MATERIAL);
-            //glutSolidSphere(10./512, 5,5);
-            //glutSolidCube(2.0f*float(step)/512);
+            //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm);
+
+            //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm*(
+            //  func[(int)floor((float(z + 1.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]-
+            //  func[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]
+            //));
+
+            glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*m_far*(
+              func[(int)floor((float(z + 1.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]-
+              func[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]
+            ));
+
+            if(isBitActive(pp, z%UINT_BIT_SIZE))
+            {
+              somZ++;
+              maxZ = max(maxZ, somZ);
+              glEnable(GL_NORMALIZE);
+              glEnable(GL_COLOR_MATERIAL);
+              glColorMaterial(GL_FRONT, GL_DIFFUSE);
+              glColor3f(.5,.2,.2);
+              glutSolidCube(1.0);
+              glDisable(GL_COLOR_MATERIAL);
+            }
+            else
+            {
+              glPushAttrib(GL_ALL_ATTRIB_BITS);
+              glEnable(GL_POLYGON_OFFSET_LINE);
+              glPolygonOffset(.1,.0);
+              glDisable(GL_LIGHTING);
+              glColor3f(1,1,1);
+              glutWireCube(1.0);
+              glPopAttrib();
+            }
+
+
             glPopMatrix();
           }
         }
@@ -448,23 +553,119 @@ void KernelVoxelization::renderVoxelization(GLuint  *data, Vector3 sizeBB, Vecto
     }
   }
 
-
-
-  //    //for(int m = 0; m < 4; ++m)
-  //    //  for(int k = 0; k < m_gridBitMapHeight; ++k)
-  //    //    for(int l = 0; l < m_gridBitMapWidth;l+=1)
-  //    //      //printBitLine(data[i*m_width*4+j*4+m]);
-  //    //      if(isBitActive(data[i*m_width*4+j*4+m],k*m_gridBitMapWidth + l))
-  //    //      {
-  //    //        float x = 2.*float(j)/m_width - 1.;
-  //    //        float y = 2.*float(i)/m_height - 1.;
-  //    //        float z = 2.*float(k*m_gridBitMapWidth + l)/(m_gridBitMapHeight*m_gridBitMapWidth) - 1.;
-  //    //        //glVertex3f(x*sizeBB.x , y*sizeBB.y , z*sizeBB.z );
-  //    //        glVertex3f(z*sizeBB.z , y*sizeBB.y , x*sizeBB.x );
-  //    //      }
-
   glPopMatrix();
 
   glPopAttrib();
   glPopMatrix();
+}
+
+Vector3 KernelVoxelization::getVoxBBMax() 
+{
+  updateBB();
+  return m_voxBBMax;
+}
+
+Vector3 KernelVoxelization::getVoxBBMin()
+{
+  updateBB();
+  return m_voxBBMin;
+}
+
+void KernelVoxelization::updateBB()
+{
+  if(m_BBCalculated)
+    return;
+  
+  updateData();
+
+  m_voxBBMin = Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ));
+  m_voxBBMax = Vector3(-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ));
+
+  if(m_renderMode >=1)
+  {
+    m_voxBBMin = Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ));
+    m_voxBBMax = Vector3(-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ));
+  }else
+  {
+    int x = 256;
+    int y = 256;
+    GLTextureObject funcTex(m_texIdGridFunc, GL_TEXTURE_1D);
+    GLfloat* func = funcTex.read1DTextureFloatData(GL_ALPHA);
+    int funcSize = funcTex.readTextureWidth();
+    for(int y = 3.37*m_height/5; y < 4*m_height/5; y += m_stepY)
+      //for(int y = 4*m_height/5; y < m_height; y += m_stepY)
+      //for(int y = 0; y < m_height; y += m_stepY)
+    {
+      for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
+        //for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
+        //for(int x = 0; x < m_width; x+=m_stepX)
+      {
+        unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
+        for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += m_stepZ)
+        {
+          unsigned int pp = *(p + z/UINT_BIT_SIZE);
+          if(isBitActive(pp, z%UINT_BIT_SIZE))
+          {
+            float xm; 
+            float ym;
+            if(m_projectionMatrix.isOrthographic())
+            {
+              xm = (2.0f*m_top)/m_width; 
+              ym = (2.0f*m_right)/m_height;
+            }else
+            {
+              xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
+              ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
+            }
+
+            //float zm = (m_far - m_near)/(m_gridBitMapHeight*m_gridBitMapWidth);
+            //float zm2 = (m_far - m_near)/((m_gridBitMapHeight*m_gridBitMapWidth)*(m_gridBitMapHeight*m_gridBitMapWidth));
+            float zm = (m_far - m_near);
+
+            float xe = xm*float(x + .5);
+            float ye = ym*float(y + .5);
+            //float ze = zm*float(z + .5);
+            //float ze2 = zm2*(float(z + .5)*float(z + .5));
+            //float ze = zm*func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)];
+            float ze = func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]*m_far + m_near ;
+            Vector3 pw = (Vector3(xe, ye, -ze));
+
+
+            m_voxBBMin.x = min(pw.x, m_voxBBMin.x);
+            m_voxBBMin.y = min(pw.y, m_voxBBMin.y);
+            m_voxBBMin.z = min(pw.z, m_voxBBMin.z);
+
+            m_voxBBMax.x = max(pw.x, m_voxBBMax.x);
+            m_voxBBMax.y = max(pw.y, m_voxBBMax.y);
+            m_voxBBMax.z = max(pw.z, m_voxBBMax.z);
+          }
+        }
+      }
+    }
+  }
+  m_BBCalculated = true;
+}
+
+void KernelVoxelization::updateData()
+{
+  if(!m_voxData)
+  {
+    m_texObj.setId(getOutputTexture(1));
+    m_voxData = m_texObj.read2DTextureUIntData();
+  }
+}
+
+int KernelVoxelization::getRenderMode() const
+{
+  return m_renderMode;
+}
+
+void KernelVoxelization::setRenderMode( int renderMode )
+{
+  if(m_renderMode != renderMode)
+  {
+    m_BBCalculated = false;
+    m_renderMode = renderMode;
+  }
+
 }

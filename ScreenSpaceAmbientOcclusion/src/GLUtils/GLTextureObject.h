@@ -22,14 +22,14 @@ class GLTextureObject
   /**
    * Texture's buffer. 
    *  GL_FLOAT RGBA. 
-   *  Size equals w*h*4
+   *  Size equals w*[h*]4
    */
   GLfloat *m_fbuffer; 
   
   /**
    * Texture's buffer. 
    *  GL_UNSIGNED_INT RGBA. 
-   *  Size equals w*h*4
+   *  Size equals w*[h*]4
    */
   GLuint *m_uibuffer; 
   /**
@@ -41,9 +41,6 @@ class GLTextureObject
    * Specifies the target texture [GL_TEXTURE_1D, GL_TEXTURE_2D]
    */
   GLenum m_target;
-  
-
-
 
 public:
   /**
@@ -127,8 +124,11 @@ public:
    * Returns texture data.
    *  Copies memory from the GPU.
    */
-  GLfloat* read2DTextureFloatRGBAData();
-  GLuint* read2DTextureUIntRGBAData();
+  GLfloat* read1DTextureFloatData(GLenum format = GL_RGBA);
+  GLfloat* read2DTextureFloatData(GLenum format = GL_RGBA);
+  
+  GLuint* read1DTextureUIntData(GLenum format = GL_RGBA_INTEGER_EXT);
+  GLuint* read2DTextureUIntData(GLenum format = GL_RGBA_INTEGER_EXT);
   
   /**
    * Returns texture height.
@@ -141,6 +141,16 @@ public:
    *  Copies information from the GPU.
    */
   GLuint readTextureWidth();
+  
+  /**
+   * Returns texture number of colors.
+   *  [1 = GL_RED|GL_GREEN|GL_BLUE|GL_ALPHA]
+   *  [2 = -]
+   *  [3 =  GL_RGB|GL_BGR]
+   *  [4 =  GL_RGBA|GL_BGRA]
+   *  Copies information from the GPU.
+   */
+  GLuint readTextureNumColors();
 
   /**
    * Render the texture in the screen.

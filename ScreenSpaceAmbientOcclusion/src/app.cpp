@@ -33,6 +33,7 @@
 #include "Kernels/KernelSSAO_Visibility.h"
 #include "Kernels/KernelBlur.h"
 #include "Kernels/KernelCombine.h"
+#include "Kernels/KernelVoxDepth.h"
 #include "Kernels/KernelVoxelization.h"
 
 #include "GLUtils/GLTextureObject.h"
@@ -78,15 +79,18 @@ App::App()
 ,m_kernelSSAO_Visibility(NULL)
 ,m_kernelBlur(NULL)
 ,m_kernelCombine(NULL)
+,m_kernelVoxDepth(NULL)
 ,m_kernelVoxelization(NULL)
 ,m_menu_on(false)
 ,m_lights_on(false)
 ,m_minerLight_on(false)
-,m_renderMode(0.0f)
+,m_updateCamHandler(false)
 ,m_wireframe_on(false)
 ,m_shader_on(true)
 ,m_shader_active(!m_wireframe_on & m_shader_on)
 ,m_vox_ssao_active(true)
+,m_orthographicProjection_on(false)
+,m_voxTexGridFuncPower(4)
 ,m_rfar(30.0f)
 ,m_pixelmaskSize(.8f)
 ,m_offsetSize(5.0f)
@@ -210,55 +214,84 @@ void App::render()
   screenShotTest.update();
   screenShotTest.configureCamera(m_camHandler);
 #endif
-
+  if(m_updateCamHandler)
+  {
+    if(m_shader_active && m_vox_ssao_active && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_camHandler->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
+    else m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+    m_updateCamHandler = false;
+  }
   m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
 
   if(!m_shader_active)
   {
+    if(m_orthographicProjection_on)
+    {
+      glMatrixMode (GL_PROJECTION);
+      glPushMatrix();
+      glLoadIdentity ();
+      glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
+      glMatrixMode (GL_MODELVIEW);
+      glPushMatrix();
+    }
     drawScene();
+    if(m_orthographicProjection_on)
+    {
+      glPopMatrix();
+      glMatrixMode (GL_PROJECTION);
+      glPopMatrix();
+      glMatrixMode (GL_MODELVIEW);
+    }
   }else if(m_vox_ssao_active)
   {
     if(voxelize)
     {
-      glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
-      glGetFloatv(GL_MODELVIEW_MATRIX, modelviewMatrix);
+      if(m_orthographicProjection_on)
+      {
+        glMatrixMode (GL_PROJECTION);
+        glPushMatrix();
+        glLoadIdentity ();
+        glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
+        glMatrixMode (GL_MODELVIEW);
+        glPushMatrix();
+      }
 
-      m_kernelVoxelization->setActive(true, projectionMatrix);
-      glPushAttrib(GL_ALL_ATTRIB_BITS);
-      
-      glClearColor(0,0,0,0);
-      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-      //glEnableIndexedEXT(GL_BLEND, 0);
-
-      glEnable(GL_DEPTH_CLAMP_NV);//ONLY WORKS ON NVIDIA!!!!!!!!!!!
-      glEnable(GL_COLOR_LOGIC_OP);
-      glDisable(GL_DEPTH_TEST);
-      glLogicOp(GL_XOR);
-
+      m_kernelVoxDepth->setActive(true);
       drawScene();
-
-      glPopAttrib();
+      m_kernelVoxDepth->setActive(false);
+      
+      m_kernelVoxelization->setActive(true);
+      drawScene();
       m_kernelVoxelization->setActive(false);
+
+      if(m_orthographicProjection_on)
+      {
+        glPopMatrix();
+        glMatrixMode (GL_PROJECTION);
+        glPopMatrix();
+        glMatrixMode (GL_MODELVIEW);
+      }
+
       //m_kernelVoxelization->renderOutput(2);
 
-      texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(1));
-      voxData = texObj.read2DTextureUIntRGBAData();
+      //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
+      //voxData = texObj.read2DTextureUIntData();
       //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
-      //GLfloat* f = t2.read2DTextureFloatRGBAData();
+      //GLfloat* f = t2.read2DTextureFloatData();
 
+      if(voxelizeCont > 0)
+        m_updateCamHandler = true;
       voxelize = voxelizeCont < 1;
       voxelizeCont++;
-      camPos = m_camHandler->getPos();
-      camAt = m_camHandler->getAt();
-      camUp = m_camHandler->getUp();
+
     }else
     {
       glMatrixMode (GL_PROJECTION);
       glPushMatrix();
       glLoadIdentity ();
-      gluPerspective(m_fov, (GLfloat)m_appWidth / (GLfloat)m_appHeight, 0.0001, 1000.);
+      gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
       glMatrixMode (GL_MODELVIEW);
       glPushMatrix();
 
@@ -270,12 +303,20 @@ void App::render()
       m_rtScene->setMaterialActive(true, 2);
       m_rtScene->setLightActive(true);
 
-      m_kernelVoxelization->renderVoxelization(voxData, m_rtScene->getSceneBoundingBoxSize(), 
-        m_rtScene->getSceneBoundingBoxCenter(), 
-        camPos, camAt, camUp, projectionMatrix, modelviewMatrix, m_renderMode);
-
+      m_kernelVoxelization->renderVoxelization();
+      
       m_rtScene->setLightActive(false);
       m_rtScene->setMaterialActive(false, 2);
+
+      glPushMatrix();
+      Vector3 c = m_rtScene->getSceneBoundingBoxCenter();
+      glTranslatef(c.x, c.y, c.z);
+      Vector3 s = m_rtScene->getSceneBoundingBoxSize();
+      glScalef(s.x, s.y, s.z);
+      glutWireCube(1);
+      glPopMatrix();
+
+
       glPopAttrib();
 
       glPopMatrix();
@@ -413,7 +454,9 @@ void App::listenKeyboard( int key )
 
   case 'V':
   case 'v':
-    m_renderMode = !m_renderMode;
+    if(m_vox_ssao_active && !voxelize)
+      m_updateCamHandler = true;
+    m_kernelVoxelization->setRenderMode(!m_kernelVoxelization->getRenderMode());
     break;
 
   case 'M':
@@ -429,6 +472,11 @@ void App::listenKeyboard( int key )
   case 'B':
   case 'b':
     m_blurr_on = !m_blurr_on;
+    break;
+
+  case 'O':
+  case 'o':
+    m_orthographicProjection_on = !m_orthographicProjection_on;
     break;
 
   case '=':
@@ -477,6 +525,28 @@ void App::listenKeyboard( int key )
   case 'u':
     m_intensity = max(m_intensity - .05f, 0.01f);
     break;
+  
+  case '{':
+  case '[':
+    m_voxTexGridFuncPower = m_voxTexGridFuncPower++;
+    m_kernelVoxelization->reloadGridFuncTextures(m_voxTexGridFuncPower);
+    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
+    voxelize = true;
+    voxelizeCont = 0;
+    m_vox_ssao_active = true;
+    break;
+  case '}':
+  case ']':
+    m_voxTexGridFuncPower = max(m_voxTexGridFuncPower - 1, 1);
+    m_kernelVoxelization->reloadGridFuncTextures(m_voxTexGridFuncPower);
+    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
+    voxelize = true;
+    voxelizeCont = 0;
+    m_vox_ssao_active = true;
+    break;
+
   }
 }
 
@@ -493,15 +563,20 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 5: //F5
+    if(m_vox_ssao_active && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
     m_rfar = 30.0f;
     m_pixelmaskSize = .8;
     m_offsetSize = 5.0;
     m_intensity = 20.0;
     m_ssao_visibility = false;
     m_vox_ssao_active = false;
+    m_updateCamHandler = true;
     break;
 
   case 6: //F6
+    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
     m_rfar = .01f;
     m_intensity = 1.0;
     m_ssao_visibility = true;
@@ -509,14 +584,19 @@ void App::listenKeyboardSpecial( int key )
     break;
   
   case 7: //F7
+    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
     voxelize = true;
     voxelizeCont = 0;
     m_vox_ssao_active = true;
     break;
 
   case 10: //F10
+    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
     m_wireframe_on = !m_wireframe_on;
     m_shader_active = !m_wireframe_on & m_shader_on;
+
 
     if(m_wireframe_on)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -525,6 +605,8 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 11:
+    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
     m_shader_on = !m_shader_on;
     m_shader_active = !m_wireframe_on & m_shader_on;
     break;
@@ -655,8 +737,22 @@ void App::loadScene()
   m_camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.f, 5.f);
   m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
 
-  m_nearPlane = m_camHandler->getSphereRadius()*.1f;
-  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
+//m_nearPlane = m_camHandler->getSphereRadius()*.1f; 
+//  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
+  
+  m_nearPlane = m_camHandler->getSphereRadius()*.85; 
+  m_farPlane =  m_camHandler->getSphereRadius()*1.15; 
+
+  //m_nearPlane = m_camHandler->getSphereRadius()*1.0; 
+  //m_farPlane =  m_camHandler->getSphereRadius()*1.1; 
+
+
+  //m_nearPlane = m_camHandler->getSphereRadius()*1.0f; //.1
+  //m_farPlane = m_camHandler->getSphereRadius()*.8 + bbMaxSize * .01f; //1.5
+
+  //m_nearPlane = m_camHandler->getSphereRadius();
+  //m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize;
+
 
   GLLight *minerLight = m_camHandler->getMinerLight();
   minerLight->setAmbientColor(Color(0.0,0.0,0.0));
@@ -704,8 +800,8 @@ void App::loadKernels()
   m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelSSAO->getColorTexId());
   m_kernelCombine = new KernelCombine((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelColor->getTexIdColor());
 
-  //CREATE GRID FUNCTION TEXTURE
-  m_kernelVoxelization = new KernelVoxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, 1, 0);
+  m_kernelVoxDepth = new KernelVoxDepth((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight);
+  m_kernelVoxelization = new KernelVoxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, 1, m_kernelVoxDepth->getTexIdEyeNearest());
 }
 
 void App::drawScene()
@@ -751,10 +847,16 @@ void App::renderGUI()
     sprintf(a,"(I/U)intensity: %.2f ", m_intensity);
     m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
+    sprintf(a,"(]/[)GridFuncPower: %d ", m_voxTexGridFuncPower);
+    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    
     sprintf(a,"(F11)Shader %s", m_shader_active? "On":"Off");
     m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
     sprintf(a,"(b)AO Blur %s", m_blurr_on? "On":"Off");
+    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+
+    sprintf(a,"(o)Orthographic Proj %s", m_orthographicProjection_on? "On":"Off");
     m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
     sprintf(a,"(l)Lights %s", m_lights_on? "On":"Off");

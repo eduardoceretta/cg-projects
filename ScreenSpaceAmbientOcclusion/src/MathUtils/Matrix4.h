@@ -14,6 +14,7 @@
 
 class Matrix4
 {
+protected:
   /**
    * Matrix components
    */
@@ -101,13 +102,6 @@ public:
    * Considers only the Vector3 as a Vec4 with w = 1
    */  
   Vector3 operator* (const Vector3& m) const;
-
-  /**
-   * Considers only the Vector3 as a Vec4 with w = 1
-   */  
-
-
-  Vector3 mulVec4 (const Vector3& m, float w, float &outw) const;
 };
 
 /**
