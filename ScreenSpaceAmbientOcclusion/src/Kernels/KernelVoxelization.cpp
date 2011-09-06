@@ -35,9 +35,20 @@ KernelVoxelization::KernelVoxelization(char* path, int width, int height, int si
 ,m_voxData(NULL)
 ,m_projectionMatrix(GLProjectionMatrix())
 ,m_texObj(GLTextureObject())
-,m_stepX(1)
-,m_stepY(1)
+,m_eyeNearestTexObj(GLTextureObject())
+,m_funcTexObj(GLTextureObject())
+,m_eyeNearestData(NULL)
+,m_funcData(NULL)
+,m_funcTexSize(0)
+,m_stepX(10)
+,m_stepY(10)
 ,m_stepZ(1)
+,m_initX(0)
+,m_initY(0)
+,m_initZ(0)
+,m_endX(width)
+,m_endY(height)
+,m_endZ(128)
 ,m_texIdEyeNearest(texIdEyeNearest)
 {
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
@@ -107,6 +118,7 @@ void KernelVoxelization::setActive(bool op)
   if(op)
   {
     m_voxData = NULL;
+    m_eyeNearestData = NULL;
     glGetFloatv(GL_MODELVIEW_MATRIX, m_modelviewMatrix);
     m_projectionMatrix.readGLProjection();
     m_near = m_projectionMatrix.getNear();
@@ -215,6 +227,7 @@ bool isBitActive(unsigned int v, int index)
 
 void KernelVoxelization::createGridBitMapTexture()
 {
+  m_funcData = NULL;
   int texsize = m_depth*4*4;
   GLfloat* texData = new GLfloat[texsize];
 
@@ -392,7 +405,8 @@ void KernelVoxelization::renderFrustum()
   glPopMatrix();
   glPopAttrib();
 }
-
+#define NEAREST_EYE
+//#define FULL_GRID 1
 
 void KernelVoxelization::renderVoxelization()
 {
@@ -403,130 +417,73 @@ void KernelVoxelization::renderVoxelization()
   
   //renderFrustum();
   
+  int numZ = 0;
+  int maxZ = 0;
+
   glPushMatrix();
-  int maxZ = -1;
   if(m_renderMode == 1)
   {
-    //Matrix4 mv(m_modelviewMatrix);
-    //mv.Transpose();
-    //Matrix4 mvInvT(m_modelviewMatrix);
-    //mvInvT.Invert();
-    //mvInvT.Transpose();
-
-    //Matrix4 prjInvT(m_projectionMatrix);
-    //prjInvT.Invert();
-    //prjInvT.Transpose();
-
-    //for(int y = 0; y < m_height; y += m_stepX)
-    //  for(int x = 0; x < m_width; x += m_stepX)
-    //  {
-    //    unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
-   
-    //    for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += 1)
-    //    {
-    //      unsigned int pp = *(p + z/UINT_BIT_SIZE);
-    //      if(isBitActive(pp, z%UINT_BIT_SIZE))
-    //      {
-    //        float xn = 2. * float(x+.5)/m_width - 1.;
-    //        float yn = 2. * float(y+.5)/m_height- 1.;
-   
-    //        float ze = -((float(z)/(m_gridBitMapHeight*m_gridBitMapWidth))*m_far + m_near);
-    //        float zn = - ze * (m_far + m_near)/(m_far - m_near) - 2. * m_far * m_near/(m_far - m_near);
-    //        zn = zn / -ze;
-   
-    //        Vector4 pe = Vector4(xn, yn, zn, 1.0f);
-    //        pe = (prjInvT * pe);
-    //        pe = pe.homogeneous();
-    //        Vector3 pw = (mvInvT * pe).vec3();
-   
-    //        glPushMatrix();
-   
-    //        glTranslatef(pw.x, pw.y, pw.z);
-   
-    //        //glScalef(10./m_width, 10./m_height,1./(m_gridBitMapHeight*m_gridBitMapWidth));
-    //        //glScalef(1./(m_gridBitMapHeight*m_gridBitMapWidth), 10./m_height, 10./m_width);
-    //        //glEnable(GL_NORMALIZE);
-    //        //glutSolidCube(1);
-    //        //glutSolidSphere(10./512, 5,5);
-    //        glutSolidCube(2.0f*float(m_stepX)/512);
-    //        glPopMatrix();
-    //      }
-    //    }
-    //  }
   }
   else
   {
-    m_stepX = m_stepY = 5;
-    m_stepZ = 1;
     int x = 256;
     int y = 256;
     int z = 64;
-    GLTextureObject funcTex(m_texIdGridFunc, GL_TEXTURE_1D);
-    GLfloat* func = funcTex.read1DTextureFloatData(GL_ALPHA);
-    int funcSize = funcTex.readTextureWidth();
+
+    //glPushMatrix();
+    //Vector3 leftDownP = getGridCellCenter(m_initX, m_initY, m_initZ, m_near) - getGridCellSize(m_initX, m_initY, m_initZ, m_near)*.5f;
+    //Vector3 rightUpP = getGridCellCenter(m_endX - 1, m_endY - 1, m_endZ - 1, m_near) + getGridCellSize(m_endX - 1, m_endY - 1, m_endZ - 1, m_near)*.5f;
+    //Vector3 center = (rightUpP+leftDownP)*.5f;
+    //Vector3 size = (rightUpP-leftDownP);
+
+    //glTranslatef(center.x, center.y, center.z);
+    //glScalef(size.x, size.y, size.z);
+
+    //glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //glEnable(GL_POLYGON_OFFSET_LINE);
+    //glPolygonOffset(.1,.0);
+    //glDisable(GL_LIGHTING);
+    //glColor3f(0,1,0);
+    //glutWireCube(1.0);
+    //glPopAttrib();
+    //glPopMatrix();
 
 
-    for(int y = 3.37*m_height/5; y < 4*m_height/5; y += m_stepY)
-    //for(int y = 4*m_height/5; y < m_height; y += m_stepY)
-    //for(int y = 0; y < m_height; y += m_stepY)
+    for(int y = m_initY; y < m_endY; y += m_stepY)
     {
-      for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
-      //for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
-      //for(int x = 0; x < m_width; x+=m_stepX)
+      for(int x = m_initX; x < m_endX; x+=m_stepX)
       {
-        int somZ = 0;
+
+        #ifdef NEAREST_EYE
+          float zNear = m_eyeNearestData[y*m_width*4 + x*4 + 3];
+          if(zNear < 0) 
+            continue;
+        #else
+          float zNear = m_near;
+        #endif // NEAREST_EYE
+
         unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
-        for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += m_stepZ)
+        numZ = 0;
+        for(int z = m_initZ; z < m_endZ; z += m_stepZ)
         {
           unsigned int pp = *(p + z/UINT_BIT_SIZE);
-          if(isBitActive(pp, z%UINT_BIT_SIZE))
+          #ifndef FULL_GRID
+            if(isBitActive(pp, z%UINT_BIT_SIZE))
+          #endif // FULL_GRID
           {
-            float xm; 
-            float ym;
-            if(m_projectionMatrix.isOrthographic())
-            {
-              xm = (2.0f*m_top)/m_width; 
-              ym = (2.0f*m_right)/m_height;
-            }else
-            {
-              xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
-              ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
-            }
-
-            //float zm = (m_far - m_near)/(m_gridBitMapHeight*m_gridBitMapWidth);
-            //float zm2 = (m_far - m_near)/((m_gridBitMapHeight*m_gridBitMapWidth)*(m_gridBitMapHeight*m_gridBitMapWidth));
-            float zm = (m_far - m_near);
-
-            float xe = xm*float(x + .5);
-            float ye = ym*float(y + .5);
-            //float ze = zm*float(z + .5);
-            //float ze2 = zm2*(float(z + .5)*float(z + .5));
-            //float ze = zm*func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)];
-            float ze = func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]*m_far + m_near ;
-
-
-            Vector3 pw = (Vector3(xe, ye, -ze));
+            Vector3 pw = getGridCellCenter(x, y, z, zNear);
             glPushMatrix();
             glEnable(GL_POLYGON_OFFSET_FILL);
             glPolygonOffset(1.1,.0);
             glTranslatef(pw.x, pw.y, pw.z);
 
-            //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm);
-
-            //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm*(
-            //  func[(int)floor((float(z + 1.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]-
-            //  func[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]
-            //));
-
-            glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*m_far*(
-              func[(int)floor((float(z + 1.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]-
-              func[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]
-            ));
+            Vector3 size = getGridCellSize(x, y, z, zNear);
+            glScalef(size.x*m_stepX, size.y*m_stepY, size.z*m_stepZ);
 
             if(isBitActive(pp, z%UINT_BIT_SIZE))
             {
-              somZ++;
-              maxZ = max(maxZ, somZ);
+              numZ++;
+              maxZ = max(maxZ, numZ);
               glEnable(GL_NORMALIZE);
               glEnable(GL_COLOR_MATERIAL);
               glColorMaterial(GL_FRONT, GL_DIFFUSE);
@@ -545,7 +502,6 @@ void KernelVoxelization::renderVoxelization()
               glPopAttrib();
             }
 
-
             glPopMatrix();
           }
         }
@@ -557,6 +513,76 @@ void KernelVoxelization::renderVoxelization()
 
   glPopAttrib();
   glPopMatrix();
+}
+
+Vector3 KernelVoxelization::getGridCellCenter(int x, int y, int z, float zNear)
+{
+  float xm; 
+  float ym;
+
+  if(m_projectionMatrix.isOrthographic())
+  {
+    xm = (2.0f*m_top)/m_width; 
+    ym = (2.0f*m_right)/m_height;
+  }else
+  {
+    xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
+    ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
+  }
+
+  //float zm = (m_far - zNear)/(m_gridBitMapHeight*m_gridBitMapWidth);
+  //float zm2 = (m_far - zNear)/((m_gridBitMapHeight*m_gridBitMapWidth)*(m_gridBitMapHeight*m_gridBitMapWidth));
+
+
+  float xe = xm*float(x + .5);
+  float ye = ym*float(y + .5);
+  //float ze = zm*float(z + .5);
+  //float ze2 = zm2*(float(z + .5)*float(z + .5));
+
+#ifdef NEAREST_EYE
+  float zm = (m_far - zNear);
+  float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm + zNear ;
+#else
+  float zm = (m_far);
+  float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm;
+#endif //NEARST_EYE
+
+  return Vector3(xe, ye, -ze);
+}
+
+Vector3 KernelVoxelization::getGridCellSize(int x, int y, int z, float zNear)
+{
+  float xm; 
+  float ym;
+
+  if(m_projectionMatrix.isOrthographic())
+  {
+    xm = (2.0f*m_top)/m_width; 
+    ym = (2.0f*m_right)/m_height;
+  }else
+  {
+    xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
+    ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
+  }
+
+#ifdef NEAREST_EYE
+  float zm = (m_far - zNear);
+#else
+  float zm = (m_far);
+#endif //NEARST_EYE
+
+  //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm);
+
+  //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm*(
+  //  func[(int)floor((float(z + 1.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]-
+  //  func[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]
+  //));
+
+
+  return Vector3(xm, ym, zm*(
+    m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
+    m_funcData[(int)floor((float(z + 0.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]
+  ));
 }
 
 Vector3 KernelVoxelization::getVoxBBMax() 
@@ -578,6 +604,20 @@ void KernelVoxelization::updateBB()
   
   updateData();
 
+  m_initX = 2*m_width/5;
+  //m_initY = 4*m_height/5;
+  m_initY = 3.37*m_height/5;
+  m_initZ = 0;
+  m_endX = 3*m_width/5;
+  //m_endY = m_height;
+  m_endY = 4*m_height/5;
+
+#ifdef FULL_GRID
+  m_endZ = (m_gridBitMapHeight*m_gridBitMapWidth)*FULL_GRID;
+#else
+  m_endZ = (m_gridBitMapHeight*m_gridBitMapWidth);
+#endif // FULL_GRID
+
   m_voxBBMin = Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ));
   m_voxBBMax = Vector3(-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ),-numeric_limits<float>::infinity( ));
 
@@ -589,47 +629,36 @@ void KernelVoxelization::updateBB()
   {
     int x = 256;
     int y = 256;
+    int z = 64;
     GLTextureObject funcTex(m_texIdGridFunc, GL_TEXTURE_1D);
     GLfloat* func = funcTex.read1DTextureFloatData(GL_ALPHA);
     int funcSize = funcTex.readTextureWidth();
-    for(int y = 3.37*m_height/5; y < 4*m_height/5; y += m_stepY)
-      //for(int y = 4*m_height/5; y < m_height; y += m_stepY)
-      //for(int y = 0; y < m_height; y += m_stepY)
+    
+    for(int y = m_initY; y < m_endY; y += m_stepY)
     {
-      for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
-        //for(int x = 2*m_width/5; x < 3*m_width/5; x+=m_stepX)
-        //for(int x = 0; x < m_width; x+=m_stepX)
+      for(int x = m_initX; x < m_endX; x+=m_stepX)
       {
+        #ifdef NEAREST_EYE
+          float zNear = m_eyeNearestData[y*m_width*4 + x*4 + 3];
+          if(zNear < 0) 
+            continue;
+        #else
+          float zNear = m_near;
+        #endif // NEAREST_EYE
+        
         unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
-        for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += m_stepZ)
+        #ifdef FULL_GRID
+          for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth)*FULL_GRID; z += m_stepZ)
+        #else
+          for(int z = 0; z < (m_gridBitMapHeight*m_gridBitMapWidth); z += m_stepZ)
+        #endif // FULL_GRID
         {
           unsigned int pp = *(p + z/UINT_BIT_SIZE);
-          if(isBitActive(pp, z%UINT_BIT_SIZE))
+          #ifndef FULL_GRID
+            if(isBitActive(pp, z%UINT_BIT_SIZE))
+          #endif // FULL_GRID
           {
-            float xm; 
-            float ym;
-            if(m_projectionMatrix.isOrthographic())
-            {
-              xm = (2.0f*m_top)/m_width; 
-              ym = (2.0f*m_right)/m_height;
-            }else
-            {
-              xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
-              ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
-            }
-
-            //float zm = (m_far - m_near)/(m_gridBitMapHeight*m_gridBitMapWidth);
-            //float zm2 = (m_far - m_near)/((m_gridBitMapHeight*m_gridBitMapWidth)*(m_gridBitMapHeight*m_gridBitMapWidth));
-            float zm = (m_far - m_near);
-
-            float xe = xm*float(x + .5);
-            float ye = ym*float(y + .5);
-            //float ze = zm*float(z + .5);
-            //float ze2 = zm2*(float(z + .5)*float(z + .5));
-            //float ze = zm*func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)];
-            float ze = func[(int)floor((float(z + .5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]*m_far + m_near ;
-            Vector3 pw = (Vector3(xe, ye, -ze));
-
+            Vector3 pw = getGridCellCenter(x, y, z, zNear);
 
             m_voxBBMin.x = min(pw.x, m_voxBBMin.x);
             m_voxBBMin.y = min(pw.y, m_voxBBMin.y);
@@ -653,6 +682,17 @@ void KernelVoxelization::updateData()
     m_texObj.setId(getOutputTexture(1));
     m_voxData = m_texObj.read2DTextureUIntData();
   }
+  if(!m_eyeNearestData)
+  {
+    m_eyeNearestTexObj.setId(m_texIdEyeNearest);
+    m_eyeNearestData = m_eyeNearestTexObj.read2DTextureFloatData();
+  }
+  if(!m_funcData)
+  {
+    m_funcTexObj.setId(m_texIdGridFunc, GL_TEXTURE_1D);
+    m_funcData = m_funcTexObj.read1DTextureFloatData(GL_ALPHA);
+    m_funcTexSize = m_funcTexObj.readTextureWidth();
+  }
 }
 
 int KernelVoxelization::getRenderMode() const
@@ -668,4 +708,34 @@ void KernelVoxelization::setRenderMode( int renderMode )
     m_renderMode = renderMode;
   }
 
+}
+
+int KernelVoxelization::getStepX() const
+{
+  return m_stepX;
+}
+
+void KernelVoxelization::setStepX( int val )
+{
+  m_stepX = val;
+}
+
+int KernelVoxelization::getStepY() const
+{
+  return m_stepY;
+}
+
+int KernelVoxelization::getStepZ() const
+{
+  return m_stepZ;
+}
+
+void KernelVoxelization::setStepZ( int val )
+{
+  m_stepZ = val;
+}
+
+void KernelVoxelization::setStepY( int val )
+{
+  m_stepY = val;
 }

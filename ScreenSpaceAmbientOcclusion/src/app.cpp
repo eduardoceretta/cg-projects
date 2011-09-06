@@ -89,7 +89,7 @@ App::App()
 ,m_shader_on(true)
 ,m_shader_active(!m_wireframe_on & m_shader_on)
 ,m_vox_ssao_active(true)
-,m_orthographicProjection_on(false)
+,m_orthographicProjection_on(true)
 ,m_voxTexGridFuncPower(4)
 ,m_rfar(30.0f)
 ,m_pixelmaskSize(.8f)
@@ -259,6 +259,8 @@ void App::render()
       }
 
       m_kernelVoxDepth->setActive(true);
+      glClearColor(-1,-1,-1,-1);
+      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
       drawScene();
       m_kernelVoxDepth->setActive(false);
       
@@ -274,11 +276,14 @@ void App::render()
         glMatrixMode (GL_MODELVIEW);
       }
 
+      //m_kernelVoxDepth->renderOutput(0);
       //m_kernelVoxelization->renderOutput(2);
 
+      //texObj = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
       //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
       //voxData = texObj.read2DTextureUIntData();
       //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
+      //GLTextureObject t2 = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
       //GLfloat* f = t2.read2DTextureFloatData();
 
       if(voxelizeCont > 0)
@@ -308,13 +313,13 @@ void App::render()
       m_rtScene->setLightActive(false);
       m_rtScene->setMaterialActive(false, 2);
 
-      glPushMatrix();
-      Vector3 c = m_rtScene->getSceneBoundingBoxCenter();
-      glTranslatef(c.x, c.y, c.z);
-      Vector3 s = m_rtScene->getSceneBoundingBoxSize();
-      glScalef(s.x, s.y, s.z);
-      glutWireCube(1);
-      glPopMatrix();
+      //glPushMatrix();
+      //Vector3 c = m_rtScene->getSceneBoundingBoxCenter();
+      //glTranslatef(c.x, c.y, c.z);
+      //Vector3 s = m_rtScene->getSceneBoundingBoxSize();
+      //glScalef(s.x, s.y, s.z);
+      //glutWireCube(1);
+      //glPopMatrix();
 
 
       glPopAttrib();
@@ -487,6 +492,10 @@ void App::listenKeyboard( int key )
   case '-':
     m_numPeelings = max(m_numPeelings - 1, 1);
     break;
+  case '*':
+    m_camHandler->setSphereAlpha(0.0);
+    m_camHandler->setSphereBeta(90.0);
+    break;
 
   case 'K':
     m_offsetSize = min(m_offsetSize + 1.0f, m_appWidth/2.0f);
@@ -546,6 +555,46 @@ void App::listenKeyboard( int key )
     voxelizeCont = 0;
     m_vox_ssao_active = true;
     break;
+
+
+  case '1':
+  {
+    int step = m_kernelVoxelization->getStepX();
+    m_kernelVoxelization->setStepX(min(step + 1, m_appWidth));
+    break;
+  }
+  case '!':
+  {
+    int step = m_kernelVoxelization->getStepX();
+    m_kernelVoxelization->setStepX(max(step - 1, 1));
+    break;
+  }
+
+  case '2':
+  {
+    int step = m_kernelVoxelization->getStepY();
+    m_kernelVoxelization->setStepY(min(step + 1, m_appHeight));
+    break;
+  }
+  case '@':
+  {
+    int step = m_kernelVoxelization->getStepY();
+    m_kernelVoxelization->setStepY(max(step - 1, 1));
+    break;
+  }
+
+  case '3':
+  {
+    int step = m_kernelVoxelization->getStepZ();
+    m_kernelVoxelization->setStepZ(min(step + 1, 128));
+    break;
+  }
+  case '#':
+  {
+    int step = m_kernelVoxelization->getStepZ();
+    m_kernelVoxelization->setStepZ(max(step - 1, 1));
+    break;
+  }
 
   }
 }
@@ -737,8 +786,8 @@ void App::loadScene()
   m_camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.f, 5.f);
   m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
 
-//m_nearPlane = m_camHandler->getSphereRadius()*.1f; 
-//  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
+  //m_nearPlane = m_camHandler->getSphereRadius()*.1f; 
+  //m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
   
   m_nearPlane = m_camHandler->getSphereRadius()*.85; 
   m_farPlane =  m_camHandler->getSphereRadius()*1.15; 

@@ -51,6 +51,19 @@ public:
   int getRenderMode() const;
   void setRenderMode(int val);
 
+  /**
+   * Grid Render Steps Gets and Sets
+   */
+  int getStepX() const;
+  void setStepX(int val);
+
+  int getStepY() const;
+  void setStepY(int val);
+
+  int getStepZ() const;
+  void setStepZ(int val);
+
+
 
   /**
    * Activate/Deactivate the Kernel's FBO and shader
@@ -103,6 +116,11 @@ private:
   void updateData();
 
   /**
+   * Calculate the center and size of the specific Grid Cell
+   */
+  Vector3 getGridCellCenter(int x, int y, int z, float zNear);
+  Vector3 getGridCellSize(int x, int y, int z, float zNear);
+  /**
    * Grid Dimensions	
    */
   int m_width;
@@ -117,6 +135,12 @@ private:
   GLuint m_texIdGrid0;
 
   GLTextureObject m_texObj;
+  GLTextureObject m_eyeNearestTexObj;
+  GLTextureObject m_funcTexObj;
+  GLfloat* m_eyeNearestData;
+  GLfloat* m_funcData;
+  GLuint m_funcTexSize;
+
 
   /**
    * Voxelization Render Parameters	
@@ -135,8 +159,14 @@ private:
   int m_stepX;
   int m_stepY;
   int m_stepZ;
+  int m_initX;
+  int m_initY;
+  int m_initZ;
+  int m_endX;
+  int m_endY;
+  int m_endZ;
 
-  
+ 
   /**
    * Input textures ids of the grid information
    */
@@ -149,7 +179,7 @@ private:
   GLuint m_texIdGridFunc;
   GLuint m_texIdGridInvFunc;
   int m_gridFuncWidth;
-  
+
 };
 
 
