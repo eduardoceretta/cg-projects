@@ -8,21 +8,26 @@ CAMERA   100 100 40  0 0 0     0 1 0     60    5   1000   512    512
 
 #MATERIAL (dif)r g b (spec)r g b spec_exponent reflectiveIndex refractiveIndex opacity 
 MATERIAL   .8 .8 .8     1. 1. 1.    50.   0.  0.8  0.4 
-MATERIAL   .8 .8 .8     0. 0. 0.   50.   0.  0.8  0.4 
+MATERIAL   .8 .8 .8     0. 0. 0.    50.   0.  0.8  0.4 
 MATERIAL   .8 .6 .2     0. 0. 0.   100.   0.  0.8  0.4 
 
 #LIGHT (pos)x y z (dif)r g b (spec)r g b [type]{Dir=0 Pnt=1 Spt=2} [spotExponent] [spotAngle] [spotDir] x y z
 LIGHT 100. 100. 100.   .8 .8 .8   1. 1. 1.   
 
+
 #MESH materialIndex (pos)x y z (scale)x y z  path
 
 ############UM UM UM UM#############
 # MESH 1  0.324326 -0.267604 0.406447  0.00689655172 0.00689655172 0.00689655172 resources/Models/cavalo.um
+# MESH 1  0 0 0  1 1 1 resources/Models/beethoven.um
+# MESH 1  0 0 0  1 1 1 resources/Models/cow.um
+# MESH 1  0 0 0  1 1 1 resources/Models/heptoroid.um
+# MESH 1  0 0 0  1 1 1 resources/Models/venus.um
 
 ############MSH MSH MSH MSH#############
 # MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube.msh
 # MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_C.msh
-# MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L_closed.msh
+MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L_closed.msh
 # MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L.msh
 # MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/box.msh
 
@@ -44,7 +49,7 @@ LIGHT 100. 100. 100.   .8 .8 .8   1. 1. 1.
 # MESH 1  0 -35 350     .5 .5 .5  resources/Models/Stanford/sappho.ply
 
 ############3DS 3DS 3DS 3DS#############
-MESH 1  0 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statue.msb
+# MESH 1  0 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statue.msb
 # MESH 1  -4.5 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statue.msb
 # MESH 1  0 0 0     8.16846e-5 8.16846e-5 8.16846e-5  resources/Models/3DS/CarToyotaCrown.msb 
 # MESH 1  0 10 0     .01 .01 .01  resources/Models/3DS/TableSinger.msb

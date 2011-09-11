@@ -27,7 +27,8 @@ varying vec3 normal;
 
 void main()
 {
-  float dist = length(eyePos);
+  float dist = -eyePos.z;
+  //float dist = length(eyePos);
  
   
   //OutPut
