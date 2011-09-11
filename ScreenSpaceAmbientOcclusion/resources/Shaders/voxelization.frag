@@ -7,6 +7,12 @@
  *  Create a non regular grid and voxelizes the scene into it. Uses blending to make a bitmask that defines the grid.
  */
 /****************************************************************************************/
+/* Shader Controls.                                                                     */
+/*  Each define specificates if a behaviour will affect the shader                      */
+/****************************************************************************************/
+#define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
+ 
+/****************************************************************************************/
 /* Shader Begin.                                                                        */
 /****************************************************************************************/
 uniform sampler1D gridFunction;     /**< Grid Function Texture*/
@@ -16,6 +22,8 @@ uniform float gridFuncWidth;        /**< Grid Function Texture Dimension*/
 uniform sampler2D gridBitMap;       /**< Grid BitMap Texture*/
 uniform float gridBitMapWidth;      /**< Grid BitMap Texture Dimensions*/
 uniform float gridBitMapHeight;     /**< Grid BitMap Texture Dimensions*/
+
+uniform sampler2D eyeNearest;       /**< Nearest Eye Fragment Texture*/
 
 
 /**
@@ -69,20 +77,26 @@ vec3 window2ndc(vec3 w);
 
 void main()
 {
-  float dist = length(eyePos);
-  float distNorm = (dist - near)/far;
-  //float gridIndex = pow(distNorm, 4);//texture1D(gridFunction, distNorm).a;
-  //float gridIndex = pow(distNorm, .25);//texture1D(gridFunction, distNorm).a;
-  //float gridIndex = distNorm;
-  float gridIndex = texture1D(gridInvFunction, distNorm).a;
-  //vec4 bitMask = texture2D(gridBitMap, vec2(distNorm, .5));
-  vec4 bitMask = texture2D(gridBitMap, vec2(gridIndex, .5));
+  float dist = -eyePos.z;
+  //float dist = length(eyePos);
   
+#ifdef EYE_NEAREST
+  float eyeNear = texture2D(eyeNearest, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).a;
+  if(eyeNear <= 0.0)
+    discard;
+  float fragNear = eyeNear;
+#else  
+  float fragNear = near;
+#endif  
+  
+  float distNorm = (dist - fragNear)/far;
+  float gridIndex = texture1D(gridInvFunction, distNorm).a;
+  vec4 bitMask = texture2D(gridBitMap, vec2(gridIndex, .5));
   
   //OutPut
   gl_FragData[0] = vec4(0,pow(4,.5),1,0);
   gl_FragData[1] = vec4(bitMask);
-  gl_FragData[2] = vec4(pow(3,.5),pow(4,.5),pow(2,.5),1.5);//vec4(gl_ProjectionMatrixInverse*vec4(window2ndc(gl_FragCoord.xyz),1));
+  gl_FragData[2] = vec4(gl_ProjectionMatrixInverse*vec4(window2ndc(gl_FragCoord.xyz),1));
 }
 
 vec3 ndc2eye(vec3 ndc)
