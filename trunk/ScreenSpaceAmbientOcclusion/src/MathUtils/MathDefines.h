@@ -15,6 +15,7 @@
 #define CHAR_H 13
 
 #define PI 3.1415926535897932384626433832795
+#define EPISLON 2.71828183
 #define RAD_TO_DEG(a) ((float)(a)*(180.0/PI))
 #define DEG_TO_RAD(a) ((float)(a)*PI/180.0)
 
