@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include "MathUtils/Vector3.h"
+#include "MathUtils/Matrix3.h"
 #include "MathUtils/Matrix4.h"
 
 #include "GLUtils/GLFont.h"
@@ -86,8 +87,6 @@ App::App()
 ,m_minerLight_on(false)
 ,m_updateCamHandler(false)
 ,m_wireframe_on(false)
-,m_shader_on(true)
-,m_shader_active(!m_wireframe_on & m_shader_on)
 ,m_vox_ssao_active(true)
 ,m_orthographicProjection_on(true)
 ,m_voxTexGridFuncPower(4)
@@ -97,7 +96,7 @@ App::App()
 ,m_intensity(20.0f)
 ,m_numPeelings(3)
 ,m_blurr_on(false)
-,m_ssao_visibility(true)
+,m_renderMode(Voxelization)
 {
   m_clearColor[0] = .8f;
   m_clearColor[1] = .8f;
@@ -193,9 +192,7 @@ GLuint * voxData;
 bool voxelize = true;
 int voxelizeCont;
 GLTextureObject texObj;
-Vector3 camPos, camAt, camUp;
 GLfloat projectionMatrix[16];
-GLfloat modelviewMatrix[16];
 void App::loadResources()
 {
   loadArgs();
@@ -216,217 +213,130 @@ void App::render()
 #endif
   if(m_updateCamHandler)
   {
-    if(m_shader_active && m_vox_ssao_active && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_camHandler->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
     else m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
     m_updateCamHandler = false;
   }
+  static int iiii = 0;
+  if(!iiii)
+    m_camHandler->setViewBoundingBox(Vector3(-1.5f,-.5f,-1.5f), Vector3(1.5f,1.5f,1.5f),  m_fov);
+  iiii++;
+
   m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
 
-  if(!m_shader_active)
+  int numDir = 16;
+  int numAngleStep = 16;
+  float len = 1.0f;
+  Vector3 *dirs = new Vector3 [numDir*numAngleStep];
+  for(int i = 0; i < numDir; ++i)
   {
-    if(m_orthographicProjection_on)
+    float angle = DEG_TO_RAD(i*(360.0f/(numDir-1)));
+    for(int j = 0; j < numAngleStep; ++j)
     {
-      glMatrixMode (GL_PROJECTION);
-      glPushMatrix();
-      glLoadIdentity ();
-      glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
-      glMatrixMode (GL_MODELVIEW);
-      glPushMatrix();
+      float stepAngle = clamp(DEG_TO_RAD(j*90.0f/(numAngleStep - 1)), 0.0, PI/2);
+      dirs[i*numAngleStep + j] = Vector3(sin(stepAngle)*sin(angle), cos(stepAngle), sin(stepAngle)*cos(angle))*len;
     }
-    drawScene();
-    if(m_orthographicProjection_on)
-    {
-      glPopMatrix();
-      glMatrixMode (GL_PROJECTION);
-      glPopMatrix();
-      glMatrixMode (GL_MODELVIEW);
-    }
-  }else if(m_vox_ssao_active)
-  {
-    if(voxelize)
-    {
-      if(m_orthographicProjection_on)
-      {
-        glMatrixMode (GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity ();
-        glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
-        glMatrixMode (GL_MODELVIEW);
-        glPushMatrix();
-      }
-
-      m_kernelVoxDepth->setActive(true);
-      glClearColor(-1,-1,-1,-1);
-      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-      drawScene();
-      m_kernelVoxDepth->setActive(false);
-      
-      m_kernelVoxelization->setActive(true);
-      drawScene();
-      m_kernelVoxelization->setActive(false);
-
-      if(m_orthographicProjection_on)
-      {
-        glPopMatrix();
-        glMatrixMode (GL_PROJECTION);
-        glPopMatrix();
-        glMatrixMode (GL_MODELVIEW);
-      }
-
-      //m_kernelVoxDepth->renderOutput(0);
-      //m_kernelVoxelization->renderOutput(2);
-
-      //texObj = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
-      //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
-      //voxData = texObj.read2DTextureUIntData();
-      //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
-      //GLTextureObject t2 = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
-      //GLfloat* f = t2.read2DTextureFloatData();
-
-      if(voxelizeCont > 0)
-        m_updateCamHandler = true;
-      voxelize = voxelizeCont < 1;
-      voxelizeCont++;
-
-    }else
-    {
-      glMatrixMode (GL_PROJECTION);
-      glPushMatrix();
-      glLoadIdentity ();
-      gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
-      glMatrixMode (GL_MODELVIEW);
-      glPushMatrix();
-
-      glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
-
-      m_camHandler->setMinerLightOn(m_minerLight_on);
-      m_camHandler->renderMinerLight();
-      m_rtScene->setSceneLightEnabled(m_lights_on);
-      m_rtScene->setMaterialActive(true, 2);
-      m_rtScene->setLightActive(true);
-
-      m_kernelVoxelization->renderVoxelization();
-      
-      m_rtScene->setLightActive(false);
-      m_rtScene->setMaterialActive(false, 2);
-
-      //glPushMatrix();
-      //Vector3 c = m_rtScene->getSceneBoundingBoxCenter();
-      //glTranslatef(c.x, c.y, c.z);
-      //Vector3 s = m_rtScene->getSceneBoundingBoxSize();
-      //glScalef(s.x, s.y, s.z);
-      //glutWireCube(1);
-      //glPopMatrix();
-
-
-      glPopAttrib();
-
-      glPopMatrix();
-      glMatrixMode (GL_PROJECTION);
-      glPopMatrix();
-      glMatrixMode (GL_MODELVIEW);
-
-      //glPushAttrib(GL_ALL_ATTRIB_BITS);
-      //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-      //drawScene();
-      //glPopAttrib();
-    }
-  }else
-  {
-#ifdef TIME_TEST
-    timeTest.resetTimer();
-#endif
-    //COLOR PASS
-    m_kernelColor->setActive(true);
-
-    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
-    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-    glDisable(GL_CULL_FACE);
-    drawScene();
-
-    m_kernelColor->setActive(false);
-#ifdef TIME_TEST
-  timeTest.kColorTime += timeTest.getTime();    
-#endif
-
-    GLfloat projectionMatrix[16];
-    glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
-
-#ifdef TIME_TEST
-    timeTest.resetTimer();
-#endif
-    //DEPTH PEELING PASS
-    for(int i=0; i < m_numPeelings; ++i)
-    {
-      m_kernelDeferred_Peeling->step(i);
-      m_kernelDeferred_Peeling->setActive(true);
-
-      glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
-      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-      glDisable(GL_CULL_FACE);
-      drawScene();
-
-      m_kernelDeferred_Peeling->setActive(false);
-    }
-#ifdef TIME_TEST
-    timeTest.kDeferedPeelingTime += timeTest.getTime();
-#endif
-
-#ifdef TIME_TEST
-    timeTest.resetTimer();
-#endif
-    //SSAO PASS
-    if(m_ssao_visibility)
-      m_kernelSSAO_Visibility->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
-    else
-      m_kernelSSAO->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
-#ifdef TIME_TEST
-    timeTest.kSSAOTime += timeTest.getTime();
-#endif
-
-#ifdef TIME_TEST
-    timeTest.resetTimer();
-#endif
-    //BLURR PASS
-    if(m_blurr_on)
-    {
-      if(m_ssao_visibility)
-        m_kernelBlur->setInputTexId(m_kernelSSAO_Visibility->getColorTexId());
-      else
-        m_kernelBlur->setInputTexId(m_kernelSSAO->getColorTexId());
-      m_kernelBlur->step(1);
-    }
-#ifdef TIME_TEST
-    timeTest.kBlurTime += timeTest.getTime();
-#endif
-
-#ifdef TIME_TEST
-    timeTest.resetTimer();
-#endif
-    //COMBINE PASS
-    if(m_blurr_on)
-      m_kernelCombine->step(m_kernelBlur->getBlurredTexId());
-    else if(m_ssao_visibility)
-     m_kernelCombine->step(m_kernelSSAO_Visibility->getColorTexId());
-    else
-      m_kernelCombine->step(m_kernelSSAO->getColorTexId());
-#ifdef TIME_TEST
-    timeTest.kCombineTime += timeTest.getTime();
-#endif
-
-#ifdef TIME_TEST
-    timeTest.totalTime += timeTest.totalTimer.getTime();
-    //timeTest.printPartialResults();
-#endif
-    //RENDER RESULT
-    m_kernelCombine->renderOutput(0);
   }
+
+
+  static int h = 0;
+  static int sr = 981651654;
+  Vector3 *dirsRand = new Vector3 [numDir*numAngleStep];
+  if(h!=300)
+  {
+    srand(sr);
+    h++;
+  }else{
+    sr = rand();
+    h = 0;
+  }
+  for(int i = 0; i < numDir; ++i)
+  {
+    for(int j = 0; j < numAngleStep; ++j)
+    {
+      float r = (1.0f + float(rand()%30)/100 - .15f);
+      float angle = DEG_TO_RAD(i*(360.0f/(numDir-1)))*r;
+
+      r = (1.0f + float(rand()%50)/100 - .25f);
+      float stepAngle = clamp(DEG_TO_RAD(j*90.0f/(numAngleStep - 1))*r, 0.0, PI/2);
+      dirsRand[i*numAngleStep + j] = Vector3(sin(stepAngle)*sin(angle), cos(stepAngle), sin(stepAngle)*cos(angle))*len;
+    }
+  }
+  glMatrixMode (GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity ();
+  gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
+  glMatrixMode (GL_MODELVIEW);
+  glPushMatrix();
+
+  //glutWireCube(1);
+
+  Vector3 dest(1,5,2);
+  Vector3 norm(0,1,0);
+  dest = dest.unitary();
+
+  float angle = norm.angle(dest);
+  Vector3 axis = norm^dest;
+  axis = axis.unitary();
+
+
+  Matrix3 rotMat;
+  rotMat.setIdentity();
+  rotMat.setRotation(angle, axis);
+  rotMat = rotMat.getTranspose();
+  GLfloat glRotMat[16];
+  for(int i = 0; i < 4; ++i)
+    for(int j = 0; j < 4; ++j)
+    {
+      if(i == 3 && j == 3)
+        glRotMat[i*4+j] = 1.0f;
+      else if(i == 3 || j == 3)
+        glRotMat[i*4+j] = 0.0f;
+      else glRotMat[i*4+j] = rotMat.getValue(i,j);
+    }
+  glLineWidth(1);
+  glColor3f(1,1,1);
+  glBegin(GL_LINES);
+  glColor3f(0,0,0);
+  for(int i = 0; i< numDir*numAngleStep; ++i)
+  {
+    glVertex3f(0,0,0);
+    glVertex3f(dirsRand[i].x, dirsRand[i].y, dirsRand[i].z);
+  }
+  glColor3f(0,1,0);
+  for(int i = 0; i< numDir*numAngleStep; ++i)
+  {
+    glVertex3f(0,0,0);
+    glVertex3f(dirs[i].x, dirs[i].y, dirs[i].z);
+  }
+
+  //glColor3f(1,0,0);
+  //glVertex3f(0,0,0);
+  //glVertex3f(dest.x, dest.y, dest.z);
+
+  glEnd();
+
+  
+  //switch(m_renderMode)
+  //{
+  //  default:
+  //  case NoShader:
+  //    renderNoShader();
+  //    break;
+  //  case Spheres:
+  //    renderSSAOSphers();
+  //    break;
+  //  case Visibility:
+  //    renderSSAOVisibility();
+  //    break;
+  //  case Voxelization:
+  //    renderSSAOVoxelization();
+  //    break;
+  //}
   renderGUI();
-
-
 
 #ifdef SCREENSHOT_TEST
   if(screenShotTest.isTestEnded())
@@ -459,7 +369,7 @@ void App::listenKeyboard( int key )
 
   case 'V':
   case 'v':
-    if(m_vox_ssao_active && !voxelize)
+    if(m_renderMode == Voxelization  && !voxelize)
       m_updateCamHandler = true;
     m_kernelVoxelization->setRenderMode(!m_kernelVoxelization->getRenderMode());
     break;
@@ -539,21 +449,19 @@ void App::listenKeyboard( int key )
   case '[':
     m_voxTexGridFuncPower = m_voxTexGridFuncPower++;
     m_kernelVoxelization->reloadGridFuncTextures(m_voxTexGridFuncPower);
-    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_updateCamHandler = true;
     voxelize = true;
     voxelizeCont = 0;
-    m_vox_ssao_active = true;
     break;
   case '}':
   case ']':
     m_voxTexGridFuncPower = max(m_voxTexGridFuncPower - 1, 1);
     m_kernelVoxelization->reloadGridFuncTextures(m_voxTexGridFuncPower);
-    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization  &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_updateCamHandler = true;
     voxelize = true;
     voxelizeCont = 0;
-    m_vox_ssao_active = true;
     break;
 
 
@@ -612,40 +520,43 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 5: //F5
-    if(m_vox_ssao_active && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_updateCamHandler = true;
     m_rfar = 30.0f;
     m_pixelmaskSize = .8;
     m_offsetSize = 5.0;
     m_intensity = 20.0;
-    m_ssao_visibility = false;
-    m_vox_ssao_active = false;
     m_updateCamHandler = true;
+    m_renderMode =  Spheres;
     break;
 
   case 6: //F6
-    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_updateCamHandler = true;
     m_rfar = .01f;
     m_intensity = 1.0;
-    m_ssao_visibility = true;
-    m_vox_ssao_active = false;
+    m_renderMode = Visibility;
     break;
   
   case 7: //F7
-    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+      m_updateCamHandler = true;
+    m_renderMode = Voxelization;
+    break;
+
+
+  case 8: //F8
+    if(m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_updateCamHandler = true;
     voxelize = true;
     voxelizeCont = 0;
-    m_vox_ssao_active = true;
+    m_renderMode = Voxelization;
     break;
 
   case 10: //F10
-    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_updateCamHandler = true;
     m_wireframe_on = !m_wireframe_on;
-    m_shader_active = !m_wireframe_on & m_shader_on;
-
 
     if(m_wireframe_on)
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -654,10 +565,9 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 11:
-    if(m_vox_ssao_active &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
       m_updateCamHandler = true;
-    m_shader_on = !m_shader_on;
-    m_shader_active = !m_wireframe_on & m_shader_on;
+    m_renderMode = NoShader;
     break;
 
   case GLUT_KEY_PAGE_UP:
@@ -786,11 +696,11 @@ void App::loadScene()
   m_camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.f, 5.f);
   m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
 
-  //m_nearPlane = m_camHandler->getSphereRadius()*.1f; 
-  //m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
+  m_nearPlane = m_camHandler->getSphereRadius()*.1f; 
+  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
   
-  m_nearPlane = m_camHandler->getSphereRadius()*.85; 
-  m_farPlane =  m_camHandler->getSphereRadius()*1.15; 
+  //m_nearPlane = m_camHandler->getSphereRadius()*.85; 
+  //m_farPlane =  m_camHandler->getSphereRadius()*1.15; 
 
   //m_nearPlane = m_camHandler->getSphereRadius()*1.0; 
   //m_farPlane =  m_camHandler->getSphereRadius()*1.1; 
@@ -899,7 +809,7 @@ void App::renderGUI()
     sprintf(a,"(]/[)GridFuncPower: %d ", m_voxTexGridFuncPower);
     m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
     
-    sprintf(a,"(F11)Shader %s", m_shader_active? "On":"Off");
+    sprintf(a,"(F11)Shader %s", m_renderMode == NoShader? "On":"Off");
     m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
 
     sprintf(a,"(b)AO Blur %s", m_blurr_on? "On":"Off");
@@ -920,5 +830,303 @@ void App::renderGUI()
   m_fontRender->endText();
   glPopAttrib();
 }
+
+void App::renderNoShader()
+{
+  if(m_orthographicProjection_on)
+  {
+    glMatrixMode (GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity ();
+    //glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
+    Vector3 size = m_rtScene->getSceneBoundingBoxSize();
+    float orthoSize = max(max(size.x, size.y), size.z);
+    glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
+
+    glMatrixMode (GL_MODELVIEW);
+    glPushMatrix();
+  }
+  drawScene();
+  if(m_orthographicProjection_on)
+  {
+    glPopMatrix();
+    glMatrixMode (GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode (GL_MODELVIEW);
+  }
+}
+
+
+
+void App::renderSSAOSphers()
+{
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //COLOR PASS
+  m_kernelColor->setActive(true);
+
+  glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+  glDisable(GL_CULL_FACE);
+  drawScene();
+
+  m_kernelColor->setActive(false);
+
+#ifdef TIME_TEST 
+  timeTest.kColorTime += timeTest.getTime();    
+#endif
+
+  GLfloat projectionMatrix[16];
+  glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //DEPTH PEELING PASS
+  for(int i=0; i < m_numPeelings; ++i)
+  {
+    m_kernelDeferred_Peeling->step(i);
+    m_kernelDeferred_Peeling->setActive(true);
+
+    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    glDisable(GL_CULL_FACE);
+    drawScene();
+
+    m_kernelDeferred_Peeling->setActive(false);
+  }
+#ifdef TIME_TEST
+  timeTest.kDeferedPeelingTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //SSAO PASS
+  m_kernelSSAO->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
+#ifdef TIME_TEST
+  timeTest.kSSAOTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //BLURR PASS
+  if(m_blurr_on)
+  {
+    m_kernelBlur->setInputTexId(m_kernelSSAO->getColorTexId());
+    m_kernelBlur->step(1);
+  }
+#ifdef TIME_TEST
+  timeTest.kBlurTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //COMBINE PASS
+  if(m_blurr_on)
+    m_kernelCombine->step(m_kernelBlur->getBlurredTexId());
+  else
+    m_kernelCombine->step(m_kernelSSAO->getColorTexId());
+#ifdef TIME_TEST
+  timeTest.kCombineTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.totalTime += timeTest.totalTimer.getTime();
+  //timeTest.printPartialResults();
+#endif
+  //RENDER RESULT
+  m_kernelCombine->renderOutput(0);
+}
+
+void App::renderSSAOVisibility()
+{
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //COLOR PASS
+  m_kernelColor->setActive(true);
+
+  glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+  glDisable(GL_CULL_FACE);
+  drawScene();
+
+  m_kernelColor->setActive(false);
+
+#ifdef TIME_TEST 
+  timeTest.kColorTime += timeTest.getTime();    
+#endif
+
+  GLfloat projectionMatrix[16];
+  glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //DEPTH PEELING PASS
+  for(int i=0; i < m_numPeelings; ++i)
+  {
+    m_kernelDeferred_Peeling->step(i);
+    m_kernelDeferred_Peeling->setActive(true);
+
+    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    glDisable(GL_CULL_FACE);
+    drawScene();
+
+    m_kernelDeferred_Peeling->setActive(false);
+  }
+#ifdef TIME_TEST
+  timeTest.kDeferedPeelingTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //SSAO PASS
+  m_kernelSSAO_Visibility->step(projectionMatrix, m_rfar, m_pixelmaskSize,m_offsetSize, m_intensity);
+#ifdef TIME_TEST
+  timeTest.kSSAOTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //BLURR PASS
+  if(m_blurr_on)
+  {
+    m_kernelBlur->setInputTexId(m_kernelSSAO_Visibility->getColorTexId());
+    m_kernelBlur->step(1);
+  }
+#ifdef TIME_TEST
+  timeTest.kBlurTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif
+  //COMBINE PASS
+  if(m_blurr_on)
+    m_kernelCombine->step(m_kernelBlur->getBlurredTexId());
+  else
+    m_kernelCombine->step(m_kernelSSAO_Visibility->getColorTexId());
+
+#ifdef TIME_TEST
+  timeTest.kCombineTime += timeTest.getTime();
+#endif
+
+#ifdef TIME_TEST
+  timeTest.totalTime += timeTest.totalTimer.getTime();
+  //timeTest.printPartialResults();
+#endif
+  //RENDER RESULT
+  m_kernelCombine->renderOutput(0);
+}
+
+void App::renderSSAOVoxelization()
+{
+  if(voxelize)
+  {
+    if(m_orthographicProjection_on)
+    {
+      glMatrixMode (GL_PROJECTION);
+      glPushMatrix();
+      glLoadIdentity ();
+
+      Vector3 size = m_rtScene->getSceneBoundingBoxSize();
+      float orthoSize = max(max(size.x, size.y), size.z);
+      glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
+      //glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
+      glMatrixMode (GL_MODELVIEW);
+      glPushMatrix();
+    }
+    glPushAttrib(GL_POLYGON_BIT);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_POLYGON_BIT
+    m_kernelVoxDepth->setActive(true);
+
+    glClearColor(-1,-1,-1,-1);
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    drawScene();
+    m_kernelVoxDepth->setActive(false);
+
+    m_kernelVoxelization->setActive(true);
+    drawScene();
+    m_kernelVoxelization->setActive(false);
+
+    glPopAttrib();
+
+    if(m_orthographicProjection_on)
+    {
+      glPopMatrix();
+      glMatrixMode (GL_PROJECTION);
+      glPopMatrix();
+      glMatrixMode (GL_MODELVIEW);
+    }
+
+    //m_kernelVoxDepth->renderOutput(0);
+    //m_kernelVoxelization->renderOutput(2);
+
+    //texObj = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
+    //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
+    //voxData = texObj.read2DTextureUIntData();
+    //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
+    //GLTextureObject t2 = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
+    //GLfloat* f = t2.read2DTextureFloatData();
+
+    if(voxelizeCont > 0)
+      m_updateCamHandler = true;
+    voxelize = voxelizeCont < 1;
+    voxelizeCont++;
+
+  }else
+  {
+    glMatrixMode (GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity ();
+    gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
+    glMatrixMode (GL_MODELVIEW);
+    glPushMatrix();
+
+    glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
+
+    m_camHandler->setMinerLightOn(m_minerLight_on);
+    m_camHandler->renderMinerLight();
+    m_rtScene->setSceneLightEnabled(m_lights_on);
+    m_rtScene->setMaterialActive(true, 2);
+    m_rtScene->setLightActive(true);
+
+    m_kernelVoxelization->renderVoxelization();
+
+    m_rtScene->setLightActive(false);
+    m_rtScene->setMaterialActive(false, 2);
+
+    //glPushMatrix();
+    //Vector3 c = m_rtScene->getSceneBoundingBoxCenter();
+    //glTranslatef(c.x, c.y, c.z);
+    //Vector3 s = m_rtScene->getSceneBoundingBoxSize();
+    //glScalef(s.x, s.y, s.z);
+    //glutWireCube(1);
+    //glPopMatrix();
+
+
+    glPopAttrib();
+
+    glPopMatrix();
+    glMatrixMode (GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode (GL_MODELVIEW);
+
+    //glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //drawScene();
+    //glPopAttrib();
+  }
+}
+
 
 

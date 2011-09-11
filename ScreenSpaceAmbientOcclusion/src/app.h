@@ -112,8 +112,6 @@ class App
   bool m_lights_on;
   bool m_minerLight_on;
   bool m_wireframe_on;
-  bool m_shader_on;
-  bool m_shader_active;
   bool m_updateCamHandler;
   bool m_orthographicProjection_on;
   
@@ -128,8 +126,13 @@ class App
   float m_intensity;
   int m_numPeelings;
   bool m_blurr_on;
-  bool m_ssao_visibility;
   bool m_vox_ssao_active;
+
+  /**
+   * Render Mode
+   */
+  enum RenderMode{NoShader, Spheres, Visibility, Voxelization};
+  RenderMode m_renderMode;
 
   /**
    * Debug
@@ -202,8 +205,10 @@ private:
    * Draw the Graphical User Interface
    */
   void renderGUI();
-
-
+  void renderSSAOVoxelization();
+  void renderSSAOVisibility();
+  void renderSSAOSphers();
+  void renderNoShader();
 };
 
 #endif

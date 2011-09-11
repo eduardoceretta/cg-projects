@@ -195,3 +195,4 @@ void SphereGLCameraHandler::setUp( Vector3 val )
 {
   m_up = val;
 }
+

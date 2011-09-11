@@ -18,6 +18,52 @@
 
 #define UINT_BIT_SIZE 32
 #define VOXELIZATION_BITMAP_FULLONE 
+#define NEAREST_EYE
+//#define FULL_GRID 1
+#ifdef FULL_GRID
+  #define WIRE_ON
+#else
+  //#define WIRE_ON
+#endif
+
+//#define FUNC_ONE
+//#define FUNC_POW
+#define FUNC_EXP
+//#define FUNC_ASIN
+
+
+
+
+
+
+#define _FUNC_ONE(x, y) (x)
+#define _FUNC_POW(x, y) (pow((x),(y)))
+#define _FUNC_EXP(x, y) ((exp(x) - 1.0f)/(EPISLON - 1.0f))
+#define _FUNC_ASIN(x, y) (asin((x))*2.0f/PI)
+
+#define _FUNC_INV_POW(x, y) (pow((x), 1.0f/(y)))
+#define _FUNC_INV_EXP(x, y) (log((x)*EPISLON - (x) + 1.0f))
+#define _FUNC_INV_ASIN(x, y) (sin((x)*PI/2.0f))
+
+#ifdef FUNC_ONE
+  #define GRID_FUNCTION(x,y) _FUNC_ONE(x, y)
+  #define GRID_INV_FUNCTION(x,y) _FUNC_ONE(x, y)
+#endif
+
+#ifdef FUNC_POW
+  #define GRID_FUNCTION(x,y) _FUNC_POW(x, y)
+  #define GRID_INV_FUNCTION(x,y) _FUNC_INV_POW(x, y)
+#endif
+
+#ifdef FUNC_EXP
+  #define GRID_FUNCTION(x,y) _FUNC_EXP(x, y)
+  #define GRID_INV_FUNCTION(x,y) _FUNC_INV_EXP(x, y)
+#endif
+
+#ifdef FUNC_ASIN
+  #define GRID_FUNCTION(x,y) _FUNC_ASIN(x, y)
+  #define GRID_INV_FUNCTION(x,y) _FUNC_INV_ASIN(x, y)
+#endif
 
 KernelVoxelization::KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyeNearest)
 : KernelBase(path, "voxelization.vert", "voxelization.frag", width, height)
@@ -133,6 +179,7 @@ void KernelVoxelization::setActive(bool op)
     addInputFloat("top", m_top);
     m_shader->setActive(false);
     glPushAttrib(GL_ALL_ATTRIB_BITS);
+    
   }else
   {
     glPopAttrib();
@@ -227,7 +274,6 @@ bool isBitActive(unsigned int v, int index)
 
 void KernelVoxelization::createGridBitMapTexture()
 {
-  m_funcData = NULL;
   int texsize = m_depth*4*4;
   GLfloat* texData = new GLfloat[texsize];
 
@@ -282,6 +328,8 @@ void KernelVoxelization::createGridBitMapTexture()
 
 void KernelVoxelization::createGridFuncTextures(float power)
 {
+  
+  m_funcData = NULL;
   GLint max_tex_size;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
   m_gridFuncWidth = min(4096, max_tex_size);
@@ -291,7 +339,7 @@ void KernelVoxelization::createGridFuncTextures(float power)
   for(int i = 0; i < m_gridFuncWidth; ++i)
   {
     float value = float(i)/(m_gridFuncWidth-1); 
-    texData[i] = pow(value,power);
+    texData[i] = GRID_FUNCTION(value, power);
   }
 
   GLTextureObject t;
@@ -303,7 +351,7 @@ void KernelVoxelization::createGridFuncTextures(float power)
   for(int i = 0; i < m_gridFuncWidth; ++i)
   {
     float value = float(i)/(m_gridFuncWidth-1); 
-    texData[i] = pow(value, 1.0f/power);
+    texData[i] = GRID_INV_FUNCTION(value, power);
   }
 
   t.createTexture1D(m_gridFuncWidth, GL_ALPHA32F_ARB, GL_ALPHA, GL_FLOAT, texData);
@@ -315,7 +363,7 @@ void KernelVoxelization::createGridFuncTextures(float power)
 }
 
 
-void KernelVoxelization::reloadGridFuncTextures( float power )
+void KernelVoxelization::reloadGridFuncTextures(float power)
 {
   createGridFuncTextures(power);
   m_shader->setActive(true);
@@ -405,8 +453,7 @@ void KernelVoxelization::renderFrustum()
   glPopMatrix();
   glPopAttrib();
 }
-#define NEAREST_EYE
-//#define FULL_GRID 1
+
 
 void KernelVoxelization::renderVoxelization()
 {
@@ -491,7 +538,8 @@ void KernelVoxelization::renderVoxelization()
               glutSolidCube(1.0);
               glDisable(GL_COLOR_MATERIAL);
             }
-            else
+#ifdef WIRE_ON
+            //else
             {
               glPushAttrib(GL_ALL_ATTRIB_BITS);
               glEnable(GL_POLYGON_OFFSET_LINE);
@@ -501,6 +549,7 @@ void KernelVoxelization::renderVoxelization()
               glutWireCube(1.0);
               glPopAttrib();
             }
+#endif // WIRE_ON
 
             glPopMatrix();
           }
@@ -530,17 +579,11 @@ Vector3 KernelVoxelization::getGridCellCenter(int x, int y, int z, float zNear)
     ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
   }
 
-  //float zm = (m_far - zNear)/(m_gridBitMapHeight*m_gridBitMapWidth);
-  //float zm2 = (m_far - zNear)/((m_gridBitMapHeight*m_gridBitMapWidth)*(m_gridBitMapHeight*m_gridBitMapWidth));
-
-
   float xe = xm*float(x + .5);
   float ye = ym*float(y + .5);
-  //float ze = zm*float(z + .5);
-  //float ze2 = zm2*(float(z + .5)*float(z + .5));
 
 #ifdef NEAREST_EYE
-  float zm = (m_far - zNear);
+  float zm = (m_far - 0.0);
   float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm + zNear ;
 #else
   float zm = (m_far);
@@ -566,18 +609,10 @@ Vector3 KernelVoxelization::getGridCellSize(int x, int y, int z, float zNear)
   }
 
 #ifdef NEAREST_EYE
-  float zm = (m_far - zNear);
+  float zm = (m_far - 0.0);
 #else
   float zm = (m_far);
 #endif //NEARST_EYE
-
-  //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm);
-
-  //glScalef(m_stepX*xm, m_stepY*ym, m_stepZ*zm*(
-  //  func[(int)floor((float(z + 1.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]-
-  //  func[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*funcSize + .5f)]
-  //));
-
 
   return Vector3(xm, ym, zm*(
     m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
@@ -604,13 +639,16 @@ void KernelVoxelization::updateBB()
   
   updateData();
 
-  m_initX = 2*m_width/5;
+  m_initX = 0;
+  //m_initX = 2*m_width/5;
+  m_initY = 0;
   //m_initY = 4*m_height/5;
-  m_initY = 3.37*m_height/5;
+  //m_initY = 3.37*m_height/5;
   m_initZ = 0;
-  m_endX = 3*m_width/5;
-  //m_endY = m_height;
-  m_endY = 4*m_height/5;
+  m_endX = m_width;
+  //m_endX = 3*m_width/5;
+  m_endY = m_height;
+  //m_endY = 4*m_height/5;
 
 #ifdef FULL_GRID
   m_endZ = (m_gridBitMapHeight*m_gridBitMapWidth)*FULL_GRID;
