@@ -15,7 +15,9 @@
 #include "MathUtils/Vector4.h"
 #include "GLUtils/GLProjectionMatrix.h"
 
-KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int height, GLuint texIdNormal, GLuint texIdVoxelGrid)
+KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int height, 
+                                                 GLuint texIdEyePos, GLuint texIdNormalDepth, 
+                                                 GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
 : KernelBase(path, "ssao_vox.vert", "ssao_vox.frag", width, height)
 ,m_width(width)
 ,m_height(height)
@@ -23,19 +25,27 @@ KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int heig
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
   createRayDirectionsTexture();
-
-
+  GLTextureObject t;
+  t.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
+  t.setFilters(GL_NEAREST, GL_NEAREST);
+  t.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
   //Output
-  m_texIdSSAO = addOutput(0);
+  m_texIdSSAO = addOutput(KernelSSAO_Voxelization::SSAO);
+  m_texIdDebug = addOutput(KernelSSAO_Voxelization::Debug, t.getId());
   
 	//Input
 	m_shader->setActive(true);
     addInputFloat("screenWidth", width);
     addInputFloat("screenHeight", height);
-    addInputFloat("rayDirectionsWidth", (float)m_rayDirectionsWidth);
+    addInputInt("rayDirectionsWidth", (float)m_rayDirectionsWidth);
+    addInputInt("numRayDistribution", (float)m_numRayDistribution);
+    addInputInt("numRayHemispherDivision", (float)m_numRayHemispherDivision);
+    addInputInt("numRayDirections", (float)m_numRayDirections);
     
+    addInputTexture(GL_TEXTURE_1D, "gridInvFunc", texIdGridInvFunction);
     addInputTexture(GL_TEXTURE_1D, "rayDirections", m_texIdRayDirections);
-    addInputTexture(GL_TEXTURE_2D, "normalTex", texIdNormal);
+    addInputTexture(GL_TEXTURE_2D, "eyePos", texIdEyePos);
+    addInputTexture(GL_TEXTURE_2D, "normalDepth", texIdNormalDepth);
     addInputTexture(GL_TEXTURE_2D, "voxelGrid", texIdVoxelGrid);
 	m_shader->setActive(false);
 }
@@ -43,88 +53,77 @@ KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int heig
 KernelSSAO_Voxelization::~KernelSSAO_Voxelization(){
 
 }
-//
-//void KernelSSAO_Voxelization::setActive(bool op)
-//{
-//  m_BBCalculated = false;
-//  if(op)
-//  {
-//    m_voxData = NULL;
-//    m_eyeNearestData = NULL;
-//    glGetFloatv(GL_MODELVIEW_MATRIX, m_modelviewMatrix);
-//    m_projectionMatrix.readGLProjection();
-//    m_near = m_projectionMatrix.getNear();
-//    m_far = m_projectionMatrix.getFar();
-//    m_right = m_projectionMatrix.getRight();
-//    m_top = m_projectionMatrix.getTop();
-//
-//    m_shader->setActive(true);
-//    addInputFloat("near", m_near);
-//    addInputFloat("far", m_far);
-//    addInputFloat("right", m_right);
-//    addInputFloat("top", m_top);
-//    m_shader->setActive(false);
-//    glPushAttrib(GL_ALL_ATTRIB_BITS);
-//    
-//  }else
-//  {
-//    glPopAttrib();
-//  }
-//
-//  KernelBase::setActive(op);
-//
-//  if(op)
-//  {
-//    glClearColor(0,0,0,0);
-//    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-//    //glEnableIndexedEXT(GL_BLEND, 0);
-//
-//    glEnable(GL_DEPTH_CLAMP_NV);//ONLY WORKS ON NVIDIA!!!!!!!!!!!
-//    glEnable(GL_COLOR_LOGIC_OP);
-//    glDisable(GL_DEPTH_TEST);
-//    glLogicOp(GL_XOR);
-//  }
-//}
-//
-//void KernelSSAO_Voxelization::setActiveShaderOnly( bool op)
-//{
-//  m_BBCalculated = false;
-//  if(op)
-//  {
-//    glGetFloatv(GL_MODELVIEW_MATRIX, m_modelviewMatrix);
-//    m_projectionMatrix.readGLProjection();
-//    m_near = m_projectionMatrix.getNear();
-//    m_far = m_projectionMatrix.getFar();
-//    m_right = m_projectionMatrix.getRight();
-//    m_top = m_projectionMatrix.getTop();
-//
-//    m_shader->setActive(true);
-//    addInputFloat("near", m_near);
-//    addInputFloat("far", m_far);
-//    addInputFloat("right", m_right);
-//    addInputFloat("top", m_top);
-//    m_shader->setActive(false);
-//    glPushAttrib(GL_ALL_ATTRIB_BITS);
-//  }else
-//  {
-//    glPopAttrib();
-//  }
-//
-//  KernelBase::setActiveShaderOnly(op);
-//
-//  if(op)
-//  {
-//    glClearColor(0,0,0,0);
-//    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-//    //glEnableIndexedEXT(GL_BLEND, 0);
-//
-//    glEnable(GL_DEPTH_CLAMP_NV);//ONLY WORKS ON NVIDIA!!!!!!!!!!!
-//    glEnable(GL_COLOR_LOGIC_OP);
-//    glDisable(GL_DEPTH_TEST);
-//    glLogicOp(GL_XOR);
-//  }
-//}
 
+
+void KernelSSAO_Voxelization::setActive(bool op, GLProjectionMatrix *projectionMatrix)
+{
+  if(op)
+  {
+    float znear = projectionMatrix->getNear();
+    float zfar = projectionMatrix->getFar();
+    float right = projectionMatrix->getRight();
+    float top = projectionMatrix->getTop();
+    int perspective = (int)!(projectionMatrix->isOrthographic());
+
+    m_shader->setActive(true);
+      addInputFloat("near", znear);
+      addInputFloat("far", zfar);
+      addInputFloat("right", right);
+      addInputFloat("top", top);
+      addInputInt("perspective", perspective);
+    m_shader->setActive(false);
+  }
+  KernelBase::setActive(op);
+}
+
+void KernelSSAO_Voxelization::setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix)
+{
+  if(op)
+  {
+    float znear = projectionMatrix->getNear();
+    float zfar = projectionMatrix->getFar();
+    float right = projectionMatrix->getRight();
+    float top = projectionMatrix->getTop();
+    int perspective = (int)!(projectionMatrix->isOrthographic());
+
+    m_shader->setActive(true);
+    addInputFloat("near", znear);
+    addInputFloat("far", zfar);
+    addInputFloat("right", right);
+    addInputFloat("top", top);
+    addInputInt("perspective", perspective);
+    m_shader->setActive(false);
+  }
+
+  KernelBase::setActiveShaderOnly(op);
+}
+
+
+void KernelSSAO_Voxelization::step( GLProjectionMatrix *projectionMatrix )
+{
+  float znear = projectionMatrix->getNear();
+  float zfar = projectionMatrix->getFar();
+  float right = projectionMatrix->getRight();
+  float top = projectionMatrix->getTop();
+  int perspective = (int)!(projectionMatrix->isOrthographic());
+
+  m_fbo->setActive(true);
+  if(m_shader)
+  {
+    m_shader->setActive(true);
+    addInputFloat("near", znear);
+    addInputFloat("far", zfar);
+    addInputFloat("right", right);
+    addInputFloat("top", top);
+    addInputInt("perspective", perspective);
+  }
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  renderScreenQuad();
+  
+  if(m_shader)
+    m_shader->setActive(false);
+  m_fbo->setActive(false);
+}
 
 void KernelSSAO_Voxelization::createRayDirectionsTexture()
 {
@@ -163,68 +162,8 @@ void KernelSSAO_Voxelization::createRayDirectionsTexture()
   delete [] texData;
 }
 
+GLuint KernelSSAO_Voxelization::getTexIdSSAO() const
+{
+  return m_texIdSSAO;
+}
 
-//void KernelSSAO_Voxelization::reloadGridFuncTextures(float power)
-//{
-//  createGridFuncTextures(power);
-//  m_shader->setActive(true);
-//    addInputTexture(GL_TEXTURE_1D, "gridFunction", m_texIdGridFunc);
-//    addInputTexture(GL_TEXTURE_1D, "gridInvFunction", m_texIdGridInvFunc);
-//  m_shader->setActive(false);
-//}
-//
-//Vector3 KernelSSAO_Voxelization::getGridCellCenter(int x, int y, int z, float zNear)
-//{
-//  float xm; 
-//  float ym;
-//
-//  if(m_projectionMatrix.isOrthographic())
-//  {
-//    xm = (2.0f*m_top)/m_width; 
-//    ym = (2.0f*m_right)/m_height;
-//  }else
-//  {
-//    xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
-//    ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
-//  }
-//
-//  float xe = xm*float(x + .5);
-//  float ye = ym*float(y + .5);
-//
-//#ifdef NEAREST_EYE
-//  float zm = (m_far - 0.0);
-//  float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm + zNear ;
-//#else
-//  float zm = (m_far);
-//  float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm;
-//#endif //NEARST_EYE
-//
-//  return Vector3(xe, ye, -ze);
-//}
-//
-//Vector3 KernelSSAO_Voxelization::getGridCellSize(int x, int y, int z, float zNear)
-//{
-//  float xm; 
-//  float ym;
-//
-//  if(m_projectionMatrix.isOrthographic())
-//  {
-//    xm = (2.0f*m_top)/m_width; 
-//    ym = (2.0f*m_right)/m_height;
-//  }else
-//  {
-//    xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
-//    ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
-//  }
-//
-//#ifdef NEAREST_EYE
-//  float zm = (m_far - 0.0);
-//#else
-//  float zm = (m_far);
-//#endif //NEARST_EYE
-//
-//  return Vector3(xm, ym, zm*(
-//    m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
-//    m_funcData[(int)floor((float(z + 0.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]
-//  ));
-//}

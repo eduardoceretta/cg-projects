@@ -24,10 +24,6 @@ public:
    */
   typedef enum{Small, Medium, Big} FontSize;
 
-  /**
-   * Character Height
-   */
-  static int charHeight;
 
   /**
    * Print the string str with the color c in the position x, y of the screen.
@@ -55,13 +51,18 @@ public:
    */
   static int length(string s);
 
-  GLFont(){}
+  GLFont();
 
 protected:
   /**
    * OpenGL context variables
    */
-	static GLboolean color_material, texture_2d, fog, lighting, depth_test;
+	static GLboolean s_color_material, s_texture_2d, s_fog, s_lighting, s_depth_test;
+  
+  /**
+   * Character Height
+   */
+  static int s_charHeight;
   
   /**
    * Current font size
@@ -71,17 +72,17 @@ protected:
   /**
    * Current Glut Bitmap data
    */
-  static void* font;
+  static void* s_font;
 
   /**
    * Defined Glut Bitmap data
    */
-  static void* fonts[];
+  static void* s_fonts[3];
   
   /**
    * Defined Glut Bitmap font sizes
    */
-  static int font_sizes[]; 
+  static int s_font_sizes[3]; 
 };
 
 

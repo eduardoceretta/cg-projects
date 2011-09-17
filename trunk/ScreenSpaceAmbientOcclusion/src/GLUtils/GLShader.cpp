@@ -73,7 +73,7 @@ void GLShader::setUniformTexture(char* name, GLuint value )
   else
   {
     m_uniformIntVec[string(name)] = value;
-    glUniform1iARB(loc, value);
+    glUniform1i(loc, value);
   }
 }
 
@@ -97,7 +97,7 @@ void GLShader::setUniformInt( char* name, GLint value )
   else
   {
     m_uniformIntVec[string(name)] = value;
-    glUniform1iARB(loc, value);
+    glUniform1i(loc, value);
   }
 }
 

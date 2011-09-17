@@ -36,6 +36,7 @@
 #include "Kernels/KernelCombine.h"
 #include "Kernels/KernelVoxDepth.h"
 #include "Kernels/KernelVoxelization.h"
+#include "Kernels/KernelSSAO_Voxelization.h"
 
 #include "GLUtils/GLTextureObject.h"
 
@@ -82,20 +83,23 @@ App::App()
 ,m_kernelCombine(NULL)
 ,m_kernelVoxDepth(NULL)
 ,m_kernelVoxelization(NULL)
+,m_kernelSSAO_Voxelization(NULL)
 ,m_menu_on(false)
 ,m_lights_on(false)
 ,m_minerLight_on(false)
-,m_updateCamHandler(false)
+,m_updateCamHandler(true)
 ,m_wireframe_on(false)
-,m_vox_ssao_active(true)
+,m_voxrender_on(false)
+,m_blurr_on(false)
 ,m_orthographicProjection_on(true)
-,m_voxTexGridFuncPower(4)
 ,m_rfar(30.0f)
 ,m_pixelmaskSize(.8f)
 ,m_offsetSize(5.0f)
 ,m_intensity(20.0f)
 ,m_numPeelings(3)
-,m_blurr_on(false)
+,m_voxTexGridFuncPower(4)
+,m_voxProjectionMatrix(new GLProjectionMatrix())
+,m_updateVoxelgrid(true)
 ,m_renderMode(Voxelization)
 {
   m_clearColor[0] = .8f;
@@ -147,6 +151,11 @@ App::~App()
   if(m_kernelVoxelization)
     delete m_kernelVoxelization;
 
+  if(m_kernelSSAO_Voxelization)
+    delete m_kernelSSAO_Voxelization;
+
+  if(m_voxProjectionMatrix)
+    delete m_voxProjectionMatrix;
 
 #ifdef TIME_TEST
   timeTest.logResults();
@@ -188,16 +197,13 @@ void App::initGL(int *argc, char *argv[])
   m_argc = *argc;
   m_argv = argv;
 }
-GLuint * voxData;
-bool voxelize = true;
-int voxelizeCont;
-GLTextureObject texObj;
-GLfloat projectionMatrix[16];
+
 void App::loadResources()
 {
   loadArgs();
   loadScene();
   loadKernels();
+  listenReshape(m_appWidth, m_appHeight);
 }
 
 void App::render()
@@ -211,133 +217,133 @@ void App::render()
   screenShotTest.update();
   screenShotTest.configureCamera(m_camHandler);
 #endif
-  if(m_updateCamHandler)
+  /*if(m_updateCamHandler)
   {
-    if(m_renderMode == Voxelization && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
+    if(m_renderMode == Voxelization && m_kernelVoxelization->getRenderMode() == 0 && !m_updateVoxelgrid && m_voxrender_on)
       m_camHandler->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
-    else m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+    else 
+      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
     m_updateCamHandler = false;
-  }
-  static int iiii = 0;
-  if(!iiii)
-    m_camHandler->setViewBoundingBox(Vector3(-1.5f,-.5f,-1.5f), Vector3(1.5f,1.5f,1.5f),  m_fov);
-  iiii++;
+  }*/
+  //static int iiii = 0;
+  //if(!iiii)
+  //  m_camHandler->setViewBoundingBox(Vector3(-1.5f,-.5f,-1.5f), Vector3(1.5f,1.5f,1.5f),  m_fov);
+  //iiii++;
 
   m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
 
-  int numDir = 16;
-  int numAngleStep = 16;
-  float len = 1.0f;
-  Vector3 *dirs = new Vector3 [numDir*numAngleStep];
-  for(int i = 0; i < numDir; ++i)
-  {
-    float angle = DEG_TO_RAD(i*(360.0f/(numDir-1)));
-    for(int j = 0; j < numAngleStep; ++j)
-    {
-      float stepAngle = clamp(DEG_TO_RAD(j*90.0f/(numAngleStep - 1)), 0.0, PI/2);
-      dirs[i*numAngleStep + j] = Vector3(sin(stepAngle)*sin(angle), cos(stepAngle), sin(stepAngle)*cos(angle))*len;
-    }
-  }
+  //int numDir = 16;
+  //int numAngleStep = 16;
+  //float len = 1.0f;
+  //Vector3 *dirs = new Vector3 [numDir*numAngleStep];
+  //for(int i = 0; i < numDir; ++i)
+  //{
+  //  float angle = DEG_TO_RAD(i*(360.0f/(numDir-1)));
+  //  for(int j = 0; j < numAngleStep; ++j)
+  //  {
+  //    float stepAngle = clamp(DEG_TO_RAD(j*90.0f/(numAngleStep - 1)), 0.0, PI/2);
+  //    dirs[i*numAngleStep + j] = Vector3(sin(stepAngle)*sin(angle), cos(stepAngle), sin(stepAngle)*cos(angle))*len;
+  //  }
+  //}
 
 
-  static int h = 0;
-  static int sr = 981651654;
-  Vector3 *dirsRand = new Vector3 [numDir*numAngleStep];
-  if(h!=300)
-  {
-    srand(sr);
-    h++;
-  }else{
-    sr = rand();
-    h = 0;
-  }
-  for(int i = 0; i < numDir; ++i)
-  {
-    for(int j = 0; j < numAngleStep; ++j)
-    {
-      float r = (1.0f + float(rand()%30)/100 - .15f);
-      float angle = DEG_TO_RAD(i*(360.0f/(numDir-1)))*r;
+  //static int h = 0;
+  //static int sr = 981651654;
+  //Vector3 *dirsRand = new Vector3 [numDir*numAngleStep];
+  //if(h!=300)
+  //{
+  //  srand(sr);
+  //  h++;
+  //}else{
+  //  sr = rand();
+  //  h = 0;
+  //}
+  //for(int i = 0; i < numDir; ++i)
+  //{
+  //  for(int j = 0; j < numAngleStep; ++j)
+  //  {
+  //    float r = (1.0f + float(rand()%30)/100 - .15f);
+  //    float angle = DEG_TO_RAD(i*(360.0f/(numDir-1)))*r;
 
-      r = (1.0f + float(rand()%50)/100 - .25f);
-      float stepAngle = clamp(DEG_TO_RAD(j*90.0f/(numAngleStep - 1))*r, 0.0, PI/2);
-      dirsRand[i*numAngleStep + j] = Vector3(sin(stepAngle)*sin(angle), cos(stepAngle), sin(stepAngle)*cos(angle))*len;
-    }
-  }
-  glMatrixMode (GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity ();
-  gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
-  glMatrixMode (GL_MODELVIEW);
-  glPushMatrix();
+  //    r = (1.0f + float(rand()%50)/100 - .25f);
+  //    float stepAngle = clamp(DEG_TO_RAD(j*90.0f/(numAngleStep - 1))*r, 0.0, PI/2);
+  //    dirsRand[i*numAngleStep + j] = Vector3(sin(stepAngle)*sin(angle), cos(stepAngle), sin(stepAngle)*cos(angle))*len;
+  //  }
+  //}
+  //glMatrixMode (GL_PROJECTION);
+  //glPushMatrix();
+  //glLoadIdentity ();
+  //gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
+  //glMatrixMode (GL_MODELVIEW);
+  //glPushMatrix();
 
-  //glutWireCube(1);
+  ////glutWireCube(1);
 
-  Vector3 dest(1,5,2);
-  Vector3 norm(0,1,0);
-  dest = dest.unitary();
+  //Vector3 dest(1,5,2);
+  //Vector3 norm(0,1,0);
+  //dest = dest.unitary();
 
-  float angle = norm.angle(dest);
-  Vector3 axis = norm^dest;
-  axis = axis.unitary();
+  //float angle = norm.angle(dest);
+  //Vector3 axis = norm^dest;
+  //axis = axis.unitary();
 
 
-  Matrix3 rotMat;
-  rotMat.setIdentity();
-  rotMat.setRotation(angle, axis);
-  rotMat = rotMat.getTranspose();
-  GLfloat glRotMat[16];
-  for(int i = 0; i < 4; ++i)
-    for(int j = 0; j < 4; ++j)
-    {
-      if(i == 3 && j == 3)
-        glRotMat[i*4+j] = 1.0f;
-      else if(i == 3 || j == 3)
-        glRotMat[i*4+j] = 0.0f;
-      else glRotMat[i*4+j] = rotMat.getValue(i,j);
-    }
-  glLineWidth(1);
-  glColor3f(1,1,1);
-  glBegin(GL_LINES);
-  glColor3f(0,0,0);
-  for(int i = 0; i< numDir*numAngleStep; ++i)
-  {
-    glVertex3f(0,0,0);
-    glVertex3f(dirsRand[i].x, dirsRand[i].y, dirsRand[i].z);
-  }
-  glColor3f(0,1,0);
-  for(int i = 0; i< numDir*numAngleStep; ++i)
-  {
-    glVertex3f(0,0,0);
-    glVertex3f(dirs[i].x, dirs[i].y, dirs[i].z);
-  }
+  //Matrix3 rotMat;
+  //rotMat.setIdentity();
+  //rotMat.setRotation(angle, axis);
+  //rotMat = rotMat.getTranspose();
+  //GLfloat glRotMat[16];
+  //for(int i = 0; i < 4; ++i)
+  //  for(int j = 0; j < 4; ++j)
+  //  {
+  //    if(i == 3 && j == 3)
+  //      glRotMat[i*4+j] = 1.0f;
+  //    else if(i == 3 || j == 3)
+  //      glRotMat[i*4+j] = 0.0f;
+  //    else glRotMat[i*4+j] = rotMat.getValue(i,j);
+  //  }
+  //glLineWidth(1);
+  //glColor3f(1,1,1);
+  //glBegin(GL_LINES);
+  //glColor3f(0,0,0);
+  //for(int i = 0; i< numDir*numAngleStep; ++i)
+  //{
+  //  glVertex3f(0,0,0);
+  //  glVertex3f(dirsRand[i].x, dirsRand[i].y, dirsRand[i].z);
+  //}
+  //glColor3f(0,1,0);
+  //for(int i = 0; i< numDir*numAngleStep; ++i)
+  //{
+  //  glVertex3f(0,0,0);
+  //  glVertex3f(dirs[i].x, dirs[i].y, dirs[i].z);
+  //}
 
-  //glColor3f(1,0,0);
-  //glVertex3f(0,0,0);
-  //glVertex3f(dest.x, dest.y, dest.z);
+  ////glColor3f(1,0,0);
+  ////glVertex3f(0,0,0);
+  ////glVertex3f(dest.x, dest.y, dest.z);
 
-  glEnd();
+  //glEnd();
 
   
-  //switch(m_renderMode)
-  //{
-  //  default:
-  //  case NoShader:
-  //    renderNoShader();
-  //    break;
-  //  case Spheres:
-  //    renderSSAOSphers();
-  //    break;
-  //  case Visibility:
-  //    renderSSAOVisibility();
-  //    break;
-  //  case Voxelization:
-  //    renderSSAOVoxelization();
-  //    break;
-  //}
+  switch(m_renderMode)
+  {
+    default:
+    case NoShader:
+      renderNoShader();
+      break;
+    case Spheres:
+      renderSSAOSphers();
+      break;
+    case Visibility:
+      renderSSAOVisibility();
+      break;
+    case Voxelization:
+      renderSSAOVoxelization();
+      break;
+  }
   renderGUI();
-
 #ifdef SCREENSHOT_TEST
   if(screenShotTest.isTestEnded())
     exit(42);
@@ -369,9 +375,13 @@ void App::listenKeyboard( int key )
 
   case 'V':
   case 'v':
-    if(m_renderMode == Voxelization  && !voxelize)
-      m_updateCamHandler = true;
-    m_kernelVoxelization->setRenderMode(!m_kernelVoxelization->getRenderMode());
+    if(m_renderMode == Voxelization  && !m_updateVoxelgrid)
+    {
+      if(m_voxrender_on)
+        m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+      else m_camHandler->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
+      m_voxrender_on = !m_voxrender_on;
+    }
     break;
 
   case 'M':
@@ -429,6 +439,7 @@ void App::listenKeyboard( int key )
     m_kernelBlur->reloadShader();
     m_kernelCombine->reloadShader();
     m_kernelVoxelization->reloadShader();
+    m_kernelSSAO_Voxelization->reloadShader();
     break;
 
   case 'I':
@@ -445,26 +456,7 @@ void App::listenKeyboard( int key )
     m_intensity = max(m_intensity - .05f, 0.01f);
     break;
   
-  case '{':
-  case '[':
-    m_voxTexGridFuncPower = m_voxTexGridFuncPower++;
-    m_kernelVoxelization->reloadGridFuncTextures(m_voxTexGridFuncPower);
-    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
-    voxelize = true;
-    voxelizeCont = 0;
-    break;
-  case '}':
-  case ']':
-    m_voxTexGridFuncPower = max(m_voxTexGridFuncPower - 1, 1);
-    m_kernelVoxelization->reloadGridFuncTextures(m_voxTexGridFuncPower);
-    if(m_renderMode == Voxelization  &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
-    voxelize = true;
-    voxelizeCont = 0;
-    break;
-
-
+  
   case '1':
   {
     int step = m_kernelVoxelization->getStepX();
@@ -520,42 +512,41 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 5: //F5
-    if(m_renderMode == Voxelization && m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
     m_rfar = 30.0f;
     m_pixelmaskSize = .8;
     m_offsetSize = 5.0;
     m_intensity = 20.0;
-    m_updateCamHandler = true;
+    
+    if(m_renderMode == Voxelization && m_voxrender_on)
+      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
     m_renderMode =  Spheres;
     break;
 
   case 6: //F6
-    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
     m_rfar = .01f;
     m_intensity = 1.0;
+
+    if(m_renderMode == Voxelization && m_voxrender_on)
+      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
     m_renderMode = Visibility;
     break;
   
   case 7: //F7
-    if(m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
+    if(m_renderMode == Voxelization && m_voxrender_on)
+      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
     m_renderMode = Voxelization;
     break;
 
 
   case 8: //F8
-    if(m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
-    voxelize = true;
-    voxelizeCont = 0;
+    m_updateVoxelgrid = true;
+    if(m_renderMode == Voxelization && m_voxrender_on)
+      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+
     m_renderMode = Voxelization;
     break;
 
   case 10: //F10
-    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
     m_wireframe_on = !m_wireframe_on;
 
     if(m_wireframe_on)
@@ -565,8 +556,9 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 11:
-    if(m_renderMode == Voxelization &&  m_kernelVoxelization->getRenderMode() == 0 && !voxelize)
-      m_updateCamHandler = true;
+    if(m_renderMode == Voxelization && m_voxrender_on)
+      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+
     m_renderMode = NoShader;
     break;
 
@@ -696,7 +688,7 @@ void App::loadScene()
   m_camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.f, 5.f);
   m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
 
-  m_nearPlane = m_camHandler->getSphereRadius()*.1f; 
+  m_nearPlane = m_camHandler->getSphereRadius()*.05f; 
   m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
   
   //m_nearPlane = m_camHandler->getSphereRadius()*.85; 
@@ -756,11 +748,24 @@ void App::loadKernels()
     ,m_kernelDeferred_Peeling->getTexIdNormal(0)
     );
 
-  m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelSSAO->getColorTexId());
-  m_kernelCombine = new KernelCombine((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, m_kernelColor->getTexIdColor());
+  m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelSSAO->getColorTexId()
+    );
+  m_kernelCombine = new KernelCombine((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelColor->getTexIdColor()
+    );
 
   m_kernelVoxDepth = new KernelVoxDepth((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight);
-  m_kernelVoxelization = new KernelVoxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight, 1, m_kernelVoxDepth->getTexIdEyeNearest());
+  m_kernelVoxelization = new KernelVoxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight 
+    ,1 
+    ,m_kernelVoxDepth->getTexIdEyePos()
+    );
+  m_kernelSSAO_Voxelization = new KernelSSAO_Voxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelVoxDepth->getTexIdEyePos()
+    ,m_kernelVoxDepth->getTexIdNormalDepth()
+    ,m_kernelVoxelization->getTexIdGrid0()
+    ,m_kernelVoxelization->getTexIdGridInvFunc()
+    );
 }
 
 void App::drawScene()
@@ -838,7 +843,6 @@ void App::renderNoShader()
     glMatrixMode (GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity ();
-    //glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
     Vector3 size = m_rtScene->getSceneBoundingBoxSize();
     float orthoSize = max(max(size.x, size.y), size.z);
     glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
@@ -1029,7 +1033,7 @@ void App::renderSSAOVisibility()
 
 void App::renderSSAOVoxelization()
 {
-  if(voxelize)
+  if(m_updateVoxelgrid || !m_voxrender_on)
   {
     if(m_orthographicProjection_on)
     {
@@ -1040,7 +1044,6 @@ void App::renderSSAOVoxelization()
       Vector3 size = m_rtScene->getSceneBoundingBoxSize();
       float orthoSize = max(max(size.x, size.y), size.z);
       glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
-      //glOrtho(-3.56,3.56,-3.56,3.56,m_nearPlane, m_farPlane);
       glMatrixMode (GL_MODELVIEW);
       glPushMatrix();
     }
@@ -1053,6 +1056,8 @@ void App::renderSSAOVoxelization()
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
     drawScene();
     m_kernelVoxDepth->setActive(false);
+    
+    m_voxProjectionMatrix->readGLProjection();
 
     m_kernelVoxelization->setActive(true);
     drawScene();
@@ -1071,19 +1076,20 @@ void App::renderSSAOVoxelization()
     //m_kernelVoxDepth->renderOutput(0);
     //m_kernelVoxelization->renderOutput(2);
 
-    //texObj = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
-    //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
-    //voxData = texObj.read2DTextureUIntData();
+    
+    //GLTextureObject texObj;
+    //texObj = GLTextureObject(m_kernelVoxDepth->getOutputTexture(2));
+    //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(1));
+    //GLuint * i = texObj.read2DTextureUIntData();
     //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
-    //GLTextureObject t2 = GLTextureObject(m_kernelVoxDepth->getOutputTexture(0));
+    //GLTextureObject t2 = GLTextureObject(m_kernelVoxDepth->getOutputTexture(1));
     //GLfloat* f = t2.read2DTextureFloatData();
+    //GLuint * d = t2.read2DTextureUIntData();
 
-    if(voxelizeCont > 0)
-      m_updateCamHandler = true;
-    voxelize = voxelizeCont < 1;
-    voxelizeCont++;
-
-  }else
+    m_updateVoxelgrid = false;
+    if(m_voxrender_on)
+      m_camHandler->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
+  }else if(m_voxrender_on)
   {
     glMatrixMode (GL_PROJECTION);
     glPushMatrix();
@@ -1105,26 +1111,33 @@ void App::renderSSAOVoxelization()
     m_rtScene->setLightActive(false);
     m_rtScene->setMaterialActive(false, 2);
 
-    //glPushMatrix();
-    //Vector3 c = m_rtScene->getSceneBoundingBoxCenter();
-    //glTranslatef(c.x, c.y, c.z);
-    //Vector3 s = m_rtScene->getSceneBoundingBoxSize();
-    //glScalef(s.x, s.y, s.z);
-    //glutWireCube(1);
-    //glPopMatrix();
-
-
     glPopAttrib();
 
     glPopMatrix();
     glMatrixMode (GL_PROJECTION);
     glPopMatrix();
     glMatrixMode (GL_MODELVIEW);
+  }
 
-    //glPushAttrib(GL_ALL_ATTRIB_BITS);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    //drawScene();
-    //glPopAttrib();
+  if(!m_voxrender_on)
+  {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    m_kernelSSAO_Voxelization->step(m_voxProjectionMatrix);
+    m_kernelSSAO_Voxelization->renderOutput(KernelSSAO_Voxelization::SSAO);
+
+
+
+    //GLTextureObject texObj = GLTextureObject(m_kernelSSAO_Voxelization->getOutputTexture(1));
+    //GLuint* i = texObj.read2DTextureUIntData();
+    GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization->getOutputTexture(0));
+    GLfloat* f = t2.read2DTextureFloatData();
+
+
+
+
+    glPopAttrib();
   }
 }
 

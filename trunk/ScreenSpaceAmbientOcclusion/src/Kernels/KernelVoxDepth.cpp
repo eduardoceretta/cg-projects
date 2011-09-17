@@ -18,8 +18,8 @@ KernelVoxDepth::KernelVoxDepth(char* path, int width, int height)
 {
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
   //Output
-  m_texIdEyeNearest = addOutput(0);
-  //m_texIdColor = addOutput(0);
+  m_texIdNormalDepth = addOutput(0);
+  m_texIdEyePos = addOutput(1);
 }
 
 KernelVoxDepth::~KernelVoxDepth(){
@@ -27,12 +27,12 @@ KernelVoxDepth::~KernelVoxDepth(){
 }
 
 
-GLuint KernelVoxDepth::getTexIdColor() const
+GLuint KernelVoxDepth::getTexIdEyePos() const
 {
-  return m_texIdColor;
+  return m_texIdEyePos;
 }
 
-GLuint KernelVoxDepth::getTexIdEyeNearest() const
+GLuint KernelVoxDepth::getTexIdNormalDepth() const
 {
-  return m_texIdEyeNearest;
+  return m_texIdNormalDepth;
 }

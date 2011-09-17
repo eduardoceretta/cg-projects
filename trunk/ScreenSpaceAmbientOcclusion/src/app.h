@@ -38,6 +38,8 @@ class SphereGLCameraHandler;
 class GLFont;
 class Frames;
 
+class GLProjectionMatrix;
+
 class KernelColor;
 class KernelDeferred_Peeling;
 class KernelSSAO;
@@ -46,6 +48,7 @@ class KernelBlur;
 class KernelCombine;
 class KernelVoxDepth;
 class KernelVoxelization;
+class KernelSSAO_Voxelization;
 
 using namespace std;
 
@@ -67,7 +70,6 @@ class App
    */
   string m_scenePath;
   string m_shaderPath;  
-
 
   /**
    * Application Parameters
@@ -104,6 +106,7 @@ class App
   KernelCombine* m_kernelCombine;
   KernelVoxDepth* m_kernelVoxDepth;
   KernelVoxelization* m_kernelVoxelization;
+  KernelSSAO_Voxelization* m_kernelSSAO_Voxelization;
 
   /**
    * Interface control
@@ -114,19 +117,28 @@ class App
   bool m_wireframe_on;
   bool m_updateCamHandler;
   bool m_orthographicProjection_on;
+  bool m_blurr_on;
+  bool m_voxrender_on;
   
+  /**
+   * Global Algorithm Parameters
+   */
+  float m_rfar;
+  float m_intensity;
 
   /**
-   * Algorithm Parameters
+   * Sphere ALgorithm Parameters
    */
-  int m_voxTexGridFuncPower;
-  float m_rfar;
   float m_pixelmaskSize;
   float m_offsetSize;
-  float m_intensity;
   int m_numPeelings;
-  bool m_blurr_on;
-  bool m_vox_ssao_active;
+
+  /**
+   * Voxelization Algorithm Parameters
+   */
+  bool m_updateVoxelgrid;
+  int m_voxTexGridFuncPower;
+  GLProjectionMatrix *m_voxProjectionMatrix;
 
   /**
    * Render Mode
