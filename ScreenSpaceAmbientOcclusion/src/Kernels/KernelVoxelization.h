@@ -29,7 +29,7 @@ public:
    * Create the kernel, the textures of the grid and the model information.
    *  Size is the grid dimensions number of textures (depends of the number of render targets)
    */
-  KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyeNearest);
+  KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyePos);
 	
   /**
    * Destroy the kernel
@@ -39,9 +39,9 @@ public:
   /**
    * Get the id of the respective render target
    */
-  GLuint getTexIdNormal(int index) const;
-  GLuint getTexIdColor(int index) const;
-  GLuint getTexIdGrid0(int index) const;
+  GLuint getTexIdNormal() const;
+  GLuint getTexIdColor() const;
+  GLuint getTexIdGrid0() const;
 
   /**
    * Get Voxelization Render Bounding Box
@@ -63,7 +63,11 @@ public:
   int getStepZ() const;
   void setStepZ(int val);
 
-
+  /**
+   * Grid Functions textures
+   */
+  GLuint getTexIdGridFunc() const;
+  GLuint getTexIdGridInvFunc() const;
 
   /**
    * Activate/Deactivate the Kernel's FBO and shader
@@ -170,7 +174,7 @@ private:
   /**
    * Input textures ids of the grid information
    */
-  GLuint m_texIdEyeNearest;
+  GLuint m_texIdEyePos;
 
   GLuint m_texIdGridBitMap;
   int m_gridBitMapWidth;
@@ -178,6 +182,7 @@ private:
 
   GLuint m_texIdGridFunc;
   GLuint m_texIdGridInvFunc;
+  
   int m_gridFuncWidth;
 
 };

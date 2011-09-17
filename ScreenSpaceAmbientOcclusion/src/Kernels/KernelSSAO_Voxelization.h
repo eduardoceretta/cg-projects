@@ -23,50 +23,53 @@ public:
   /**
    * The render targets produced by the Kernel
    */
-  enum textures {SSAAO = 0, Color, Grid0};
+  enum textures {SSAO = 0, Debug};
 
   /**
-   * Create the kernel, the textures of the grid and the model information.
-   *  Size is the grid dimensions number of textures (depends of the number of render targets)
+   * Create the kernel.
+   *  texIdEyePos holds the eye position and nearest eye of each fragment.
+   *  texIdNormalDepth holds the normal and depth of each fragment.
+   *  texIdVoxelGrid holds the 3D grid of the scene.
+   *  texIdGridInvFunction holds the inverse function that convert the eye space normalized index to grid space
    */
-  KernelSSAO_Voxelization(char* path, int width, int height, GLuint texIdNormal, GLuint texIdVoxelGrid);
-	
+  KernelSSAO_Voxelization(char* path, int width, int height, GLuint texIdEyePos, GLuint texIdNormalDepth, 
+                            GLuint texIdVoxelGrid, GLuint texIdGridInvFunction);
   /**
    * Destroy the kernel
    */
   ~KernelSSAO_Voxelization();
 
+   /**
+   * Activate/Deactivate the Kernel's FBO and shader
+   *  Calculate the projection parameters needed by the shader
+   */
+  void setActive(bool op, GLProjectionMatrix *projectionMatrix);
 
-  ///**
-  // * Activate/Deactivate the Kernel's FBO and shader
-  // *  Calculate the projection parameters needed by the shader
-  // */
-  //void setActive(bool op);
+  /**
+   * Activate/Deactivate the Kernel's shader
+   *  Calculate the projection parameters needed by the shader
+   */
+  void setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix);
 
-  ///**
-  // * Activate/Deactivate the Kernel's shader
-  // *  Calculate the projection parameters needed by the shader
-  // */
-  //void setActiveShaderOnly(bool op);
-  
-  ///**
-  // * Changes the Grid Function
-  // */
-  //void reloadGridFuncTextures(float power);
+  /**
+   * Does a kernel pass cycle.
+   *  Activate the FBO and shader, bind the input texture, draw a screen quad
+   *  and deactivate the shader and the FBO.
+   *  Calculate the projection parameters needed by the shader
+   */
+  void step(GLProjectionMatrix *projectionMatrix);
+
+  /**
+   * Get output SSAO texture Id.
+   */
+  GLuint getTexIdSSAO() const;
 private:
-  ///**
-  // * Create the grid function textures[Normal and Inverse].
-  // *  Maps the normalized distance to the respective normalized index of the grid.
-  // *  Power is a function modificator
-  // */
+  /**
+   * Create the ray directions to be used in the hemisphere traverse.
+   *  Create n random variations of the hemisphere ray distribution.
+   */
   void createRayDirectionsTexture();
 
-
-  ///**
-  // * Calculate the center and size of the specific Grid Cell
-  // */
-  //Vector3 getGridCellCenter(int x, int y, int z, float zNear);
-  //Vector3 getGridCellSize(int x, int y, int z, float zNear);
   /**
    * Grid Dimensions	
    */
@@ -77,16 +80,21 @@ private:
    * Texture ids of the render targets
    */
   GLuint m_texIdSSAO;
+  GLuint m_texIdDebug;
 
-  
   /**
-   * Input textures ids of the grid information
+   * Ray Directions Attributes
    */
-  GLuint m_texIdRayDirections;
-  int m_rayDirectionsWidth;
   int m_numRayHemispherDivision;
   int m_numRayDirections;
   int m_numRayDistribution;
+
+  /**
+   * Input textures ids and information
+   */
+  GLuint m_texIdRayDirections;
+  int m_rayDirectionsWidth;
+
 };
 
 

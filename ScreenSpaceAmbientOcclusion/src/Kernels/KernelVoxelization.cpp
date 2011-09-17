@@ -18,7 +18,7 @@
 
 #define UINT_BIT_SIZE 32
 #define VOXELIZATION_BITMAP_FULLONE 
-#define NEAREST_EYE
+//#define NEAREST_EYE
 //#define FULL_GRID 1
 #ifdef FULL_GRID
   #define WIRE_ON
@@ -65,7 +65,7 @@
   #define GRID_INV_FUNCTION(x,y) _FUNC_INV_ASIN(x, y)
 #endif
 
-KernelVoxelization::KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyeNearest)
+KernelVoxelization::KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyePos)
 : KernelBase(path, "voxelization.vert", "voxelization.frag", width, height)
 ,m_width(width)
 ,m_height(height)
@@ -95,7 +95,7 @@ KernelVoxelization::KernelVoxelization(char* path, int width, int height, int si
 ,m_endX(width)
 ,m_endY(height)
 ,m_endZ(128)
-,m_texIdEyeNearest(texIdEyeNearest)
+,m_texIdEyePos(texIdEyePos)
 {
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
@@ -119,20 +119,20 @@ KernelVoxelization::KernelVoxelization(char* path, int width, int height, int si
   
   //Output
   m_texIdNormal = addOutput(0, t.getId());
-  m_texIdColor = addOutput(1, t1.getId());
-  m_texIdGrid0 = addOutput(2);//, t2.getId());
+  m_texIdGrid0 = addOutput(1, t1.getId());
+  m_texIdColor = addOutput(2);//, t2.getId());
 	
 	//Input
 	m_shader->setActive(true);
     addInputFloat("screenWidth", width);
     addInputFloat("screenHeight", height);
-    addInputFloat("gridBitMapWidth", (float)m_gridBitMapWidth);
-    addInputFloat("gridBitMapHeight", (float)m_gridBitMapHeight);
-    addInputFloat("gridFuncWidth", (float)m_gridFuncWidth);
+    //addInputFloat("gridBitMapWidth", (float)m_gridBitMapWidth);
+    //addInputFloat("gridBitMapHeight", (float)m_gridBitMapHeight);
+    //addInputFloat("gridFuncWidth", (float)m_gridFuncWidth);
     
-    addInputTexture(GL_TEXTURE_2D, "eyeNearest", m_texIdEyeNearest);
+    addInputTexture(GL_TEXTURE_2D, "eyePosTex", m_texIdEyePos);
     addInputTexture(GL_TEXTURE_2D, "gridBitMap", m_texIdGridBitMap);
-    addInputTexture(GL_TEXTURE_1D, "gridFunction", m_texIdGridFunc);
+    //addInputTexture(GL_TEXTURE_1D, "gridFunction", m_texIdGridFunc);
     addInputTexture(GL_TEXTURE_1D, "gridInvFunction", m_texIdGridInvFunc);
 	m_shader->setActive(false);
 }
@@ -143,17 +143,17 @@ KernelVoxelization::~KernelVoxelization(){
 
 
 
-GLuint KernelVoxelization::getTexIdNormal(int index) const
+GLuint KernelVoxelization::getTexIdNormal() const
 {
   return m_texIdNormal;
 }
 
-GLuint KernelVoxelization::getTexIdColor(int index) const
+GLuint KernelVoxelization::getTexIdColor() const
 {
   return m_texIdColor;
 }
 
-GLuint KernelVoxelization::getTexIdGrid0(int index) const
+GLuint KernelVoxelization::getTexIdGrid0() const
 {
   return m_texIdGrid0;
 }
@@ -722,7 +722,7 @@ void KernelVoxelization::updateData()
   }
   if(!m_eyeNearestData)
   {
-    m_eyeNearestTexObj.setId(m_texIdEyeNearest);
+    m_eyeNearestTexObj.setId(m_texIdEyePos);
     m_eyeNearestData = m_eyeNearestTexObj.read2DTextureFloatData();
   }
   if(!m_funcData)
@@ -776,4 +776,14 @@ void KernelVoxelization::setStepZ( int val )
 void KernelVoxelization::setStepY( int val )
 {
   m_stepY = val;
+}
+
+GLuint KernelVoxelization::getTexIdGridFunc() const
+{
+  return m_texIdGridFunc;
+}
+
+GLuint KernelVoxelization::getTexIdGridInvFunc() const
+{
+  return m_texIdGridInvFunc;
 }

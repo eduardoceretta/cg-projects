@@ -30,26 +30,26 @@ public:
 	~KernelVoxDepth();
 
   /**
-   * Gets the color texture
+   * Gets the normal texture
    */
-  GLuint getTexIdColor() const;
+  GLuint getTexIdEyePos() const;
 
   /**
    * Gets the eye nearest texture
    */
-  GLuint getTexIdEyeNearest() const;
+  GLuint getTexIdNormalDepth() const;
   
 private:
 
   /**
-   * Color texture ID
+   * Normal texture ID
    */
-  GLuint m_texIdColor;
+  GLuint m_texIdEyePos;
 
   /**
    * Eye Nearest texture ID
    */
-  GLuint m_texIdEyeNearest;
+  GLuint m_texIdNormalDepth;
 };
 
 

@@ -51,8 +51,9 @@ void GLProjectionMatrix::readGLProjection()
 {
   GLfloat p[16];
   glGetFloatv(GL_PROJECTION_MATRIX, p);
-  for(int i=0; i<16; ++i)
-    ((double*)(&m_mat[0]))[i]=(double)p[i];
+  for(int i=0; i<4; ++i)
+    for(int j = 0; j < 4; ++j)
+      m_mat[i][j] = (double)p[i*4+j];
   m_outdated = true;
 }
 float GLProjectionMatrix::getNear() 
