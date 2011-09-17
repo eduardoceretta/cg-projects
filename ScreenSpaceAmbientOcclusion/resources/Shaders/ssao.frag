@@ -247,7 +247,7 @@ void main()
 #endif
 
   //Total Ambient Occlusion Normalization
-  totalAO = intensity *  totalAO/(2*PI*pow(position.w,2));//(float(n));
+  totalAO = intensity *  totalAO/(2.0*PI*pow(position.w,2.0));//(float(n));
   totalAO = clamp(totalAO,0.0,1.0);
 
   //OutPut

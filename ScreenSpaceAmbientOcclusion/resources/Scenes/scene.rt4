@@ -10,16 +10,17 @@ CAMERA   100 100 40  0 0 0     0 1 0     60    5   1000   512    512
 MATERIAL   .8 .8 .8     1. 1. 1.    50.   0.  0.8  0.4 
 MATERIAL   .8 .8 .8     0. 0. 0.    50.   0.  0.8  0.4 
 MATERIAL   .8 .6 .2     0. 0. 0.   100.   0.  0.8  0.4 
+MATERIAL   .8 .5 .4     .8 .8 .8   32.   0.  0.8  0.4 
 
 #LIGHT (pos)x y z (dif)r g b (spec)r g b [type]{Dir=0 Pnt=1 Spt=2} [spotExponent] [spotAngle] [spotDir] x y z
-LIGHT 100. 100. 100.   .8 .8 .8   1. 1. 1.   
+LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
 
 
 #MESH materialIndex (pos)x y z (scale)x y z  path
 
 ############UM UM UM UM#############
 # MESH 1  0.324326 -0.267604 0.406447  0.00689655172 0.00689655172 0.00689655172 resources/Models/cavalo.um
-# MESH 1  0 0 0  1 1 1 resources/Models/beethoven.um
+# MESH 3  0 0 0  .086 .086 .086 resources/Models/beethoven.um
 # MESH 1  0 0 0  1 1 1 resources/Models/cow.um
 # MESH 1  0 0 0  1 1 1 resources/Models/heptoroid.um
 # MESH 1  0 0 0  1 1 1 resources/Models/venus.um
