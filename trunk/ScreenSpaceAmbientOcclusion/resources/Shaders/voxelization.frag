@@ -6,25 +6,26 @@
  *  Perform the calculation of the Voxelization of the scene
  *  Create a non regular grid and voxelizes the scene into it. Uses blending to make a bitmask that defines the grid.
  */
+#extension GL_EXT_gpu_shader4 : enable //Enable Integer Operations - Shader Model 4.0 GF 8 Series
+
 /****************************************************************************************/
 /* Shader Controls.                                                                     */
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
-#define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
+//#define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
  
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
 /****************************************************************************************/
-uniform sampler1D gridFunction;     /**< Grid Function Texture*/
-uniform sampler1D gridInvFunction;  /**< Grid Inverse Function Texture*/
-uniform float gridFuncWidth;        /**< Grid Function Texture Dimension*/
+//uniform sampler1D gridFunction;     /**< Grid Function Texture*/
+uniform sampler1D gridInvFunction;    /**< Grid Inverse Function Texture*/
+//uniform float gridFuncWidth;        /**< Grid Function Texture Dimension*/
 
-uniform sampler2D gridBitMap;       /**< Grid BitMap Texture*/
-uniform float gridBitMapWidth;      /**< Grid BitMap Texture Dimensions*/
-uniform float gridBitMapHeight;     /**< Grid BitMap Texture Dimensions*/
+uniform sampler2D gridBitMap;         /**< Grid BitMap Texture*/
+//uniform float gridBitMapWidth;      /**< Grid BitMap Texture Dimensions*/
+//uniform float gridBitMapHeight;     /**< Grid BitMap Texture Dimensions*/
 
-uniform sampler2D eyeNearest;       /**< Nearest Eye Fragment Texture*/
-
+uniform sampler2D eyePosTex;          /**< EyePosition Nearest Eye Fragment Texture*/
 
 /**
  * Projection Parameters
@@ -35,7 +36,6 @@ uniform float near;
 uniform float far;
 uniform float right;
 uniform float top;
-uniform float teste;
 
 varying vec4 color;
 varying vec3 eyePos;
@@ -75,13 +75,18 @@ vec3 window2eye(vec3 w);
  */
 vec3 window2ndc(vec3 w);
 
+/**
+ * Return True if the bit in the position pos of the unsigned int v is One
+ */
+bool isBitOne(unsigned int v, unsigned int pos);
+
 void main()
 {
   float dist = -eyePos.z;
   //float dist = length(eyePos);
   
 #ifdef EYE_NEAREST
-  float eyeNear = texture2D(eyeNearest, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).a;
+  float eyeNear = texture2D(eyePosTex, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).a;
   if(eyeNear <= 0.0)
     discard;
   float fragNear = eyeNear;
@@ -94,9 +99,15 @@ void main()
   vec4 bitMask = texture2D(gridBitMap, vec2(gridIndex, .5));
   
   //OutPut
-  gl_FragData[0] = vec4(0,pow(4,.5),1,0);
+  gl_FragData[0] = vec4(0,pow(4.,.5),1,0);
   gl_FragData[1] = vec4(bitMask);
-  gl_FragData[2] = vec4(gl_ProjectionMatrixInverse*vec4(window2ndc(gl_FragCoord.xyz),1));
+  gl_FragData[2] = vec4(texture2D(eyePosTex, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).xyz, gl_FragCoord.z);
+}
+
+bool isBitOne(unsigned int v, unsigned int pos)
+{
+  unsigned int mask = 1u << pos;
+  return ((v & mask) != 0u);
 }
 
 vec3 ndc2eye(vec3 ndc)

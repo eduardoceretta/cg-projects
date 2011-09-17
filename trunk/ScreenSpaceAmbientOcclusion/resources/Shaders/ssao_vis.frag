@@ -115,6 +115,8 @@ void main()
   //Output Color 
   vec4 color = vec4(1,1,1,1);
 
+  
+
   //Current Fragment Information Normal(rbg) Depht(a)
   vec4 depth0_normal = texture2D(depth0_normalTex,  gl_TexCoord[0].st);
   float depth = depth0_normal.a;
@@ -245,7 +247,7 @@ void main()
   /**/
   
   //Total Ambient Occlusion Normalization
-  totalAO = intensity *  totalAO/(nd /* *PI*/);
+  totalAO = intensity *  totalAO/(float(nd) /* *PI*/);
   totalAO = clamp(totalAO, 0.0, 1.0);
 
   //OutPut
@@ -261,7 +263,7 @@ void main()
 float calcHorizontAngle(int num_steps, float rfar, vec3 normal, vec3 tangent, vec3 position, float dx, float dy)
 {
   vec3 t = tangent;
-  float step_len = rfar/num_steps;
+  float step_len = rfar/float(num_steps);
 #ifdef RAND_LEN        
   float len = step_len*(1. + (rand(gl_FragCoord.xy) - .5)*RAND_LEN);
 #else
@@ -269,8 +271,8 @@ float calcHorizontAngle(int num_steps, float rfar, vec3 normal, vec3 tangent, ve
 #endif   
   
   vec3 init_t = t;
-  int i = 0;
-  while(len <= rfar && i < 5. * num_steps)
+  float i = 0.0;
+  while(len <= rfar && i < 5. * float(num_steps))
   {
 #ifdef NOMRAL_TRANSLATE
     vec3 qe = position.xyz + normal*NOMRAL_TRANSLATE + t*len;
@@ -322,10 +324,10 @@ float calcNormalRays(int num_rays, int num_steps, float rfar, vec3 normal, vec3 
   mat3 rot = getRotationMatrix(right, init_angle);
   vec3 t = normalize(rot*tangent);
  
-  float step_angle = ((PI/2. - init_angle)/num_rays)/2.;
+  float step_angle = ((PI/2. - float(init_angle))/float(num_rays))/2.;
   rot = getRotationMatrix(right, step_angle);
   
-  float step_len = rfar/num_steps;
+  float step_len = rfar/float(num_steps);
   
   float num_hitted = 0.;
   for(int k = 0; k < num_rays; ++k)
@@ -335,9 +337,9 @@ float calcNormalRays(int num_rays, int num_steps, float rfar, vec3 normal, vec3 
     for(int l = 0; l < num_steps && !hit; ++l)
     {
 #ifdef RAND_LEN        
-      float len = (l + 1)*step_len*(1. + (rand(gl_FragCoord.xy) - .5)*RAND_LEN);
+      float len = (float(l) + 1.0)*step_len*(1. + (rand(gl_FragCoord.xy) - .5)*RAND_LEN);
 #else
-      float len = (l + 1)*step_len;
+      float len = (float(l) + 1.0)*step_len;
 #endif  
 
 #ifdef NOMRAL_TRANSLATE
@@ -367,7 +369,7 @@ float calcNormalRays(int num_rays, int num_steps, float rfar, vec3 normal, vec3 
       num_hitted += 1.0;
   }
   
-  return cos((PI/2. - init_angle)*num_hitted/num_rays);
+  return cos((PI/2. - init_angle)*num_hitted/float(num_rays));
 }
 
 
