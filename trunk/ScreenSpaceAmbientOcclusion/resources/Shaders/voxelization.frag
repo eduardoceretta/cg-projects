@@ -12,7 +12,7 @@
 /* Shader Controls.                                                                     */
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
-//#define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
+#define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
  
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
@@ -54,31 +54,6 @@ varying vec3 normal;
 #define BLACK vec4(0,0,0,1)
 #define ORANGE vec4(1.,.5, 0., 1.)
 
-float rand(vec2 n)
-{
-  return 0.5 + 0.5 *
-     fract(sin(dot(n.xy, vec2(12.9898, 78.233)))* 43758.5453);
-}
-
-/**
- * Calculate the window position from the eye position
- */
-vec3 eye2window(vec3 eye);
-
-/**
- * Calculate the eye position from the window position
- */
-vec3 window2eye(vec3 w);
-
-/**
- * Calculate the ndc position from the window position
- */
-vec3 window2ndc(vec3 w);
-
-/**
- * Return True if the bit in the position pos of the unsigned int v is One
- */
-bool isBitOne(unsigned int v, unsigned int pos);
 
 void main()
 {
@@ -104,66 +79,8 @@ void main()
   gl_FragData[2] = vec4(texture2D(eyePosTex, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).xyz, gl_FragCoord.z);
 }
 
-bool isBitOne(unsigned int v, unsigned int pos)
-{
-  unsigned int mask = 1u << pos;
-  return ((v & mask) != 0u);
-}
-
-vec3 ndc2eye(vec3 ndc)
-{	
-//--assuming r == -l, t == -b
-  float ze = 2. * far * near/(ndc.z * (far - near) - (far + near));
-  float ye = -ze * ndc.y * (top - (-top))/(2.0*near);
-  float xe = -ze * ndc.x * (right - (-right))/(2.0*near);
-  
-  return vec3(xe, ye, ze);
-}
-
-vec3 eye2ndc(vec3 eye)
-{
-//--assuming r == -l, t == -b
-	float xn = 2. * near * eye.x/(right - (-right));
-	float yn = 2. * near * eye.y/(top - (-top));
-	float zn = -eye.z * (far + near)/(far - near) - 2. * far * near/(far - near);
-	
-	xn = xn/-eye.z;
-	yn = yn/-eye.z;
-	zn = zn/-eye.z;
-	
-	return vec3(xn, yn, zn);
-}
-
-vec3 window2ndc(vec3 w)
-{
-  //--assuming window (0,0), (screenWidth, screenHeight)
-  //--assuming r == -l, t == -b
-  float xn = 2. * w.x/screenWidth - 1.;
-  float yn = 2. * w.y/screenHeight - 1.;
-  float zn = (2. * w.z -1.);
-  
-  return vec3(xn, yn, zn);
-}
 
 
-vec3 ndc2window(vec3 ndc)
-{
-//--assuming window (0,0), (parms.w, parms.h)
-  float xw = floor(screenWidth * ndc.x/2. + screenWidth/2.) + .5;
-  float yw = floor(screenHeight * ndc.y/2. + screenHeight/2.) + .5;
-  float zw = ndc.z/2. + .5;
-  return vec3(xw, yw, zw);
-}
-
-vec3 window2eye(vec3 w)
-{
-   return ndc2eye(window2ndc(w));
-}
-
-vec3 eye2window(vec3 eye)
-{
-  return ndc2window(eye2ndc(eye));
-}
 
 
 

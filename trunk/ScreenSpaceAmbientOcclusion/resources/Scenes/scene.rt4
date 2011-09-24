@@ -34,10 +34,10 @@ MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L_closed.msh
 
 ############PLY PLY PLY PLY#############
 # MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/bun_zipper_res2.msb
-# MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/dragon_vrip.msb
+# MESH 1  .18 -.25 0.     3. 3. 3. resources/Models/Stanford/dragon_vrip.msb
 # MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/dragon_vrip.ply
+MESH 1 0.027468 -0.751269 0.0337839  5.049918 5.049918 5.049918  resources/Models/Stanford/happy_vrip.msb
 # MESH 1  0. -100. 0.     1000. 1000. 1000.  resources/Models/Stanford/happy_vrip_res2.msb
-# MESH 1 0.027468 -0.751269 0.0337839  5.049918 5.049918 5.049918  resources/Models/Stanford/happy_vrip.msb
 # MESH 1  0. 90. -30.     .5 .5 .5  resources/Models/Stanford/blade.msb
 # MESH 1  -100. -100. -100.     30 30 30  resources/Models/Stanford/hand.msb
 # MESH 1  0 -50 0     1 1 1  resources/Models/Stanford/buddha1.5M.msb
