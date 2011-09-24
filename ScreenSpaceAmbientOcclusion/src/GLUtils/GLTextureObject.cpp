@@ -35,8 +35,10 @@ GLTextureObject::GLTextureObject(GLuint id, GLenum target)
 
 GLTextureObject :: ~GLTextureObject()
 {
-  delete[] m_fbuffer;
-  delete[] m_uibuffer;
+  if(m_fbuffer)
+    delete[] m_fbuffer;
+  if(m_uibuffer)
+    delete[] m_uibuffer;
 }
 
 GLuint GLTextureObject :: getId()
@@ -99,6 +101,7 @@ GLuint GLTextureObject::readTextureNumColors()
 }
 GLfloat* GLTextureObject::read1DTextureFloatData(GLenum format /*= GL_RGBA*/)
 {
+  m_target = GL_TEXTURE_1D;
   if(!m_fbuffer)
     m_fbuffer = new GLfloat[readTextureWidth()*readTextureNumColors()];
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
@@ -112,6 +115,7 @@ GLfloat* GLTextureObject::read1DTextureFloatData(GLenum format /*= GL_RGBA*/)
 }
 GLfloat* GLTextureObject :: read2DTextureFloatData(GLenum format /*= GL_RGBA*/)
 {
+  m_target = GL_TEXTURE_2D;
   if(!m_fbuffer)
     m_fbuffer = new GLfloat[readTextureWidth()*readTextureHeight()*readTextureNumColors()];
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
@@ -127,6 +131,7 @@ GLfloat* GLTextureObject :: read2DTextureFloatData(GLenum format /*= GL_RGBA*/)
 
 GLuint* GLTextureObject::read1DTextureUIntData(GLenum format /*= GL_RGBA_INTEGER_EXT*/)
 {
+  m_target = GL_TEXTURE_1D;
   if(!m_uibuffer)
     m_uibuffer = new GLuint[readTextureWidth()*readTextureNumColors()];
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
@@ -142,6 +147,7 @@ GLuint* GLTextureObject::read1DTextureUIntData(GLenum format /*= GL_RGBA_INTEGER
 
 GLuint* GLTextureObject :: read2DTextureUIntData(GLenum format /*= GL_RGBA_INTEGER_EXT*/)
 {
+  m_target = GL_TEXTURE_2D;
   if(!m_uibuffer)
     m_uibuffer = new GLuint[readTextureWidth()*readTextureHeight()*readTextureNumColors()];
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
