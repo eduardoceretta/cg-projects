@@ -4,11 +4,10 @@
  *  Sep 2011
  *
  *  Calculate the AmbientOcclusion of a Scene using the voxelization of it.
- *  Create some random ray distribution around the hemisphere and passes it as a texture.
- *  Access each ray in the voxel structure and verifies if it is empty, iterate each ray.
+ *  Verifies the number of full voxels inside the influence sphere.
  */
-#ifndef _KERNEL_SSAO_VOXELIZATION_H_
-#define _KERNEL_SSAO_VOXELIZATION_H_
+#ifndef _KERNEL_SSAO_VOXELIZATION_VOLUME_H_
+#define _KERNEL_SSAO_VOXELIZATION_VOLUME_H_
 
 #include "Kernels/KernelBase.h"
 #include "GLUtils/GLTextureObject.h"
@@ -17,7 +16,7 @@
 
 using namespace std;
 
-class KernelSSAO_Voxelization : public KernelBase {
+class KernelSSAO_Voxelization_Volume : public KernelBase {
 
 public:
   /**
@@ -32,12 +31,12 @@ public:
    *  texIdVoxelGrid holds the 3D grid of the scene.
    *  texIdGridInvFunction holds the inverse function that convert the eye space normalized index to grid space
    */
-  KernelSSAO_Voxelization(char* path, int width, int height, GLuint texIdEyePos, GLuint texIdNormalDepth, 
+  KernelSSAO_Voxelization_Volume(char* path, int width, int height, GLuint texIdEyePos, GLuint texIdNormalDepth, 
                             GLuint texIdVoxelGrid, GLuint texIdGridInvFunction);
   /**
    * Destroy the kernel
    */
-  ~KernelSSAO_Voxelization();
+  ~KernelSSAO_Voxelization_Volume();
 
    /**
    * Activate/Deactivate the Kernel's FBO and shader
@@ -64,16 +63,7 @@ public:
    */
   GLuint getTexIdSSAO() const;
 
-  /**
-   * Render the specific ray distribution directions.
-   */
-  void renderRayDistribution(int distribution);
 private:
-  /**
-   * Create the ray directions to be used in the hemisphere traverse.
-   *  Create n random variations of the hemisphere ray distribution.
-   */
-  void createRayDirectionsTexture();
  
   /**
    * Grid Dimensions	
@@ -86,21 +76,6 @@ private:
    */
   GLuint m_texIdSSAO;
   GLuint m_texIdDebug;
-
-  /**
-   * Ray Directions Attributes
-   */
-  int m_numRayHemispherDivision;
-  int m_numRayDirections;
-  int m_numRaySteps;
-  int m_numRayDistribution;
-
-  /**
-   * Input textures ids and information
-   */
-  GLuint m_texIdRayDirections;
-  int m_rayDirectionsWidth;
-
 };
 
 

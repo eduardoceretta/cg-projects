@@ -21,10 +21,15 @@ KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int heig
 : KernelBase(path, "ssao_vox.vert", "ssao_vox.frag", width, height)
 ,m_width(width)
 ,m_height(height)
+,m_numRayDirections(8)
+,m_numRayHemispherDivision(8)
+,m_numRaySteps(8)
+,m_numRayDistribution(25)
 {
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
   createRayDirectionsTexture();
+
   GLTextureObject t;
   t.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
   t.setFilters(GL_NEAREST, GL_NEAREST);
@@ -37,10 +42,11 @@ KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int heig
 	m_shader->setActive(true);
     addInputFloat("screenWidth", width);
     addInputFloat("screenHeight", height);
-    addInputInt("rayDirectionsWidth", (float)m_rayDirectionsWidth);
-    addInputInt("numRayDistribution", (float)m_numRayDistribution);
-    addInputInt("numRayHemispherDivision", (float)m_numRayHemispherDivision);
-    addInputInt("numRayDirections", (float)m_numRayDirections);
+    addInputInt("rayDirectionsWidth", m_rayDirectionsWidth);
+    addInputInt("numRayDistribution", m_numRayDistribution);
+    addInputInt("numRayHemispherDivision",m_numRayHemispherDivision);
+    addInputInt("numRayDirections", m_numRayDirections);
+    addInputInt("numRaySteps", m_numRaySteps);
     
     addInputTexture(GL_TEXTURE_1D, "gridInvFunc", texIdGridInvFunction);
     addInputTexture(GL_TEXTURE_1D, "rayDirections", m_texIdRayDirections);
@@ -127,9 +133,6 @@ void KernelSSAO_Voxelization::step( GLProjectionMatrix *projectionMatrix )
 
 void KernelSSAO_Voxelization::createRayDirectionsTexture()
 {
-  m_numRayDirections = 8;
-  m_numRayHemispherDivision = 4;
-  m_numRayDistribution = 5;
   m_rayDirectionsWidth = m_numRayDistribution*m_numRayDirections*m_numRayHemispherDivision;
 
   GLfloat* texData = new GLfloat[m_rayDirectionsWidth*3];
@@ -140,11 +143,19 @@ void KernelSSAO_Voxelization::createRayDirectionsTexture()
     {
       for(int j = 0; j < m_numRayHemispherDivision; ++j)
       {
-        float r = (1.0f + float(rand()%30)/100 - .15f);
-        float angle = DEG_TO_RAD(i*(360.0f/(m_numRayDirections-1)))*r;
+        float r = 1.0f;
 
-        r = (1.0f + float(rand()%50)/100 - .25f);
-        float stepAngle = clamp(DEG_TO_RAD(j*90.0f/(m_numRayHemispherDivision - 1))*r, 0.0, PI/2);
+        if(k > 0)
+          r = (1.0f + float(rand()%10)/100 - .05f);
+
+        float angle = ((i+float(j%2)/2)*(2.0f*PI/(m_numRayDirections)))*r;
+
+        if(k > 0)
+          r = (1.0f + float(rand()%30)/100 - .15f);
+  
+        float stepAngle = clamp((j+.5)*(PI/2)/(m_numRayHemispherDivision)*r, .05*PI/2, .9*PI/2);
+
+
         Vector3 dir = Vector3(sin(stepAngle)*sin(angle), cos(stepAngle), sin(stepAngle)*cos(angle));
         texData[k*m_numRayDirections*m_numRayHemispherDivision*3 + i*m_numRayHemispherDivision*3 + j*3 + 0] = dir.x;
         texData[k*m_numRayDirections*m_numRayHemispherDivision*3 + i*m_numRayHemispherDivision*3 + j*3 + 1] = dir.y;
@@ -160,6 +171,43 @@ void KernelSSAO_Voxelization::createRayDirectionsTexture()
   m_texIdRayDirections = t.getId();
 
   delete [] texData;
+}
+
+void KernelSSAO_Voxelization::renderRayDistribution(int distribution)
+{
+  glPushMatrix();
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  GLTextureObject t(m_texIdRayDirections, GL_TEXTURE_1D);
+  GLfloat *texData =  &t.read1DTextureFloatData(GL_RGB)[distribution*m_numRayDirections*m_numRayHemispherDivision*3];
+  glPushMatrix();
+  glScalef(2.0f,1.0f,2.0f);
+  glTranslatef(0.0f, .5f, 0.0f);
+  glutWireCube(1);
+  glCullFace(GL_FRONT);
+  glColor3f(.60f,0.2f,0.31f);
+  glEnable(GL_CULL_FACE);
+  glutSolidCube(1);
+  glDisable(GL_CULL_FACE);
+  glPopMatrix();
+  
+  glColor3f(1.0f, 1.0f, 1.0f);
+  glBegin(GL_LINES);
+  for(int i = 0; i < m_numRayDirections; ++i)
+  {
+    for(int j = 0; j < m_numRayHemispherDivision; ++j)
+    {
+      Vector3 dir(
+        texData[i*m_numRayHemispherDivision*3 + j*3 + 0],
+        texData[i*m_numRayHemispherDivision*3 + j*3 + 1],
+        texData[i*m_numRayHemispherDivision*3 + j*3 + 2]);
+      glVertex3f(0.0f, 0.0f, 0.0f);
+      glVertex3f(dir.x, dir.y, dir.z);
+      //cout << dir;
+    }
+  }
+  glEnd();
+  glPopAttrib();
+  glPopMatrix();
 }
 
 GLuint KernelSSAO_Voxelization::getTexIdSSAO() const

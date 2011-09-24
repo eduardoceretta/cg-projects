@@ -18,7 +18,7 @@
 
 #define UINT_BIT_SIZE 32
 #define VOXELIZATION_BITMAP_FULLONE 
-//#define NEAREST_EYE
+#define NEAREST_EYE
 //#define FULL_GRID 1
 #ifdef FULL_GRID
   #define WIRE_ON
