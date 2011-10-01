@@ -12,7 +12,7 @@
 /* Shader Controls.                                                                     */
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
-#define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
+//#define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
  
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
@@ -259,7 +259,7 @@ vec3 getGridIndex(vec3 ray, vec3 eyePosition)
   zzNear = near;
 #endif  
   
-  float zIndex = (abs(dist) - abs(zzNear))/far;
+  float zIndex = ((dist) - (zzNear))/far;
   if(zIndex < 0.0 || zIndex > 1.0 )
     return vec3(-1);
   float zGridIndex = texture1D(gridInvFunc, zIndex).a;
