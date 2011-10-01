@@ -12,7 +12,7 @@
 /* Shader Controls.                                                                     */
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
-#define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
+//#define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
  
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
