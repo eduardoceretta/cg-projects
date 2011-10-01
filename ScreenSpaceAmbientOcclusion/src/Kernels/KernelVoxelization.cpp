@@ -18,7 +18,7 @@
 
 #define UINT_BIT_SIZE 32
 #define VOXELIZATION_BITMAP_FULLONE 
-#define NEAREST_EYE
+//#define EYE_NEAREST
 //#define FULL_GRID 1
 #ifdef FULL_GRID
   #define WIRE_ON
@@ -26,9 +26,9 @@
   //#define WIRE_ON
 #endif
 
-//#define FUNC_ONE
+#define FUNC_ONE
 //#define FUNC_POW
-#define FUNC_EXP
+//#define FUNC_EXP
 //#define FUNC_ASIN
 
 
@@ -501,13 +501,13 @@ void KernelVoxelization::renderVoxelization()
       for(int x = m_initX; x < m_endX; x+=m_stepX)
       {
 
-        #ifdef NEAREST_EYE
+        #ifdef EYE_NEAREST
           float zNear = m_eyeNearestData[y*m_width*4 + x*4 + 3];
-          if(zNear < 0) 
+          if(zNear < 0)
             continue;
         #else
           float zNear = m_near;
-        #endif // NEAREST_EYE
+        #endif // EYE_NEAREST
 
         unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
         numZ = 0;
@@ -582,13 +582,13 @@ Vector3 KernelVoxelization::getGridCellCenter(int x, int y, int z, float zNear)
   float xe = xm*float(x + .5);
   float ye = ym*float(y + .5);
 
-#ifdef NEAREST_EYE
+#ifdef EYE_NEAREST
   float zm = (m_far - 0.0);
   float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm + zNear ;
 #else
   float zm = (m_far);
   float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm;
-#endif //NEARST_EYE
+#endif //EYE_NEAREST
 
   return Vector3(xe, ye, -ze);
 }
@@ -608,11 +608,11 @@ Vector3 KernelVoxelization::getGridCellSize(int x, int y, int z, float zNear)
     ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
   }
 
-#ifdef NEAREST_EYE
+#ifdef EYE_NEAREST
   float zm = (m_far - 0.0);
 #else
   float zm = (m_far);
-#endif //NEARST_EYE
+#endif //EYE_NEAREST
 
   return Vector3(xm, ym, zm*(
     m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
@@ -676,13 +676,13 @@ void KernelVoxelization::updateBB()
     {
       for(int x = m_initX; x < m_endX; x+=m_stepX)
       {
-        #ifdef NEAREST_EYE
+        #ifdef EYE_NEAREST
           float zNear = m_eyeNearestData[y*m_width*4 + x*4 + 3];
           if(zNear < 0) 
             continue;
         #else
           float zNear = m_near;
-        #endif // NEAREST_EYE
+        #endif // EYE_NEAREST
         
         unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
         #ifdef FULL_GRID
