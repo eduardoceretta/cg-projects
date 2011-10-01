@@ -102,7 +102,7 @@ App::App()
 ,m_voxTexGridFuncPower(4)
 ,m_voxProjectionMatrix(new GLProjectionMatrix())
 ,m_updateVoxelgrid(true)
-,m_renderMode(Voxelization)
+,m_renderMode(VoxelizationVolume)
 {
   m_clearColor[0] = .8f;
   m_clearColor[1] = .8f;
@@ -237,14 +237,14 @@ void App::render()
   //gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
   //glMatrixMode (GL_MODELVIEW);
   //glPushMatrix();
-  //
-  //m_kernelSSAO_Voxelization->renderRayDistribution(4);
+  ////
+  ////m_kernelSSAO_Voxelization->renderRayDistribution(4);
+  //m_kernelSSAO_Voxelization_Volume->renderSamplerDistribution(2);
   //glPopMatrix();
   //glMatrixMode (GL_PROJECTION);
   //glPopMatrix();
   //glMatrixMode (GL_MODELVIEW);
 
-  //
   switch(m_renderMode)
   {
     default:
@@ -1068,7 +1068,6 @@ void App::renderSSAOVoxelization()
 
 void App::renderSSAOVoxelizationVolume()
 {
-
   {
     if(m_orthographicProjection_on)
     {

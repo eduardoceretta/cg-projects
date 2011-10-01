@@ -62,8 +62,18 @@ public:
    * Get output SSAO texture Id.
    */
   GLuint getTexIdSSAO() const;
+  
+  
+  /**
+   * Render the specific sampler distribution directions.
+   */
+  void renderSamplerDistribution(int distribution);
 
 private:
+
+  void createSamplerTexture();
+
+  void createBitCount16Texture();
  
   /**
    * Grid Dimensions	
@@ -76,6 +86,23 @@ private:
    */
   GLuint m_texIdSSAO;
   GLuint m_texIdDebug;
+  
+
+  /**
+   * Volume Samplers
+   */
+  int m_numSamplers;
+  int m_numSamplersDistributions;
+  int m_samplersWidth;
+  GLuint m_texIdSamplers;
+
+
+  /**
+   * BitCount 16
+   */
+  int m_bitCount16Height;
+  int m_bitCount16Width;
+  GLuint m_texIdBitCount16;
 };
 
 
