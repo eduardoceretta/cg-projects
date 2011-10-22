@@ -50,6 +50,7 @@ class KernelVoxDepth;
 class KernelVoxelization;
 class KernelSSAO_Voxelization;
 class KernelSSAO_Voxelization_Volume;
+class KernelSSAO_Voxelization_Cone;
 
 using namespace std;
 
@@ -109,6 +110,7 @@ class App
   KernelVoxelization* m_kernelVoxelization;
   KernelSSAO_Voxelization* m_kernelSSAO_Voxelization;
   KernelSSAO_Voxelization_Volume * m_kernelSSAO_Voxelization_Volume;
+  KernelSSAO_Voxelization_Cone * m_kernelSSAO_Voxelization_Cone;
 
   /**
    * Interface control
@@ -145,7 +147,7 @@ class App
   /**
    * Render Mode
    */
-  enum RenderMode{NoShader, Spheres, Visibility, Voxelization, VoxelizationVolume};
+  enum RenderMode{NoShader, Spheres, Visibility, Voxelization, VoxelizationVolume, VoxelizationCone};
   RenderMode m_renderMode;
 
   /**
@@ -223,11 +225,12 @@ private:
   /**
    * Draw Kernels
    */
-  void renderSSAOVoxelizationVolume();
-  void renderSSAOVoxelization();
-  void renderSSAOVisibility();
-  void renderSSAOSpheres();
   void renderNoShader();
+  void renderSSAOSpheres();
+  void renderSSAOVisibility();
+  void renderSSAOVoxelization();
+  void renderSSAOVoxelizationVolume();
+  void renderSSAOVoxelizationCone();
 };
 
 #endif

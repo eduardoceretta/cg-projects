@@ -12,7 +12,9 @@
 
 #include "MathUtils/Matrix4.h"
 #include "MathUtils/Vector4.h"
+#include "MathUtils/Bit.h"
 #include "GLUtils/GLProjectionMatrix.h"
+#include "MathUtils/UniformPoissonDiskSampler.h"
 
 KernelSSAO_Voxelization_Volume::KernelSSAO_Voxelization_Volume(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
@@ -20,7 +22,7 @@ KernelSSAO_Voxelization_Volume::KernelSSAO_Voxelization_Volume(char* path, int w
 : KernelBase(path, "ssao_vox_vol.vert", "ssao_vox_vol.frag", width, height)
 ,m_width(width)
 ,m_height(height)
-,m_numSamplers(25)
+,m_numSamplers(16)
 ,m_numSamplersDistributions(5)
 ,m_samplersWidth(0)
 ,m_bitCount16Height(0)
@@ -153,42 +155,36 @@ GLuint KernelSSAO_Voxelization_Volume::getTexIdSSAO() const
   return m_texIdSSAO;
 }
 
+
+
 void KernelSSAO_Voxelization_Volume::createSamplerTexture()
 {
-  int numCircles = int(sqrt(float(m_numSamplers)));
-  int numDirections = numCircles;
-  m_numSamplers = numCircles*numCircles;
+  UniformPoissonDiskSampler u;
 
-  m_samplersWidth = m_numSamplersDistributions*numDirections*numCircles;
+  
+  m_samplersWidth = m_numSamplersDistributions*m_numSamplers;
   GLfloat* texData = new GLfloat[m_samplersWidth*3];
 
   for(int k = 0; k < m_numSamplersDistributions; ++k)
   {
-    for(int i = 0; i < numDirections; ++i)
+    vector<Vector3> v = u.sampleCircle(Vector3(0,0,0), 1.0f, sqrt(1.0f/m_numSamplers)*1.35f);
+    while(v.size() > m_numSamplers)
     {
-      for(int j = 0; j < numCircles; ++j)
-      {
-        float r = 1.0f;
-
-        if(k > 0)
-          r = (1.0f + float(rand()%10)/100 - .05f);
-
-        //float angle = ((i+float(j%3)/3)*(2.0f*PI/(numDirections)))*r;
-        float angle = ((i)*(2.0f*PI/(numDirections)))*r;
-
-        if(k > 0)
-          r = (1.0f + float(rand()%30)/100 - .15f);
-
-        float stepAngle = clamp((j+.5)*(PI/2)/(numCircles)*r, .05*PI/2, .9*PI/2);
-        //float stepAngle = clamp((j)*(PI/2)/(numCircles)*r, .0, PI/2);
-
-        Vector3 dir = Vector3(sin(stepAngle)*sin(angle), sin(stepAngle)*cos(angle), 0.0f);
-        texData[k*numDirections*numCircles*3 + i*numCircles*3 + j*3 + 0] = dir.x;
-        texData[k*numDirections*numCircles*3 + i*numCircles*3 + j*3 + 1] = dir.y;
-        texData[k*numDirections*numCircles*3 + i*numCircles*3 + j*3 + 2] = dir.z;
-      }
+      int k = rand()%v.size();
+      v.erase(v.begin()+k);
     }
+    assert(v.size() == m_numSamplers);
+
+    GLfloat *d = &texData[k*m_numSamplers*3];
+    for(int i = 0; i < m_numSamplers; ++i)
+    {
+      d[i*3 + 0] = v[i].x;
+      d[i*3 + 1] = v[i].y;
+      d[i*3 + 2] = v[i].z;
+    }
+
   }
+
 
   GLTextureObject t;
   t.createTexture1D(m_samplersWidth, GL_RGB32F_ARB, GL_RGB, GL_FLOAT, texData);
@@ -198,6 +194,15 @@ void KernelSSAO_Voxelization_Volume::createSamplerTexture()
 
   delete [] texData;
 }
+
+
+
+
+
+
+
+
+
 
 
 void KernelSSAO_Voxelization_Volume::renderSamplerDistribution(int distribution)
@@ -214,6 +219,9 @@ void KernelSSAO_Voxelization_Volume::renderSamplerDistribution(int distribution)
   glPointSize(3);
   glColor3f(1.0f, 1.0f, 1.0f);
   glBegin(GL_POINTS);
+
+
+
   for(int i = 0; i < m_numSamplers; ++i)
   {
     Vector3 pos(
@@ -222,16 +230,10 @@ void KernelSSAO_Voxelization_Volume::renderSamplerDistribution(int distribution)
     texData[i*3 + 2]);
     glVertex3f(pos.x, pos.y, pos.z);
   }
+
   glEnd();
   glPopAttrib();
   glPopMatrix();
-}
-
-int NumberOfSetBits(int i)
-{
-  i = i - ((i >> 1) & 0x55555555);
-  i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-  return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 }
 
 void KernelSSAO_Voxelization_Volume::createBitCount16Texture()
@@ -248,7 +250,7 @@ void KernelSSAO_Voxelization_Volume::createBitCount16Texture()
   
   
   for(int i = 0; i < numOfValues; ++i)
-    texData[i] = (GLubyte)(unsigned char)NumberOfSetBits(i);
+    texData[i] = (GLubyte)(unsigned char)Bit::numberOfSetBits(i);
 
   GLTextureObject t;
   t.createTexture2D(m_bitCount16Width, m_bitCount16Height, GL_ALPHA, GL_ALPHA, GL_UNSIGNED_BYTE, texData);

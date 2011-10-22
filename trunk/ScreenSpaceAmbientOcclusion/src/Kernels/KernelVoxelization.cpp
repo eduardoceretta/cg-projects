@@ -14,11 +14,12 @@
 
 #include "MathUtils/Matrix4.h"
 #include "MathUtils/Vector4.h"
+#include "MathUtils/Bit.h"
 #include "GLUtils/GLProjectionMatrix.h"
 
-#define UINT_BIT_SIZE 32
+
 #define VOXELIZATION_BITMAP_FULLONE 
-//#define EYE_NEAREST
+#define EYE_NEAREST
 //#define FULL_GRID 1
 #ifdef FULL_GRID
   #define WIRE_ON
@@ -239,38 +240,6 @@ void KernelVoxelization::setActiveShaderOnly( bool op)
   }
 }
 
-void printBitLine(unsigned int v)
-{
-  char s[UINT_BIT_SIZE + 2];
-  for(int i = UINT_BIT_SIZE - 1; i >= 0; --i)
-  {
-    unsigned mask = 1 << i;
-    s[UINT_BIT_SIZE - 1 - i] = v & mask ? '1' : '0';
-  }
-  s[UINT_BIT_SIZE] = '\n';
-  s[UINT_BIT_SIZE + 1] = '\0';
-  printf(s);
-}
-
-void printBit(unsigned int v)
-{
-  char s[UINT_BIT_SIZE + 1];
-  for(int i = UINT_BIT_SIZE - 1; i >= 0; --i)
-  {
-    unsigned mask = 1 << i;
-    s[UINT_BIT_SIZE - 1 - i] = v & mask ? '1' : '0';
-  }
-  s[UINT_BIT_SIZE] = '\0';
-  printf(s);
-}
-
-
-bool isBitActive(unsigned int v, int index)
-{
-  unsigned i = 1 << (UINT_BIT_SIZE - 1 - index);
-  return v&i;
-}
-
 
 void KernelVoxelization::createGridBitMapTexture()
 {
@@ -303,10 +272,10 @@ void KernelVoxelization::createGridBitMapTexture()
 
   //for(unsigned int i = 0; i < (unsigned int)m_depth*4; ++i)
   //{
-  //  printBit(*(unsigned int *)&texData[4*i]);
-  //  printBit(*(unsigned int *)&texData[4*i+1]);
-  //  printBit(*(unsigned int *)&texData[4*i+2]);
-  //  printBitLine(*(unsigned int *)&texData[4*i+3]);
+  //  Bit::printBit(*(unsigned int *)&texData[4*i]);
+  //  Bit::printBit(*(unsigned int *)&texData[4*i+1]);
+  //  Bit::printBit(*(unsigned int *)&texData[4*i+2]);
+  //  Bit::printBitLine(*(unsigned int *)&texData[4*i+3]);
   //}
   GLint max_tex_size;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
@@ -515,7 +484,7 @@ void KernelVoxelization::renderVoxelization()
         {
           unsigned int pp = *(p + z/UINT_BIT_SIZE);
           #ifndef FULL_GRID
-            if(isBitActive(pp, z%UINT_BIT_SIZE))
+            if(Bit::isBitActiveLeftToRight(pp, z%UINT_BIT_SIZE))
           #endif // FULL_GRID
           {
             Vector3 pw = getGridCellCenter(x, y, z, zNear);
@@ -527,7 +496,7 @@ void KernelVoxelization::renderVoxelization()
             Vector3 size = getGridCellSize(x, y, z, zNear);
             glScalef(size.x*m_stepX, size.y*m_stepY, size.z*m_stepZ);
 
-            if(isBitActive(pp, z%UINT_BIT_SIZE))
+            if(Bit::isBitActiveLeftToRight(pp, z%UINT_BIT_SIZE))
             {
               numZ++;
               maxZ = max(maxZ, numZ);
@@ -693,7 +662,7 @@ void KernelVoxelization::updateBB()
         {
           unsigned int pp = *(p + z/UINT_BIT_SIZE);
           #ifndef FULL_GRID
-            if(isBitActive(pp, z%UINT_BIT_SIZE))
+            if(Bit::isBitActiveLeftToRight(pp, z%UINT_BIT_SIZE))
           #endif // FULL_GRID
           {
             Vector3 pw = getGridCellCenter(x, y, z, zNear);
@@ -787,3 +756,7 @@ GLuint KernelVoxelization::getTexIdGridInvFunc() const
 {
   return m_texIdGridInvFunc;
 }
+
+
+
+
