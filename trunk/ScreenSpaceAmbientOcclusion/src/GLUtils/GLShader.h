@@ -9,6 +9,7 @@
 #define _GL_SHADER_H_
 
 #include <map>
+#include <utility>
 #include <string>
 
 #include "MathUtils/Vector3.h"
@@ -37,6 +38,8 @@ class GLShader{
   map<string, GLfloat>  m_uniformFloatVec;
   map<string, Vector3>  m_uniformVector3Vec;
   map<string, const GLfloat*> m_uniformMatrixVec;
+
+  map<string, pair<GLfloat*, int> > m_uniformVector3ArrayVec;
 
   /**
    * OpenGL Shader Program.
@@ -88,6 +91,8 @@ public:
   void setUniformFloat(char* name, GLfloat value);
   void setUniformMatrix4(char* name, const GLfloat* value);
 
+  void setUniformVec3Array(char* name, GLfloat *value, int n);
+
   /**
    * Reloads the shader files.
    *  Clear the current shader, read the files, 
@@ -123,6 +128,7 @@ protected:
    * Write text file.
    */
   int textFileWrite(char *fname, char *s);
+ 
 };
 
 

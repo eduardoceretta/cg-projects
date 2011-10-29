@@ -48,6 +48,7 @@ void GLShader::reload()
   map<string, GLfloat> ::iterator itFloat = m_uniformFloatVec.begin();
   map<string, Vector3> ::iterator itVector3 = m_uniformVector3Vec.begin();
   map<string, const GLfloat*> ::iterator itMatrix = m_uniformMatrixVec.begin();
+  map<string, pair<GLfloat*, int> > ::iterator itVector3Array = m_uniformVector3ArrayVec.begin();
 
   for (; itInt != m_uniformIntVec.end(); ++itInt)
    setUniformInt((char*)itInt->first.c_str(), itInt->second);
@@ -60,6 +61,9 @@ void GLShader::reload()
 
   for (; itMatrix != m_uniformMatrixVec.end(); ++itMatrix)
     setUniformMatrix4((char*)itMatrix->first.c_str(), itMatrix->second);
+  
+  for (; itVector3Array != m_uniformVector3ArrayVec.end(); ++itVector3Array)
+    setUniformVec3Array((char*)itVector3Array->first.c_str(), (itVector3Array->second).first, (itVector3Array->second).second);
 
   setActive(false);
 }
@@ -86,6 +90,18 @@ void GLShader::setUniformVec3( char* name, Vector3 value )
   {
     m_uniformVector3Vec[string(name)] = value;
     glUniform3fARB(loc, value.x, value.y, value.z);
+  }
+}
+
+void GLShader::setUniformVec3Array(char* name, GLfloat *value, int n)
+{
+  GLint loc = glGetUniformLocation(m_shaderProg, name);
+  if(m_successfulLoad && loc == -1)
+    printf("Variable %s do not exist or is not used!\n", name);
+  else
+  {
+    m_uniformVector3ArrayVec[string(name)] = pair<GLfloat*, int> (value, n);
+    glUniform3fvARB(loc, n, value);
   }
 }
 

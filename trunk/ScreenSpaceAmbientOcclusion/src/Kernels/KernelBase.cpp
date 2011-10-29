@@ -207,6 +207,10 @@ void KernelBase::addInputVec3(char* name, Vector3 value){
 	m_shader->setUniformVec3(name, value);
 }
 
+void KernelBase::addInputVec3Array(char* name, GLfloat *value, int n){
+  m_shader->setUniformVec3Array(name, value, n);
+}
+
 void KernelBase::addInputFloat( char* name, GLfloat value )
 {
   m_shader->setUniformFloat(name, value);

@@ -43,7 +43,10 @@ GLLight :: GLLight()
    m_linAttenuation = 0.0;
    m_quadAttenuation = .0;
 
-   m_turnedOn = true;
+   m_renderSphereRadius = 3.0f;
+   m_renderSphereEnabled = false;
+
+   m_enabled = true;
    m_modified = true;
 }
 
@@ -54,17 +57,29 @@ GLLight :: ~GLLight()
 
 void GLLight :: render()
 {
-   if(m_turnedOn)
+   if(m_enabled)
    {
       glEnable(GL_LIGHTING);
       glEnable(m_myLightNum);
       glLightfv(m_myLightNum, GL_POSITION, m_pos); 
+
+      if(m_renderSphereRadius)
+      {
+        glPushAttrib(GL_LIGHTING_BIT);
+          GLfloat color[4] = {1,1,1,1};
+          glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION,  color);
+          glPushMatrix();
+            glTranslatef(m_pos[0], m_pos[1], m_pos[2]);
+            glutSolidSphere(m_renderSphereRadius, 10, 10);
+          glPopMatrix();
+        glPopAttrib();
+      }
    }
    else glDisable(m_myLightNum);
 }
 void GLLight :: configure()
 {
-   if(m_modified && m_turnedOn)
+   if(m_modified && m_enabled)
    {
       glLightfv(m_myLightNum, GL_AMBIENT,  m_ambient);
       glLightfv(m_myLightNum, GL_DIFFUSE,  m_diffuse);
@@ -132,16 +147,15 @@ Color GLLight :: getDiffuseColor() const
 }
 
 
-void GLLight :: lightTurnedOn(bool op)
+void GLLight :: setLightEnabled(bool op)
 {
-   m_turnedOn = op;
+   m_enabled = op;
 }
 
-bool GLLight :: lightIsTurnedOn() const
+bool GLLight :: isLightEnabled() const
 {
-   return m_turnedOn;
+   return m_enabled;
 }
-
 
 void GLLight :: setAtenuation(double constant, double linear, double quadric)
 {
@@ -158,11 +172,31 @@ void GLLight :: getAtenuation(double &constant, double &linear, double &quadric)
    quadric = m_quadAttenuation;
 }
 
-
 int GLLight :: getMyLightNumber() const
 {
    return m_myLightNum - GL_LIGHT0;
 }
+
+void GLLight::setRenderSphereEnabled( bool op )
+{
+  m_renderSphereEnabled = op;
+}
+
+bool GLLight::isRenderSphereEnabled()
+{
+  return m_renderSphereEnabled;
+}
+
+void GLLight::setRenderSphereRadius( float r )
+{
+  m_renderSphereRadius = r;
+}
+
+float GLLight::getRenderSphereRadius()
+{
+  return m_renderSphereRadius;
+}
+
 
 
 

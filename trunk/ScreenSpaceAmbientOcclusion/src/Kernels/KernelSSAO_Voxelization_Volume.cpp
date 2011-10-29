@@ -160,7 +160,6 @@ GLuint KernelSSAO_Voxelization_Volume::getTexIdSSAO() const
 void KernelSSAO_Voxelization_Volume::createSamplerTexture()
 {
   UniformPoissonDiskSampler u;
-
   
   m_samplersWidth = m_numSamplersDistributions*m_numSamplers;
   GLfloat* texData = new GLfloat[m_samplersWidth*3];
