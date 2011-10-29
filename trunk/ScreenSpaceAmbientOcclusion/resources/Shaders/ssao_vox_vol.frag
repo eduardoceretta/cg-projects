@@ -13,7 +13,7 @@
 /* Shader Controls.                                                                     */
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
-//#define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
+#define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
  
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
@@ -23,7 +23,7 @@ uniform sampler1D gridInvFunc;        /**< Inverse Function of the grid cell str
 uniform sampler2D eyePos;             /**< Eye Position(rgb) Nearest Eye Fragment(a) Texture*/
 uniform sampler2D normalDepth;        /**< Normal(rgb) Depth(a)*/
 uniform usampler2D voxelGrid;         /**< Non Uniform Voxel Grid of the Scene*/
-uniform sampler2D voxelGridDEBUG;         /**< Non Uniform Voxel Grid of the Scene DEBUG*/
+uniform sampler2D voxelGridDEBUG;     /**< Non Uniform Voxel Grid of the Scene DEBUG*/
 
 uniform int numSamplers;              /**< Number of samplers*/
 uniform int numSamplersDistributions; /**< Number of samplers distributions*/
@@ -122,43 +122,29 @@ float getClampedZGridIndex(float eyeZ, float zNear);
 /**
  * Get the grid cell index that the ray touches in grid int coordinates(0-128).
  */
-unsigned int getGridIndexNormalized(float gridIndex)
-{
-  return  unsigned int(floor(gridIndex*128.0 + 0.5));
-}
+unsigned int getGridIndexNormalized(float gridIndex);
 
 /**
  * Get the sampler vector based on the fragment index and scales it to rfar size
  */
 vec3 getSampler(int samplerDistIndex, int i, float rfar);
 
-/******************TODO******************************/
 /**
  * Get the sampler point in grid space.
  *  Return the grid index of the z-perpendicular sampler and return the higher and lower z voxel index.
  */
-vec3 getSamplerPointGridIndex(vec3 pSampler, vec3 eyePosition, vec3 normal, float rfar, out unsigned int gridIndexBottonN, out unsigned int gridIndexTopN);
-
-vec3 getSamplerPointGridIndexVolSphere(vec3 pSampler, vec3 eyePosition, vec3 normal, float rfar, out unsigned int gridIndexBottonN, out unsigned int gridIndexTopN);
+vec3 getSamplerPointGridIndexVolSphere(vec3 pSampler, vec3 eyePosition, vec3 normal, float rfar, out unsigned int gridIndexBottonN, out unsigned int gridIndexTopN, out float secant);
 
 /**
- * Get the percentage of full voxels in the gridIndex between z top and botton index.
+ * Get the number of full voxels in the gridIndex between z top and botton index.
  */
-float countFullVoxels(vec3 gridIndex, unsigned int gridIndexBottonN, unsigned int gridIndexTopN);
-
 unsigned int countFullVoxelsVolSphere(vec3 gridIndex, unsigned int gridIndexBottonN, unsigned int gridIndexTopN);
 
 /**
  * Get the number of bits set in the range of indexStart and indexEnd.
  */
-int countFullVoxelsInRange(unsigned int voxelContent, unsigned int indexStart, unsigned int indexEnd);
-/**************************************************/
+unsigned int countFullVoxelsInRange(unsigned int voxelContent, unsigned int indexStart, unsigned int indexEnd);
 
-
-/**
- * Get the Rotation Matrix that takes the ray to the normal space
- */
-mat3 getHemisphereRotationMatrix(vec3 normal);
 
 /**
  * Get the grid cell index that the ray touches.
@@ -235,41 +221,93 @@ void main()
   /*************************\
          Debug Area 
   \*************************/
-  
-
-  
-  float rfar = .1*far/2.0;
   float ao = 0.0;
   float s = 0.0;
+  float rfar = .05*far/2.0;
   for(int i = 0; i < numSamplers; ++i)
   {
-    //vec3 sampler = getSampler(0, i, rfar*.99);
-    vec3 sampler = getSampler(samplerDistributionIndex, i, rfar*.99);
-    //gl_FragData[0] = vec4(samplerDistributionIndex, numSamplers, samplersWidth, sampler.y);
-    //return;
-    //vec3 sampler = vec3(0,-rfar*.1, 0);
-    //vec3 sampler = vec3(cos(i%8*2*PI/(8)),sin(i%8*2*PI/(8)),0)*pow(((i/5) + 0.99)*.2,2.0)*rfar;
+    vec3 sampler = getSampler(0, i, rfar*.99);
+    //vec3 sampler = getSampler(samplerDistributionIndex, i, rfar*.99);
+    //int num = 5;
+    //vec3 sampler = vec3(cos(i%num*2*PI/(num)),sin(i%num*2*PI/(num)),0)*pow(((i/num) + 0.99)*(1./num),1.0)*rfar;
+    //vec3 sampler = vec3(cos(i%8*2*PI/(8)),sin(i%8*2*PI/(8)),0)*pow(((i/5) + 0.99)*.2,12.0)*rfar;
+    
+    
     
     //vec3 sampler;
-    //sampler = vec3(0,-1,0)*((3) + 0.99)*rfar*.2;
+    ////sampler = vec3(0,1,0)*((3) + 0.99)*rfar*.2;
     //if(i%4==0)
-      //sampler = vec3(0,1,0)*((1) + 0.99)*rfar*.2;
-    //else if(i%4==1)
-      //sampler = vec3(0,-1,0)*((1) + 0.99)*rfar*.2;
-    //else if(i%4==2)
-      //////sampler = vec3(1,0,0)*((1) + 0.99)*rfar*.2;
-      //sampler = vec3(1,0,0)*((1.) + 0.99)*rfar*.2;
-    //else 
-      //sampler = vec3(-1,0,0)*((1) +0.99)*rfar*.2;
-      
+      //sampler = vec3(0,1,0)*((i/5) + 0.99)*rfar*.2;
+    //if(i%4==1)
+      //////sampler = vec3(0,-1,0)*((i/5) + 0.99)*rfar*.2;
+      //sampler = vec3(0,-1,0)*((i/5) + 0.99)*rfar*.2;
+    //if(i%4==2)
+      ////sampler = vec3(1,0,0)*((1) + 0.99)*rfar*.2;
+      //sampler = vec3(1,0,0)*((i/5) + 0.99)*rfar*.2;
+    //if(i%4==3)
+      //sampler = vec3(-1,0,0)*((i/5) +0.99)*rfar*.2;
+    ////else continue;
+      //
 
     unsigned int gridIndexTopN, gridIndexBottonN;
-    //vec3 gridIndex = getSamplerPointGridIndex(sampler, eyePosition /*+ normal*.002*far*/, normal, rfar, gridIndexBottonN, gridIndexTopN);
-    vec3 gridIndex = getSamplerPointGridIndexVolSphere(sampler, eyePosition /*+ normal*.002*far*/, normal, rfar, gridIndexBottonN, gridIndexTopN);
+    float secant;
+    vec3 gridIndex = getSamplerPointGridIndexVolSphere(sampler, eyePosition/* + normal*(0.02)*far*/, normal, rfar, gridIndexBottonN, gridIndexTopN, secant);
+    s += secant;
+    
+    
+    
+   float d = length(sampler);
+  float zi = sqrt(rfar*rfar - d*d) ;
+  float zo = -zi;
+  vec3 point = eyePosition + normal*rfar + sampler;
+  vec3 win = eye2window(point, bool(perspective));
+  float zzNear = getZnear(win.xy);
+  
+
+    
+
+    /******************************************************/
+    if(all(equal(gl_FragCoord.xy, vec2(256.5, 256.5))) && i%4 == 2
+         //||all(equal(gl_FragCoord.xy, vec2(349.5, 256.5)))
+     //||all(equal(gl_FragCoord.xy, vec2(350.5, 256.5)))
+     )
+    {
+    
+      vec3 point = eyePosition + normal*rfar + sampler;
+      vec3 win = eye2window(point, bool(perspective));
+      float zzNear = getZnear(win.xy);
+      //if(zzNear < 0.0)
+        //return vec3(-3.0);
+         
+      float zGridIndex = getZGridIndex(point.z, zzNear);
+      //if(zGridIndex < 0.0)
+        //return vec3(-1.0);
+        
+      vec3 samplerGridIndex = vec3(win.x/screenWidth, win.y/screenHeight, zGridIndex);
+      
+      float d = length(sampler);
+      float zi = sqrt(rfar*rfar - d*d) ;
+      float zo = -zi;
+      
+      float zInGridIndex  = getClampedZGridIndex(point.z + zi, zzNear); //Closer to The Eye
+      float zOutGridIndex = getClampedZGridIndex(point.z + zo, zzNear);
+      
+      float gridIndexTop = zInGridIndex;
+      float gridIndexBotton = zOutGridIndex;
+      
+      //uvec4 cellContent = texture2D(voxelGrid, gridIndex.xy).rgba;
+    
+      gl_FragData[0] = vec4(zGridIndex, win.x, gridIndexBottonN, gridIndexTopN);
+      //gl_FragData[0] = RED;
+      gl_FragData[1] = texture2D(voxelGridDEBUG, gridIndex.xy).rgba;
+      return;
+    }
+    /******************************************************/
    
+
     if(gridIndex.x < 0.0)
       continue;
-
+      
     if(gridIndexBottonN == gridIndexTopN)
       continue;
     
@@ -280,64 +318,33 @@ void main()
       return;
       //continue;
     }
-    
-    //float percentFullVoxels = countFullVoxels(gridIndex, gridIndexBottonN, gridIndexTopN);
+
     unsigned int numFullVoxels = countFullVoxelsVolSphere(gridIndex, gridIndexBottonN, gridIndexTopN);
-    unsigned int numVoxels = gridIndexBottonN - gridIndexTopN;
-    numVoxels+=1u;
-    float height = (numFullVoxels)*far/128.0;
-    float sHeight = numVoxels*far/128.0;
-    
-    //if(percentFullVoxels == 1.0)
-    //{
-      //gl_FragData[0] = GREEN;
-      //return;
-      ////continue;
-    //}
-
-
-    //if(percentFullVoxels > 1.0 || percentFullVoxels < 0.0)
+    float zznear = getZnear(gridIndex.xy*vec2(screenWidth, screenHeight));
+    float height = min(float(numFullVoxels)*(far - zznear)/128.0, secant);
+    //if(height > secant && numFullVoxels == gridIndexBottonN - gridIndexTopN + 1)
     //{
       //gl_FragData[0] = ORANGE;
       //return;
-      ////continue;
     //}
-    //ao += percentFullVoxels;
     ao += height;
-    s += sHeight;
+    //s +=secant;
+    
+    //unsigned int numVoxels = gridIndexBottonN - gridIndexTopN + 1;
+    //float sHeight = numVoxels*far/128.0;
+    //s += sHeight;
+
     /**/
   }
   
   //ao = normalizeAo(ao, numSamplers);
   //ao = ao/(rfar * 2.0 * s);
-  ao = ao*(3.0/(2.0*rfar*2.0*numSamplers));
+  if(s != 0.0)
+    ao = ao/(s);
+  //ao = ao*(3.0/(2.0*rfar*2.0*numSamplers));
   ao = clamp(ao, 0.0, 1.0);
 
   gl_FragData[0] = WHITE*(1.0 - ao);
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  /*
-  //gl_FragData[0] = vec4(countFullVoxelsInRange(2565681391u, 15u, 31u),1,1,1);
-  //return;
-  //
-  //gl_FragData[0] = BLUE;
-  //
-  //if(isBitOne(2565681391u, 15u))
-    //gl_FragData[0] = RED;
-  //return;
-  float numVoxels = countFullVoxels(vec3(0), 127./128., 0./128.);
-  gl_FragData[0] = vec4(numVoxels, 0, 0, 0);
-  
-  /**/
 }
 
 
@@ -383,82 +390,22 @@ vec3 getSampler(int samplerDistIndex, int i, float rfar)
   return sampler*rfar;
 }
 
-vec3 getSamplerPointGridIndex(vec3 pSampler, vec3 eyePosition, vec3 normal, float rfar, out unsigned int gridIndexBottonN, out unsigned int gridIndexTopN)
+unsigned int getGridIndexNormalized(float gridIndex)
+{
+  return  unsigned int(floor(gridIndex*128.0 + 0.5));
+}
+
+
+vec3 getSamplerPointGridIndexVolSphere(vec3 pSampler, vec3 eyePosition, vec3 normal, float rfar, out unsigned int gridIndexBottonN, out unsigned int gridIndexTopN, out float secant)
 {
   gridIndexBottonN = 0u;
   gridIndexTopN = 0u;
-  
-  vec3 point = eyePosition + pSampler;
-  vec3 win = eye2window(point, bool(perspective));
-  float zzNear = getZnear(win.xy);
-  if(zzNear < 0.0)
-    return vec3(-3.0);
-     
-  float zGridIndex = getZGridIndex(point.z, zzNear);
-  //if(zGridIndex < 0.0)
-    //return vec3(-1.0);
-    
-  vec3 samplerGridIndex = vec3(win.x/screenWidth, win.y/screenHeight, zGridIndex);
-  
-  
-  float angleA = acos(dot(normal, normalize(pSampler))) - PI/2.0;
-  float angleSignal = sign(angleA);
-  angleA = abs(angleA);
+  secant = 0.;
   
   float d = length(pSampler);
   float zi = sqrt(rfar*rfar - d*d) ;
   float zo = -zi;
-  
-  vec3 planeNormal = normal;
-  float znp = dot(vec3(0,0,1), planeNormal);
-  float zn = zo*2.0;
-  if(znp != 0.0)
-  {
-    zn = dot((eyePosition - point), planeNormal)/znp;
-    //
-    //float sv = sqrt(
-              //pow(2.0*right/screenWidth, 2.0) + 
-              //pow(2.0*top/screenHeight, 2.0) + 
-              //pow((far)/128.0, 2.0) );
-    //
-    //float initRayDistance = sv/(dot(normal, normalize(pSampler)));
-    
-    
-    //zn += (.5/128.)*far;
-    //zn += sv/2.;
-    //zn += initRayDistance;
-  }
-  
-  //zi+= (.5/128)*far;
-  //zo+= (.5/128)*far;
-
-  if(zn > zi) 
-    return vec3(-2.0);
-    
-  float zInGridIndex  = getClampedZGridIndex(point.z + zi, zzNear); //Closer to The Eye
-  float zOutGridIndex = getClampedZGridIndex(point.z + zo, zzNear);
-  float zNGridIndex   = getClampedZGridIndex(point.z + zn, zzNear);
-  
-  float gridIndexTop = zInGridIndex;
-  float gridIndexBotton;
-  if(zo > zn) //I->O
-    gridIndexBotton = zOutGridIndex;
-  else //I->N
-    gridIndexBotton = zNGridIndex;
-  
-  gridIndexBottonN = getGridIndexNormalized(gridIndexBotton);
-  gridIndexTopN = getGridIndexNormalized(gridIndexTop);
-  return samplerGridIndex;
-} 
-
-
-
-
-
-vec3 getSamplerPointGridIndexVolSphere(vec3 pSampler, vec3 eyePosition, vec3 normal, float rfar, out unsigned int gridIndexBottonN, out unsigned int gridIndexTopN)
-{
-  gridIndexBottonN = 0u;
-  gridIndexTopN = 0u;
+  secant = 2.0*zi;
   
   vec3 point = eyePosition + normal*rfar + pSampler;
   vec3 win = eye2window(point, bool(perspective));
@@ -472,9 +419,7 @@ vec3 getSamplerPointGridIndexVolSphere(vec3 pSampler, vec3 eyePosition, vec3 nor
     
   vec3 samplerGridIndex = vec3(win.x/screenWidth, win.y/screenHeight, zGridIndex);
   
-  float d = length(pSampler);
-  float zi = sqrt(rfar*rfar - d*d) ;
-  float zo = -zi;
+
   
   float zInGridIndex  = getClampedZGridIndex(point.z + zi, zzNear); //Closer to The Eye
   float zOutGridIndex = getClampedZGridIndex(point.z + zo, zzNear);
@@ -488,72 +433,24 @@ vec3 getSamplerPointGridIndexVolSphere(vec3 pSampler, vec3 eyePosition, vec3 nor
 } 
 
 
-int countFullVoxelsInRange(unsigned int voxelContent, unsigned int indexStart, unsigned int indexEnd)
+unsigned int countFullVoxelsInRange(unsigned int voxelContent, unsigned int indexStart, unsigned int indexEnd)
 {
   voxelContent = voxelContent & (4294967295u >> indexStart);
   voxelContent = voxelContent >> (31u -  indexEnd);
   unsigned int i = 0u;
-  int count = 0;
+  unsigned int count = 0u;
   vec2 bitCountSize = vec2(bitCount16Width, bitCount16Height);
   while(i <= indexEnd - indexStart)
   {
     unsigned int t = voxelContent & (4294967295u >> 16);
     vec2 coord = vec2(float(t%unsigned int(bitCount16Width)) + .5, float(t/unsigned int(bitCount16Width)) + .5);
     float numBits = texture2D(bitCount16, coord/bitCountSize).a;
-    count += int(numBits*255.0);
+    count += unsigned int (numBits*255.0);
     voxelContent = voxelContent >> 16u;
     i+=16u;
   }
   return count;
 }
-
-float countFullVoxels(vec3 gridIndex, unsigned int gridIndexBottonN, unsigned int gridIndexTopN)
-{
-  //BIT SCHEME:
-  //R - 0 ... 31, G - 32 ... 63, B - 64 ... 95, A - 92 ... 127
-  //   TOP                                               BOTTON
-  //cellContent = uvec4(2565681391u, 383192u, 36815332u, 494537323u);
-  /*                                                                                                     1  1 1  1 1  1 1  1 1  1 1 1
-  0  0 0  0 1  1 1  1 2  2 2  2 33%33 3  3 4  4 4  4 5  5 5  5 6  6%66  6 7  7 7  7 8  8 8  8 9  9 9%9 9 0  0 0  0 1  1 1  1 2  2 2 2   
-  0..3.5..8.0..3.5..8.0..3.5..8.01%23.5..8.0..3.5..8.0..3.5..8.0..3%45..8.0..3.5..8.0..3.5..8.0..3.5%6.8.0..3.5..8.0..3.5..8.0..3.5.7
-  10011000111011010011000011101111%00000000000001011101100011011000%00000010001100011100000111100100%00011101011110100000101001101011
-               18                               10                                    11                              16
-  /**/
-  //////////////////////////////////////////////////////////////////////
-  
-  unsigned int numVoxels = gridIndexBottonN - gridIndexTopN;
-  //if(numVoxels <= 0u)
-    //return 0.0;
-    
-  numVoxels+=1u;
-  
-  uvec4 cellContent = texture2D(voxelGrid, gridIndex.xy).rgba;
-
-  unsigned int bottonContentColor = gridIndexBottonN/32u;
-  unsigned int topContentColor = gridIndexTopN/32u;
-  
-  int numFullVoxels = 0;
-  
-  for(unsigned int i = topContentColor; i <= bottonContentColor; ++i)
-  {
-    if(i == topContentColor && i == bottonContentColor)
-    {
-      numFullVoxels += countFullVoxelsInRange(cellContent[i], gridIndexTopN%32u, gridIndexBottonN%32u);
-    }else if(i == topContentColor)
-    {
-      numFullVoxels += countFullVoxelsInRange(cellContent[i], gridIndexTopN%32u, 31u);
-    }
-    else if(i == bottonContentColor)
-    {
-      numFullVoxels += countFullVoxelsInRange(cellContent[i], 0u, gridIndexBottonN%32u);
-    }else
-    {
-      numFullVoxels += countFullVoxelsInRange(cellContent[i], 0u, 31u);
-    }
-  }
-  return float(numFullVoxels)/float(numVoxels);
-}  
-
 
 
 unsigned int countFullVoxelsVolSphere(vec3 gridIndex, unsigned int gridIndexBottonN, unsigned int gridIndexTopN)
@@ -575,7 +472,7 @@ unsigned int countFullVoxelsVolSphere(vec3 gridIndex, unsigned int gridIndexBott
   unsigned int bottonContentColor = gridIndexBottonN/32u;
   unsigned int topContentColor = gridIndexTopN/32u;
   
-  int numFullVoxels = 0;
+  unsigned int numFullVoxels = 0u;
   
   for(unsigned int i = topContentColor; i <= bottonContentColor; ++i)
   {
@@ -596,18 +493,6 @@ unsigned int countFullVoxelsVolSphere(vec3 gridIndex, unsigned int gridIndexBott
   }
   return numFullVoxels;
 }  
-
-
-
-mat3 getHemisphereRotationMatrix(vec3 normal)
-{
-  vec3 hemisphereNormal = vec3(0.0, 1.0, 0.0);
-
-  float angle = acos(dot(hemisphereNormal, normal));
-  vec3 axis = normalize(cross(hemisphereNormal, normal));
-  
-  return getRotationMatrix(angle, axis);
-}
 
 vec3 getGridIndex(vec3 ray, vec3 eyePosition)
 {
