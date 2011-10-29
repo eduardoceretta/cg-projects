@@ -13,6 +13,7 @@
 #include "Kernels/KernelBase.h"
 #include "GLUtils/GLTextureObject.h"
 #include "GLUtils/GLProjectionMatrix.h"
+#include "GLLights/GLPointLight.h"
 #include <vector>
 
 using namespace std;
@@ -72,10 +73,11 @@ public:
 
 private:
 
-  void createSamplerTexture();
+  void createConeSamplerTexture();
 
   void createBitCount16Texture();
- 
+  void createSphereSamplerTexture();
+
   /**
    * Grid Dimensions	
    */
@@ -92,11 +94,14 @@ private:
   /**
    * Volume Samplers
    */
-  int m_numSamplers;
   int m_numSamplersDistributions;
-  int m_samplersWidth;
-  GLuint m_texIdSamplers;
+  int m_coneDirSamplersWidth;
+  GLuint m_texIdConeDirSamplers;
 
+  int m_numCones;
+  int m_numSpheresByCone;
+  int m_numSamplersAlpha;
+  int m_numSamplersBeta;
 
   /**
    * BitCount 16
@@ -104,6 +109,17 @@ private:
   int m_bitCount16Height;
   int m_bitCount16Width;
   GLuint m_texIdBitCount16;
+
+  /**
+   * Sphere Samplers
+   */
+  int m_sphereSamplersWidth;     
+  GLuint m_texIdSphereSamplers;  
+  GLfloat* m_sphereSamplers;
+
+
+
+  GLPointLight m_pointLight;
 };
 
 

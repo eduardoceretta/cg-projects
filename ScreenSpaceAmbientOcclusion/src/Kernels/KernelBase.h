@@ -94,6 +94,12 @@ protected:
 	void addInputInt(char* name, GLint value);
   void addInputFloat(char* name, GLfloat value);
   void addInputMatrix4(char* name, const GLfloat* value);
+  
+  /**
+   * Add a Shader Uniform Variable Array. 
+   *  n is the number of elements of the array.(value size  =  3*n)
+   */
+  void addInputVec3Array(char* name, GLfloat *value, int n);
 
   /**
    * Create an Input Texture and passes it to the shader
@@ -114,7 +120,7 @@ protected:
    * Set an Output Texture
    */
   GLuint setOutput(int index, GLuint textureId);
-
+ 
   /**
    * Frame Buffer used for rendering
    */

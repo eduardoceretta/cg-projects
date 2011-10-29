@@ -45,7 +45,13 @@ protected:
   /**
    * State of the light
    */
-  bool m_turnedOn;
+  bool m_enabled;
+
+  /**
+   * Render Sphere attributes
+   */
+  bool m_renderSphereEnabled;
+  float m_renderSphereRadius;
 
   /**
    * Indicate if the light need to be updated
@@ -97,8 +103,16 @@ public:
   void setAtenuation(double constant, double linear, double quadric); 
   void getAtenuation(double &constant, double &linear, double &quadric) const;
 
-  void lightTurnedOn(bool op); 
-  bool lightIsTurnedOn() const;
+  void setLightEnabled(bool op); 
+  bool isLightEnabled() const;
+
+  /**
+   * Enables a sphere to be rendered in the light position
+   */
+  void setRenderSphereEnabled(bool op);
+  bool isRenderSphereEnabled();
+  void setRenderSphereRadius(float r);
+  float getRenderSphereRadius();
   
   /**
    * Return the number of the light.
