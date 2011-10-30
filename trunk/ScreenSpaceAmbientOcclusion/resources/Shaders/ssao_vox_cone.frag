@@ -32,8 +32,9 @@ uniform int numSamplersDistributions; /**< Number of samplers distributions*/
 uniform int coneDirSamplersWidth;     /**< Sampler Textures Width*/
 uniform sampler1D coneDirSamplers;    /**< Cone directions Samplers Texture*/
 
-uniform sampler1D sphereSamplers;             /**< Sphere Sampler Texture*/
-uniform int sphereSamplersWidth;             /**< Sphere Sampler Texture Width*/
+uniform sampler1D sphereSamplers;     /**< Sphere Sampler Texture*/
+uniform int sphereSamplersWidth;      /**< Sphere Sampler Texture Width*/
+uniform vec3 sphereSamplersArray[19];     /**< Uniform Sphere samplers*/
 
 uniform int bitCount16Height;         /**< BitCount Texture Height*/
 uniform int bitCount16Width;          /**< BitCount Texture Width*/
@@ -53,7 +54,7 @@ uniform float top;
 uniform int perspective;
 
 #define ARITPROG_AN(a, d, n) int((a) + floor((n-1.0)*(d) + .5))
-#define ARITPROG_SUM(a, d, n) int((n)*((a)+ARITPROG_AN(a,d,n))/2)
+#define ARITPROG_SUM(a, d, n) int((n)*((a)+ARITPROG_AN(a,d,n))/2.0)
 
 #define func(i, numSpheresByCone) \
   (pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)),3.0))
@@ -179,7 +180,7 @@ vec3 getConeDir(int samplerDistributionIndex, int i, mat3 rotMat);
 float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float sphereRadius, int index);
 float normalizeConeAo(float coneAo, int numSpheresByCone);
 int getNumSphereSamplers(int i);
-vec3 getSphereSampler(int samplerDistIndex, int i, float radius);   
+vec3 getSphereSampler(int samplerDistIndex, int sphereIndex, int samplerIndex, float radius);
 //void initSphereSamplerArray(int samplerDistributionIndex, int numSpheresByCone, int n, float rfar);
 float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, out float secant);
 
@@ -256,7 +257,7 @@ void main()
   /*************************\
          Debug Area 
   \*************************/
-  
+ 
   float rfar = .4*far;
   float ao = 0.0;
   
@@ -276,15 +277,15 @@ void main()
       float sphereRadius = getSphereRadius(j, rfar, numSpheresByCone, numCones);
       float sphereAo = calcSphereOcclusion(0, sphereCenter, sphereRadius, j);
       
-      coneAo += sphereAo;
-      //if(sphereAo > .85)
-      //{
-        //gl_FragData[0] = RED;
-        //return;
-      //}
+      coneAo += sphereAo*(1.0-coneAo);
+      if(coneAo > 1.)
+      {
+        gl_FragData[0] = RED;
+        return;
+      }
         //break;
     }
-    coneAo = normalizeConeAo(coneAo, numSpheresByCone);
+    //coneAo = normalizeConeAo(coneAo, numSpheresByCone);
 
     ao += coneAo;
   }
@@ -293,6 +294,9 @@ void main()
   ao = clamp(ao, 0.0, 1.0);
 
   gl_FragData[0] = WHITE*(1.0 - ao);
+  
+  
+
 }
 
 /****************************************************************************/
@@ -370,13 +374,13 @@ float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float
   float s = 0.0;
 
   int numSphereSamplers = getNumSphereSamplers(index);
+  int sphereIndex = ARITPROG_SUM(4.0, 2.3, float(index));
   
   for(int i = 0; i < numSphereSamplers; ++i)
   {
-    vec3 sphereSampler = getSphereSampler(samplerDistributionIndex, i, sphereRadius*.99);
+    vec3 sphereSampler = getSphereSampler(0, sphereIndex, i, sphereRadius*.99);
 
     float secant;
-    
     ao += calcSphereAo(sphereSampler, sphereCenter, sphereRadius, secant);
 
     s += secant;
@@ -389,13 +393,14 @@ float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float
 
 int getNumSphereSamplers(int i)
 {
-  return ARITPROG_AN(4.0, 2.3, float(i));
+  return ARITPROG_AN(4.0, 2.3, float(i + 1));
 } 
 
-vec3 getSphereSampler(int samplerDistIndex, int i, float radius)
+vec3 getSphereSampler(int samplerDistIndex, int sphereIndex, int samplerIndex, float radius)
 {
-  float sphereSamplerIndex = (float(samplerDistIndex + i) + .5)/float(sphereSamplersWidth);
+  float sphereSamplerIndex = (float(samplerDistIndex + sphereIndex + samplerIndex) + .5)/float(sphereSamplersWidth);
   vec3 sphereSampler = texture1D(sphereSamplers, sphereSamplerIndex).rgb;
+  //vec3 sphereSampler = sphereSamplersArray[samplerDistIndex + sphereIndex + samplerIndex];
   return sphereSampler*radius;
 }
 
