@@ -44,6 +44,8 @@
 
 #include "app.h"
 
+#define STR(s) #s
+
 /**
  * Tests
  */
@@ -216,6 +218,8 @@ void App::loadResources()
   listenReshape(m_appWidth, m_appHeight);
 }
 
+//#define RENDER_SAMPLER
+
 void App::render()
 {
 #ifdef TIME_TEST
@@ -227,32 +231,37 @@ void App::render()
   screenShotTest.update();
   screenShotTest.configureCamera(m_camHandler);
 #endif
-  //static int iiii = 0;
-  //if(!iiii)
-  //  m_camHandler->setViewBoundingBox(Vector3(-1.5f,-.5f,-1.5f), Vector3(1.5f,1.5f,1.5f),  m_fov);
-  //iiii++;
+
+#ifdef RENDER_SAMPLER
+  static int iiii = 0;
+  if(!iiii)
+    m_camHandler->setViewBoundingBox(Vector3(-1.5f,-.5f,-1.5f), Vector3(1.5f,1.5f,1.5f),  m_fov);
+  iiii++;
+#endif // RENDER_SAMPLER
 
   m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
 
-  //glMatrixMode (GL_PROJECTION);
-  //glPushMatrix();
-  //glLoadIdentity ();
-  //gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
-  //glMatrixMode (GL_MODELVIEW);
-  //glPushMatrix();
-  //static int ccounter = 0;
+#ifdef RENDER_SAMPLER
+  glMatrixMode (GL_PROJECTION);
+  glPushMatrix();
+  glLoadIdentity ();
+  gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
+  glMatrixMode (GL_MODELVIEW);
+  glPushMatrix();
+  static int ccounter = 0;
 
-  ////m_kernelSSAO_Voxelization->renderRayDistribution(4);
-  ////m_kernelSSAO_Voxelization_Volume->renderSamplerDistribution(((++ccounter)/100)%5);
-  ////m_kernelSSAO_Voxelization_Cone->renderSamplerDistribution(((++ccounter)/100)%5);
+  //m_kernelSSAO_Voxelization->renderRayDistribution(4);
+  //m_kernelSSAO_Voxelization_Volume->renderSamplerDistribution(((++ccounter)/100)%5);
+  //m_kernelSSAO_Voxelization_Cone->renderSamplerDistribution(((++ccounter)/100)%5);
   //m_kernelSSAO_Voxelization_Cone->renderSamplerDistribution(0);
-  //glPopMatrix();
-  //glMatrixMode (GL_PROJECTION);
-  //glPopMatrix();
-  //glMatrixMode (GL_MODELVIEW);
-
+  m_kernelSSAO_Voxelization_Cone->renderSphereSamplerDistribution(((++ccounter)/100)%3);
+  glPopMatrix();
+  glMatrixMode (GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode (GL_MODELVIEW);
+#else
   switch(m_renderMode)
   {
     default:
@@ -276,6 +285,7 @@ void App::render()
       break;
   }
   renderGUI();
+#endif // RENDER_SAMPLER
 #ifdef SCREENSHOT_TEST
   if(screenShotTest.isTestEnded())
     exit(42);
@@ -785,6 +795,30 @@ void App::renderGUI()
   sprintf(a,"%.2f FPS", m_frames->getFPS());
   m_fontRender->print(m_appWidth*.85,m_appHeight*.85+55,a, Color(0., 0., 0.));
 
+  switch(m_renderMode)
+  {
+    default:
+    case NoShader:
+      sprintf(a,"%s", STR(NoShader));
+      break;
+    case Spheres:
+      sprintf(a,"%s", STR(Spheres));
+      break;
+    case Visibility:
+      sprintf(a,"%s", STR(Visibility));
+      break;
+    case Voxelization:
+      sprintf(a,"%s", STR(Voxelization));
+      break;
+    case VoxelizationVolume:
+      sprintf(a,"%s", STR(VoxelizationVolume));
+      break;
+    case VoxelizationCone:
+      sprintf(a,"%s", STR(VoxelizationCone));
+      break;
+  }
+  m_fontRender->print(m_appWidth*.03,m_appHeight*.03,a, Color(0., 0., 0.));
+
   m_fontRender->endText();
   glPopAttrib();
 }
@@ -1195,10 +1229,10 @@ void App::renderSSAOVoxelizationCone()
     m_kernelSSAO_Voxelization_Cone->step(m_voxProjectionMatrix);
     m_kernelSSAO_Voxelization_Cone->renderOutput(KernelSSAO_Voxelization::SSAO);
 
-    //GLTextureObject texObj = GLTextureObject(m_kernelSSAO_Voxelization_Cone->getOutputTexture(1));
-    //GLuint* i = texObj.read2DTextureUIntData();
-    //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization_Cone->getOutputTexture(0));
-    //GLfloat* f = t2.read2DTextureFloatData();
+    GLTextureObject texObj = GLTextureObject(m_kernelSSAO_Voxelization_Cone->getOutputTexture(1));
+    GLuint* i = texObj.read2DTextureUIntData();
+    GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization_Cone->getOutputTexture(0));
+    GLfloat* f = t2.read2DTextureFloatData();
 
     glPopAttrib();
   }

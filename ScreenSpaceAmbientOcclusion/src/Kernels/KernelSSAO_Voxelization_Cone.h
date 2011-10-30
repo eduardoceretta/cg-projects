@@ -64,13 +64,12 @@ public:
    * Get output SSAO texture Id.
    */
   GLuint getTexIdSSAO() const;
-  
-  
+    
   /**
    * Render the specific sampler distribution directions.
    */
   void renderSamplerDistribution(int distribution);
-
+  void renderSphereSamplerDistribution(int distribution);
 private:
 
   void createConeSamplerTexture();

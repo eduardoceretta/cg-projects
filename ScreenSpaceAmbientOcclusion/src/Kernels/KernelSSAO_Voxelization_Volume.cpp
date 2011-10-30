@@ -194,16 +194,6 @@ void KernelSSAO_Voxelization_Volume::createSamplerTexture()
   delete [] texData;
 }
 
-
-
-
-
-
-
-
-
-
-
 void KernelSSAO_Voxelization_Volume::renderSamplerDistribution(int distribution)
 {
   glPushMatrix();
