@@ -437,3 +437,36 @@ void KernelSSAO_Voxelization_Cone::createSphereSamplerTexture()
 
   //delete [] texData;
 }
+
+void KernelSSAO_Voxelization_Cone::renderSphereSamplerDistribution(int distribution)
+{
+  int prog_a = 4;
+  float progStep = 2.3;
+  int numSphereSamplers = ARITPROG_AN(prog_a, progStep, distribution+1);
+  int aritProgSum = ARITPROG_SUM(prog_a, progStep, distribution);
+
+  glPushMatrix();
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  GLTextureObject t(m_texIdSphereSamplers, GL_TEXTURE_1D);
+  GLfloat *texData =  &t.read1DTextureFloatData(GL_RGB)[aritProgSum*3];
+  glPushMatrix();
+  glScalef(2.0f,2.0f, 0.000000001f);
+  //glTranslatef(0.0f, .5f, 0.0f);
+  glutWireCube(1);
+  glPopMatrix();
+  glPointSize(3);
+  glColor3f(1.0f, 1.0f, 1.0f);
+  
+  glBegin(GL_POINTS);
+    for(int i = 0; i < numSphereSamplers; ++i)
+    {
+      Vector3 pos(
+        texData[i*3 + 0],
+        texData[i*3 + 1],
+        texData[i*3 + 2]);
+      glVertex3f(pos.x, pos.y, pos.z);
+    }
+  glEnd();
+  glPopAttrib();
+  glPopMatrix();
+}
