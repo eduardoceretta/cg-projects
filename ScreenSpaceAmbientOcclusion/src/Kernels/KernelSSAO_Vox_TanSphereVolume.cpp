@@ -6,7 +6,7 @@
  *  Calculate the AmbientOcclusion of a Scene using the voxelization of it.
  *  Verifies the number of full voxels inside the influence sphere.
  */
-#include "KernelSSAO_Voxelization_Volume.h"
+#include "KernelSSAO_Vox_TanSphereVolume.h"
 #include <cmath>
 #include <limits>
 
@@ -16,7 +16,7 @@
 #include "GLUtils/GLProjectionMatrix.h"
 #include "MathUtils/UniformPoissonDiskSampler.h"
 
-KernelSSAO_Voxelization_Volume::KernelSSAO_Voxelization_Volume(char* path, int width, int height, 
+KernelSSAO_Vox_TanSphereVolume::KernelSSAO_Vox_TanSphereVolume(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
                                                  GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
 : KernelBase(path, "ssao_vox_vol.vert", "ssao_vox_vol.frag", width, height)
@@ -38,8 +38,8 @@ KernelSSAO_Voxelization_Volume::KernelSSAO_Voxelization_Volume(char* path, int w
   t.setFilters(GL_NEAREST, GL_NEAREST);
   t.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
   //Output
-  m_texIdSSAO = addOutput(KernelSSAO_Voxelization_Volume::SSAO);
-  m_texIdDebug = addOutput(KernelSSAO_Voxelization_Volume::Debug, t.getId());
+  m_texIdSSAO = addOutput(KernelSSAO_Vox_TanSphereVolume::SSAO);
+  m_texIdDebug = addOutput(KernelSSAO_Vox_TanSphereVolume::Debug, t.getId());
   
 	//Input
 	m_shader->setActive(true);
@@ -62,12 +62,12 @@ KernelSSAO_Voxelization_Volume::KernelSSAO_Voxelization_Volume(char* path, int w
 	m_shader->setActive(false);
 }
 
-KernelSSAO_Voxelization_Volume::~KernelSSAO_Voxelization_Volume(){
+KernelSSAO_Vox_TanSphereVolume::~KernelSSAO_Vox_TanSphereVolume(){
 
 }
 
 
-void KernelSSAO_Voxelization_Volume::setActive(bool op, GLProjectionMatrix *projectionMatrix)
+void KernelSSAO_Vox_TanSphereVolume::setActive(bool op, GLProjectionMatrix *projectionMatrix)
 {
   if(op)
   {
@@ -88,7 +88,7 @@ void KernelSSAO_Voxelization_Volume::setActive(bool op, GLProjectionMatrix *proj
   KernelBase::setActive(op);
 }
 
-void KernelSSAO_Voxelization_Volume::setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix)
+void KernelSSAO_Vox_TanSphereVolume::setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix)
 {
   if(op)
   {
@@ -111,7 +111,7 @@ void KernelSSAO_Voxelization_Volume::setActiveShaderOnly(bool op, GLProjectionMa
 }
 
 
-void KernelSSAO_Voxelization_Volume::step( GLProjectionMatrix *projectionMatrix )
+void KernelSSAO_Vox_TanSphereVolume::step( GLProjectionMatrix *projectionMatrix )
 {
   float znear = projectionMatrix->getNear();
   float zfar = projectionMatrix->getFar();
@@ -150,14 +150,14 @@ void KernelSSAO_Voxelization_Volume::step( GLProjectionMatrix *projectionMatrix 
 }
 
 
-GLuint KernelSSAO_Voxelization_Volume::getTexIdSSAO() const
+GLuint KernelSSAO_Vox_TanSphereVolume::getTexIdSSAO() const
 {
   return m_texIdSSAO;
 }
 
 
 
-void KernelSSAO_Voxelization_Volume::createSamplerTexture()
+void KernelSSAO_Vox_TanSphereVolume::createSamplerTexture()
 {
   UniformPoissonDiskSampler u;
   
@@ -194,7 +194,7 @@ void KernelSSAO_Voxelization_Volume::createSamplerTexture()
   delete [] texData;
 }
 
-void KernelSSAO_Voxelization_Volume::renderSamplerDistribution(int distribution)
+void KernelSSAO_Vox_TanSphereVolume::renderSamplerDistribution(int distribution)
 {
   glPushMatrix();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -225,7 +225,7 @@ void KernelSSAO_Voxelization_Volume::renderSamplerDistribution(int distribution)
   glPopMatrix();
 }
 
-void KernelSSAO_Voxelization_Volume::createBitCount16Texture()
+void KernelSSAO_Vox_TanSphereVolume::createBitCount16Texture()
 {
   int numOfValues = (int)pow(2.0f, 16);
 

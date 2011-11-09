@@ -7,7 +7,7 @@
  *  Make Cone Tracing to calculate the occlusion. Each Cone Integral is achieved 
  *  by calculating n sphere integrals.
  */
-#include "KernelSSAO_Voxelization_Cone.h"
+#include "KernelSSAO_Vox_ConeTracing.h"
 #include <cmath>
 #include <limits>
 
@@ -17,8 +17,10 @@
 #include "GLUtils/GLProjectionMatrix.h"
 #include "MathUtils/UniformPoissonDiskSampler.h"
 
-#define ARITPROG_SUM(a, d, n) int((n)*((a)+ARITPROG_AN(a,d,n))/2)
+#define PROG_A0 4
+#define PROG_STEP 2.3
 #define ARITPROG_AN(a, d, n) int((a) + floor((n-1.0)*(d) + .5))
+#define ARITPROG_SUM(a, d, n) int((n)*((a)+ARITPROG_AN(a,d,n))/2.0)
 
 #define func(i, numSpheresByCone) \
   (pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)),3.0))
@@ -33,7 +35,7 @@
   func2(i, numSpheresByCone)*(rfar*.8)*sqrt(2.0/float(numCones)) 
 
 
-KernelSSAO_Voxelization_Cone::KernelSSAO_Voxelization_Cone(char* path, int width, int height, 
+KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
                                                  GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
 : KernelBase(path, "ssao_vox_cone.vert", "ssao_vox_cone.frag", width, height)
@@ -44,7 +46,7 @@ KernelSSAO_Voxelization_Cone::KernelSSAO_Voxelization_Cone(char* path, int width
 ,m_bitCount16Height(0)
 ,m_bitCount16Width(0)
 ,m_texIdBitCount16(0)
-,m_numCones(6) //HINT
+,m_numCones(6) //HINT MIN 4
 ,m_numSpheresByCone(3)
 ,m_numSamplersAlpha(0)
 ,m_numSamplersBeta(0)
@@ -61,11 +63,14 @@ KernelSSAO_Voxelization_Cone::KernelSSAO_Voxelization_Cone(char* path, int width
   t.setFilters(GL_NEAREST, GL_NEAREST);
   t.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
   //Output
-  m_texIdSSAO = addOutput(KernelSSAO_Voxelization_Cone::SSAO);
-  m_texIdDebug = addOutput(KernelSSAO_Voxelization_Cone::Debug, t.getId());
+  m_texIdSSAO = addOutput(KernelSSAO_Vox_ConeTracing::SSAO);
+  m_texIdDebug = addOutput(KernelSSAO_Vox_ConeTracing::Debug, t.getId());
   
 	//Input
 	m_shader->setActive(true);
+    addInputFloat("rfarPercent", .5f);
+    addInputFloat("contrast", 1.0f);
+
     addInputFloat("screenWidth", width);
     addInputFloat("screenHeight", height);
     addInputInt("numCones", m_numCones);
@@ -96,13 +101,13 @@ KernelSSAO_Voxelization_Cone::KernelSSAO_Voxelization_Cone(char* path, int width
   m_pointLight.setRenderSphereEnabled(true);
 }
 
-KernelSSAO_Voxelization_Cone::~KernelSSAO_Voxelization_Cone(){
+KernelSSAO_Vox_ConeTracing::~KernelSSAO_Vox_ConeTracing(){
   if(m_sphereSamplers)
     delete[] m_sphereSamplers;
 }
 
 
-void KernelSSAO_Voxelization_Cone::setActive(bool op, GLProjectionMatrix *projectionMatrix)
+void KernelSSAO_Vox_ConeTracing::setActive( bool op, GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast )
 {
   if(op)
   {
@@ -113,6 +118,9 @@ void KernelSSAO_Voxelization_Cone::setActive(bool op, GLProjectionMatrix *projec
     int perspective = (int)!(projectionMatrix->isOrthographic());
 
     m_shader->setActive(true);
+      addInputFloat("rfarPercent", rfarPercent);
+      addInputFloat("contrast", contrast);
+
       addInputFloat("near", znear);
       addInputFloat("far", zfar);
       addInputFloat("right", right);
@@ -123,7 +131,7 @@ void KernelSSAO_Voxelization_Cone::setActive(bool op, GLProjectionMatrix *projec
   KernelBase::setActive(op);
 }
 
-void KernelSSAO_Voxelization_Cone::setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix)
+void KernelSSAO_Vox_ConeTracing::setActiveShaderOnly( bool op, GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast )
 {
   if(op)
   {
@@ -134,6 +142,9 @@ void KernelSSAO_Voxelization_Cone::setActiveShaderOnly(bool op, GLProjectionMatr
     int perspective = (int)!(projectionMatrix->isOrthographic());
 
     m_shader->setActive(true);
+    addInputFloat("rfarPercent", rfarPercent);
+    addInputFloat("contrast", contrast);
+
     addInputFloat("near", znear);
     addInputFloat("far", zfar);
     addInputFloat("right", right);
@@ -146,7 +157,7 @@ void KernelSSAO_Voxelization_Cone::setActiveShaderOnly(bool op, GLProjectionMatr
 }
 
 
-void KernelSSAO_Voxelization_Cone::step( GLProjectionMatrix *projectionMatrix )
+void KernelSSAO_Vox_ConeTracing::step( GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast )
 {
   float znear = projectionMatrix->getNear();
   float zfar = projectionMatrix->getFar();
@@ -169,6 +180,9 @@ void KernelSSAO_Voxelization_Cone::step( GLProjectionMatrix *projectionMatrix )
   if(m_shader)
   {
     m_shader->setActive(true);
+    addInputFloat("rfarPercent", rfarPercent);
+    addInputFloat("contrast", contrast);
+
     addInputFloat("near", znear);
     addInputFloat("far", zfar);
     addInputFloat("right", right);
@@ -185,15 +199,16 @@ void KernelSSAO_Voxelization_Cone::step( GLProjectionMatrix *projectionMatrix )
 }
 
 
-GLuint KernelSSAO_Voxelization_Cone::getTexIdSSAO() const
+GLuint KernelSSAO_Vox_ConeTracing::getTexIdSSAO() const
 {
   return m_texIdSSAO;
 }
 
-void KernelSSAO_Voxelization_Cone::createConeSamplerTexture()
+void KernelSSAO_Vox_ConeTracing::createConeSamplerTexture()
 {
-  m_numSamplersAlpha = ceil(sqrt(float(m_numCones)));
-  m_numSamplersBeta = ceil(float(m_numCones)/m_numSamplersAlpha);
+  m_numSamplersBeta = ceil(sqrt(float(m_numCones)));              //Longitude  (|||)
+  m_numSamplersAlpha = ceil(float(m_numCones)/m_numSamplersBeta); //Latitude   (===)
+
   m_numCones = m_numSamplersAlpha*m_numSamplersBeta;
 
   m_coneDirSamplersWidth = m_numSamplersDistributions * m_numSamplersAlpha * m_numSamplersBeta;
@@ -206,7 +221,7 @@ void KernelSSAO_Voxelization_Cone::createConeSamplerTexture()
     for(int i = m_numSamplersAlpha-1; i >= 0; i--)
     {
       float decPar = m_numSamplersAlpha%2==0 && (m_numSamplersAlpha/2) - i <=0;
-      float step = 1.0f/(1*m_numSamplersAlpha);
+      float step = 1.0f/(m_numSamplersAlpha);
       float value = 1 + ((m_numSamplersAlpha/2) - i - decPar)*step;
       //printf("%d %d %f %f\n", i,m_numSamplersAlpha,  value, (i > 0)? floor(m_numSamplersBeta*value): m_numSamplersBeta*m_numSamplersAlpha - soma );
       int betaSize = int((i > 0)? floor(m_numSamplersBeta*value): m_numSamplersBeta*m_numSamplersAlpha - soma );
@@ -218,14 +233,15 @@ void KernelSSAO_Voxelization_Cone::createConeSamplerTexture()
         if(k > 0)
           r = (1.0f + float(rand()%10)/100 - .15f);
 
-        float  angleBeta=((m_numSamplersAlpha-i-1)*((.9*PI/2)/(m_numSamplersAlpha-1))-.1*PI/2)*r;
+        float coneAngle = atan(sqrt(2.0f/(m_numCones)));
+        float angleBeta = (((PI/2 - coneAngle)*(m_numSamplersAlpha-i-1)/(m_numSamplersAlpha-1)))*r; //Latitude
 
         if(k > 0)
           r = (1.0f + float(rand()%30)/100 - .15f);
 
         float  angleAlpha = ((j)*(2*PI)/(betaSize) + ((i%2))*(2*PI)/(2*betaSize))*r ;
 
-        Vector3 dir = Vector3(sin(angleBeta)*sin(angleAlpha), cos(angleBeta), sin(angleBeta)*cos(angleAlpha));
+        Vector3 dir = Vector3(sin(angleBeta)*sin(angleAlpha), cos(angleBeta), sin(angleBeta)*cos(angleAlpha)); //Longitude
         d[int(soma-betaSize)*3 + j*3 + 0] = dir.x;
         d[int(soma-betaSize)*3 + j*3 + 1] = dir.y;
         d[int(soma-betaSize)*3 + j*3 + 2] = dir.z;
@@ -248,7 +264,7 @@ void KernelSSAO_Voxelization_Cone::createConeSamplerTexture()
 
 
 
-void KernelSSAO_Voxelization_Cone::renderSamplerDistribution(int distribution)
+void KernelSSAO_Vox_ConeTracing::renderSamplerDistribution(int distribution)
 {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glPushMatrix();
@@ -367,7 +383,7 @@ void KernelSSAO_Voxelization_Cone::renderSamplerDistribution(int distribution)
 }
 
 
-void KernelSSAO_Voxelization_Cone::createBitCount16Texture()
+void KernelSSAO_Vox_ConeTracing::createBitCount16Texture()
 {
   int numOfValues = (int)pow(2.0f, 16);
 
@@ -392,13 +408,10 @@ void KernelSSAO_Voxelization_Cone::createBitCount16Texture()
   delete[] texData;
 }
 
-void KernelSSAO_Voxelization_Cone::createSphereSamplerTexture()
+void KernelSSAO_Vox_ConeTracing::createSphereSamplerTexture()
 {
   UniformPoissonDiskSampler u;
-  
-  int prog_a = 4;
-  float progStep = 2.3;
-  int aritProgSum = ARITPROG_SUM(prog_a, progStep, m_numSpheresByCone);
+  int aritProgSum = ARITPROG_SUM(PROG_A0, PROG_STEP, m_numSpheresByCone);
  
   m_sphereSamplersWidth = aritProgSum;
   //GLfloat* texData = new GLfloat[m_sphereSamplersWidth*3];
@@ -406,7 +419,7 @@ void KernelSSAO_Voxelization_Cone::createSphereSamplerTexture()
 
   for(int k = 0; k < m_numSpheresByCone; ++k)
   {
-    int numSphereSamplers = ARITPROG_AN(prog_a, progStep, k+1);
+    int numSphereSamplers = ARITPROG_AN(PROG_A0, PROG_STEP, k+1);
 
     vector<Vector3> v = u.sampleCircle(Vector3(0,0,0), 1.0f, sqrt(1.0f/numSphereSamplers)*1.35f);
     while(v.size() > numSphereSamplers)
@@ -416,7 +429,7 @@ void KernelSSAO_Voxelization_Cone::createSphereSamplerTexture()
     }
     assert(v.size() == numSphereSamplers);
 
-    int aritProgSum = ARITPROG_SUM(prog_a, progStep, k);
+    int aritProgSum = ARITPROG_SUM(PROG_A0, PROG_STEP, k);
 
     GLfloat *d = &m_sphereSamplers[aritProgSum*3];
 
@@ -438,12 +451,10 @@ void KernelSSAO_Voxelization_Cone::createSphereSamplerTexture()
   //delete [] texData;
 }
 
-void KernelSSAO_Voxelization_Cone::renderSphereSamplerDistribution(int distribution)
+void KernelSSAO_Vox_ConeTracing::renderSphereSamplerDistribution(int distribution)
 {
-  int prog_a = 4;
-  float progStep = 2.3;
-  int numSphereSamplers = ARITPROG_AN(prog_a, progStep, distribution+1);
-  int aritProgSum = ARITPROG_SUM(prog_a, progStep, distribution);
+  int numSphereSamplers = ARITPROG_AN(PROG_A0, PROG_STEP, distribution+1);
+  int aritProgSum = ARITPROG_SUM(PROG_A0, PROG_STEP, distribution);
 
   glPushMatrix();
   glPushAttrib(GL_ALL_ATTRIB_BITS);

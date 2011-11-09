@@ -48,12 +48,12 @@ void ScScene :: readFromFile(string rt4FileName)
 	while(!feof(file))
 	{
 	   fscanf(file, "%s", buffer);
-     if(buffer[0] == '#') 
+     if(buffer[0] == '#' || (buffer[0] == '/' && buffer[1] == '/') ) 
      {
        /* Ignore Coment */
        fscanf(file, "%*[^\n]s");
      }
-    else if(!strcmp(buffer, "RT"))
+     else if(!strcmp(buffer, "RT"))
 	   {
 			/* Ignore File Version Information */
          fscanf(file, "%*[^\n]s");

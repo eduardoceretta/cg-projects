@@ -4,10 +4,11 @@
  *  Sep 2011
  *
  *  Calculate the AmbientOcclusion of a Scene using the voxelization of it.
- *  Verifies the number of full voxels inside the influence sphere.
+ *  Create some random ray distribution around the hemisphere and passes it as a texture.
+ *  Access each ray in the voxel structure and verifies if it is empty, iterate each ray.
  */
-#ifndef _KERNEL_SSAO_VOXELIZATION_VOLUME_H_
-#define _KERNEL_SSAO_VOXELIZATION_VOLUME_H_
+#ifndef _KERNEL_SSAO_VOXELIZATION_H_
+#define _KERNEL_SSAO_VOXELIZATION_H_
 
 #include "Kernels/KernelBase.h"
 #include "GLUtils/GLTextureObject.h"
@@ -16,7 +17,7 @@
 
 using namespace std;
 
-class KernelSSAO_Voxelization_Volume : public KernelBase {
+class KernelSSAO_Vox_RayMarch : public KernelBase {
 
 public:
   /**
@@ -31,12 +32,12 @@ public:
    *  texIdVoxelGrid holds the 3D grid of the scene.
    *  texIdGridInvFunction holds the inverse function that convert the eye space normalized index to grid space
    */
-  KernelSSAO_Voxelization_Volume(char* path, int width, int height, GLuint texIdEyePos, GLuint texIdNormalDepth, 
+  KernelSSAO_Vox_RayMarch(char* path, int width, int height, GLuint texIdEyePos, GLuint texIdNormalDepth, 
                             GLuint texIdVoxelGrid, GLuint texIdGridInvFunction);
   /**
    * Destroy the kernel
    */
-  ~KernelSSAO_Voxelization_Volume();
+  ~KernelSSAO_Vox_RayMarch();
 
    /**
    * Activate/Deactivate the Kernel's FBO and shader
@@ -62,18 +63,17 @@ public:
    * Get output SSAO texture Id.
    */
   GLuint getTexIdSSAO() const;
-  
-  
+
   /**
-   * Render the specific sampler distribution directions.
+   * Render the specific ray distribution directions.
    */
-  void renderSamplerDistribution(int distribution);
-
+  void renderRayDistribution(int distribution);
 private:
-
-  void createSamplerTexture();
-
-  void createBitCount16Texture();
+  /**
+   * Create the ray directions to be used in the hemisphere traverse.
+   *  Create n random variations of the hemisphere ray distribution.
+   */
+  void createRayDirectionsTexture();
  
   /**
    * Grid Dimensions	
@@ -86,23 +86,21 @@ private:
    */
   GLuint m_texIdSSAO;
   GLuint m_texIdDebug;
-  
 
   /**
-   * Volume Samplers
+   * Ray Directions Attributes
    */
-  int m_numSamplers;
-  int m_numSamplersDistributions;
-  int m_samplersWidth;
-  GLuint m_texIdSamplers;
-
+  int m_numRayHemispherDivision;
+  int m_numRayDirections;
+  int m_numRaySteps;
+  int m_numRayDistribution;
 
   /**
-   * BitCount 16
+   * Input textures ids and information
    */
-  int m_bitCount16Height;
-  int m_bitCount16Width;
-  GLuint m_texIdBitCount16;
+  GLuint m_texIdRayDirections;
+  int m_rayDirectionsWidth;
+
 };
 
 

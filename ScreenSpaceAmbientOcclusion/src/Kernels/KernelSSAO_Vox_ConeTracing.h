@@ -18,7 +18,7 @@
 
 using namespace std;
 
-class KernelSSAO_Voxelization_Cone : public KernelBase {
+class KernelSSAO_Vox_ConeTracing : public KernelBase {
 
 public:
   /**
@@ -33,24 +33,24 @@ public:
    *  texIdVoxelGrid holds the 3D grid of the scene.
    *  texIdGridInvFunction holds the inverse function that convert the eye space normalized index to grid space
    */
-  KernelSSAO_Voxelization_Cone(char* path, int width, int height, GLuint texIdEyePos, GLuint texIdNormalDepth, 
+  KernelSSAO_Vox_ConeTracing(char* path, int width, int height, GLuint texIdEyePos, GLuint texIdNormalDepth, 
                             GLuint texIdVoxelGrid, GLuint texIdGridInvFunction);
   /**
    * Destroy the kernel
    */
-  ~KernelSSAO_Voxelization_Cone();
+  ~KernelSSAO_Vox_ConeTracing();
 
    /**
    * Activate/Deactivate the Kernel's FBO and shader
    *  Calculate the projection parameters needed by the shader
    */
-  void setActive(bool op, GLProjectionMatrix *projectionMatrix);
+  void setActive(bool op, GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast);
 
   /**
    * Activate/Deactivate the Kernel's shader
    *  Calculate the projection parameters needed by the shader
    */
-  void setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix);
+  void setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast);
 
   /**
    * Does a kernel pass cycle.
@@ -58,7 +58,7 @@ public:
    *  and deactivate the shader and the FBO.
    *  Calculate the projection parameters needed by the shader
    */
-  void step(GLProjectionMatrix *projectionMatrix);
+  void step(GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast);
 
   /**
    * Get output SSAO texture Id.

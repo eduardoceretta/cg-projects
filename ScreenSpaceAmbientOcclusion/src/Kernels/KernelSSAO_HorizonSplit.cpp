@@ -8,11 +8,11 @@
  *  input textures and does visibility tests with its surrounds
  */
 
-#include "KernelSSAO_Visibility.h"
+#include "KernelSSAO_HorizonSplit.h"
 
 
 
-KernelSSAO_Visibility::KernelSSAO_Visibility(char* path, int width, int height, 
+KernelSSAO_HorizonSplit::KernelSSAO_HorizonSplit(char* path, int width, int height, 
                        GLuint depht0_normalTexId)
 : KernelBase(path, "ssao_vis.vert", "ssao_vis.frag", width, height){
 	//Output
@@ -27,16 +27,16 @@ KernelSSAO_Visibility::KernelSSAO_Visibility(char* path, int width, int height,
 	m_shader->setActive(false);
 }
 
-KernelSSAO_Visibility::~KernelSSAO_Visibility(){
+KernelSSAO_HorizonSplit::~KernelSSAO_HorizonSplit(){
 
 }
 
-GLuint KernelSSAO_Visibility::getColorTexId() const
+GLuint KernelSSAO_HorizonSplit::getColorTexId() const
 {
   return m_colorTexId; 
 }
 
-void KernelSSAO_Visibility::step(float* projectionMatrix, float rfar, float pixelmask_size, GLfloat offsets_size, GLfloat intensity)
+void KernelSSAO_HorizonSplit::step(float* projectionMatrix, float rfar, float pixelmask_size, GLfloat offsets_size, GLfloat intensity)
 {
   float x = projectionMatrix[0*4+0];
   float y = projectionMatrix[1*4+1];
