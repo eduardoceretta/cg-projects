@@ -1,30 +1,27 @@
 /**
  *	Eduardo Ceretta Dalla Favera
  *  eduardo.ceretta@gmail.com
- *  Apr 2011
+ *  Jun 2011
  *
  *  Perform the calculation of the Screen Space Ambient Occlusion.
  *  Receive projection matrix information and reprojects the pixels obtained from the depth
- *  input textures and does the calculation of the occlusion that the neighborhood of a pixel 
- *  causes using spheres as occludes approximation.
+ *  input textures and does visibility tests with its surrounds
  */
-#ifndef _KERNEL_SSAO_H_
-#define _KERNEL_SSAO_H_
+#ifndef _KERNEL_SSAO_HORIZONSPLIT_H_
+#define _KERNEL_SSAO_HORIZONSPLIT_H_
 
 #include "Kernels/KernelBase.h"
 
-class KernelSSAO : public KernelBase {
+class KernelSSAO_HorizonSplit : public KernelBase {
 
 public:
   /**
    * Construct the kernel. 
    *  Receive 3 depth peelings textures. 
    */
-  KernelSSAO(char* path, int width, int height, 
-              GLuint positionTexId, 
-              GLuint depht0_normalTexId, GLuint depht1_normalTexId, 
-              GLuint depht2_normalTexId);
-	~KernelSSAO();
+  KernelSSAO_HorizonSplit(char* path, int width, int height, 
+              GLuint depht0_normalTexId);
+	~KernelSSAO_HorizonSplit();
  
   /**
    * Return the result ID

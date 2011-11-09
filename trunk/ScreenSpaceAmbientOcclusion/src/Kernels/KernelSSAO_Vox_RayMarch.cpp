@@ -7,7 +7,7 @@
  *  Create some random ray distribution around the hemisphere and passes it as a texture.
  *  Access each ray in the voxel structure and verifies if it is empty, iterate each ray.
  */
-#include "KernelSSAO_Voxelization.h"
+#include "KernelSSAO_Vox_RayMarch.h"
 #include <cmath>
 #include <limits>
 
@@ -15,7 +15,7 @@
 #include "MathUtils/Vector4.h"
 #include "GLUtils/GLProjectionMatrix.h"
 
-KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int height, 
+KernelSSAO_Vox_RayMarch::KernelSSAO_Vox_RayMarch(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
                                                  GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
 : KernelBase(path, "ssao_vox.vert", "ssao_vox.frag", width, height)
@@ -35,8 +35,8 @@ KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int heig
   t.setFilters(GL_NEAREST, GL_NEAREST);
   t.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
   //Output
-  m_texIdSSAO = addOutput(KernelSSAO_Voxelization::SSAO);
-  m_texIdDebug = addOutput(KernelSSAO_Voxelization::Debug, t.getId());
+  m_texIdSSAO = addOutput(KernelSSAO_Vox_RayMarch::SSAO);
+  m_texIdDebug = addOutput(KernelSSAO_Vox_RayMarch::Debug, t.getId());
   
 	//Input
 	m_shader->setActive(true);
@@ -56,12 +56,12 @@ KernelSSAO_Voxelization::KernelSSAO_Voxelization(char* path, int width, int heig
 	m_shader->setActive(false);
 }
 
-KernelSSAO_Voxelization::~KernelSSAO_Voxelization(){
+KernelSSAO_Vox_RayMarch::~KernelSSAO_Vox_RayMarch(){
 
 }
 
 
-void KernelSSAO_Voxelization::setActive(bool op, GLProjectionMatrix *projectionMatrix)
+void KernelSSAO_Vox_RayMarch::setActive(bool op, GLProjectionMatrix *projectionMatrix)
 {
   if(op)
   {
@@ -82,7 +82,7 @@ void KernelSSAO_Voxelization::setActive(bool op, GLProjectionMatrix *projectionM
   KernelBase::setActive(op);
 }
 
-void KernelSSAO_Voxelization::setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix)
+void KernelSSAO_Vox_RayMarch::setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix)
 {
   if(op)
   {
@@ -105,7 +105,7 @@ void KernelSSAO_Voxelization::setActiveShaderOnly(bool op, GLProjectionMatrix *p
 }
 
 
-void KernelSSAO_Voxelization::step( GLProjectionMatrix *projectionMatrix )
+void KernelSSAO_Vox_RayMarch::step( GLProjectionMatrix *projectionMatrix )
 {
   float znear = projectionMatrix->getNear();
   float zfar = projectionMatrix->getFar();
@@ -131,7 +131,7 @@ void KernelSSAO_Voxelization::step( GLProjectionMatrix *projectionMatrix )
   m_fbo->setActive(false);
 }
 
-void KernelSSAO_Voxelization::createRayDirectionsTexture()
+void KernelSSAO_Vox_RayMarch::createRayDirectionsTexture()
 {
   m_rayDirectionsWidth = m_numRayDistribution*m_numRayDirections*m_numRayHemispherDivision;
 
@@ -173,7 +173,7 @@ void KernelSSAO_Voxelization::createRayDirectionsTexture()
   delete [] texData;
 }
 
-void KernelSSAO_Voxelization::renderRayDistribution(int distribution)
+void KernelSSAO_Vox_RayMarch::renderRayDistribution(int distribution)
 {
   glPushMatrix();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -210,7 +210,7 @@ void KernelSSAO_Voxelization::renderRayDistribution(int distribution)
   glPopMatrix();
 }
 
-GLuint KernelSSAO_Voxelization::getTexIdSSAO() const
+GLuint KernelSSAO_Vox_RayMarch::getTexIdSSAO() const
 {
   return m_texIdSSAO;
 }

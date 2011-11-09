@@ -42,15 +42,16 @@ class GLProjectionMatrix;
 
 class KernelColor;
 class KernelDeferred_Peeling;
-class KernelSSAO;
-class KernelSSAO_Visibility;
+
 class KernelBlur;
 class KernelCombine;
 class KernelVoxDepth;
 class KernelVoxelization;
-class KernelSSAO_Voxelization;
-class KernelSSAO_Voxelization_Volume;
-class KernelSSAO_Voxelization_Cone;
+class KernelSSAO_SphereApproximation;
+class KernelSSAO_HorizonSplit;
+class KernelSSAO_Vox_RayMarch;
+class KernelSSAO_Vox_TanSphereVolume;
+class KernelSSAO_Vox_ConeTracing;
 
 using namespace std;
 
@@ -102,15 +103,16 @@ class App
    */
   KernelColor* m_kernelColor;
   KernelDeferred_Peeling* m_kernelDeferred_Peeling;
-  KernelSSAO* m_kernelSSAO;
-  KernelSSAO_Visibility* m_kernelSSAO_Visibility;
   KernelBlur* m_kernelBlur;
   KernelCombine* m_kernelCombine;
   KernelVoxDepth* m_kernelVoxDepth;
   KernelVoxelization* m_kernelVoxelization;
-  KernelSSAO_Voxelization* m_kernelSSAO_Voxelization;
-  KernelSSAO_Voxelization_Volume * m_kernelSSAO_Voxelization_Volume;
-  KernelSSAO_Voxelization_Cone * m_kernelSSAO_Voxelization_Cone;
+
+  KernelSSAO_SphereApproximation* m_kernelSSAO_SphereApproximation;
+  KernelSSAO_HorizonSplit* m_kernelSSAO_HorizonSplit;
+  KernelSSAO_Vox_RayMarch* m_kernelSSAO_Vox_RayMarch;
+  KernelSSAO_Vox_TanSphereVolume * m_kernelSSAO_Vox_TanSphereVolume;
+  KernelSSAO_Vox_ConeTracing * m_kernelSSAO_Vox_ConeTracing;
 
   /**
    * Interface control
@@ -127,27 +129,26 @@ class App
   /**
    * Global Algorithm Parameters
    */
-  float m_rfar;
-  float m_intensity;
+  float m_SSAO_rfarPercent;
+  float m_SSAO_contrast;
 
   /**
    * Sphere ALgorithm Parameters
    */
-  float m_pixelmaskSize;
-  float m_offsetSize;
-  int m_numPeelings;
+  float m_SSAO_SphereAprox_pixelmaskSize;
+  float m_SSAO_SphereAprox_offsetSize;
+  int m_SSAO_SphereAprox_numPeelings;
 
   /**
    * Voxelization Algorithm Parameters
    */
   bool m_updateVoxelgrid;
-  int m_voxTexGridFuncPower;
   GLProjectionMatrix *m_voxProjectionMatrix;
 
   /**
    * Render Mode
    */
-  enum RenderMode{NoShader, Spheres, Visibility, Voxelization, VoxelizationVolume, VoxelizationCone};
+  enum RenderMode{NoShader, SSAO_SphereApproximation, SSAO_HorizonSplit, SSAO_Vox_RayMarch, SSAO_Vox_TanSphereVolume, SSAO_Vox_ConeTracing};
   RenderMode m_renderMode;
 
   /**
@@ -226,11 +227,11 @@ private:
    * Draw Kernels
    */
   void renderNoShader();
-  void renderSSAOSpheres();
-  void renderSSAOVisibility();
-  void renderSSAOVoxelization();
-  void renderSSAOVoxelizationVolume();
-  void renderSSAOVoxelizationCone();
+  void renderSSAOSphereAproximation();
+  void renderSSAOHorizonSplit();
+  void renderSSAOVoxRayMarch();
+  void renderSSAOVoxTanSphereVolume();
+  void renderSSAOVoxConeTracing();
 };
 
 #endif

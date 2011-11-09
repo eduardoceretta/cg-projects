@@ -9,7 +9,7 @@
  *  causes using spheres as occludes approximation.
  */
 
-#include "KernelSSAO.h"
+#include "KernelSSAO_SphereApproximation.h"
 
 /**
  * Sampler texture data.
@@ -673,7 +673,7 @@
 
 
 
-KernelSSAO::KernelSSAO(char* path, int width, int height, 
+KernelSSAO_SphereApproximation::KernelSSAO_SphereApproximation(char* path, int width, int height, 
                        GLuint positionTexId, 
                        GLuint depht0_normalTexId, GLuint depht1_normalTexId, 
                        GLuint depht2_normalTexId)
@@ -703,16 +703,16 @@ KernelSSAO::KernelSSAO(char* path, int width, int height,
 	m_shader->setActive(false);
 }
 
-KernelSSAO::~KernelSSAO(){
+KernelSSAO_SphereApproximation::~KernelSSAO_SphereApproximation(){
 
 }
 
-GLuint KernelSSAO::getColorTexId() const
+GLuint KernelSSAO_SphereApproximation::getColorTexId() const
 {
   return m_colorTexId; 
 }
 
-void KernelSSAO::step(float* projectionMatrix, float rfar, float pixelmask_size, GLfloat offsets_size, GLfloat intensity)
+void KernelSSAO_SphereApproximation::step(float* projectionMatrix, float rfar, float pixelmask_size, GLfloat offsets_size, GLfloat intensity)
 {
   float x = projectionMatrix[0*4+0];
   float y = projectionMatrix[1*4+1];
@@ -737,7 +737,7 @@ void KernelSSAO::step(float* projectionMatrix, float rfar, float pixelmask_size,
 }
 
 
-GLuint KernelSSAO::createSampleTexture()
+GLuint KernelSSAO_SphereApproximation::createSampleTexture()
 {
 #ifdef SAMPLER_QUAD  
   GLenum target = GL_TEXTURE_2D;
