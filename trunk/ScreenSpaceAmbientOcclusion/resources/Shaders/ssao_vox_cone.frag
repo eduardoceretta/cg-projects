@@ -15,6 +15,7 @@
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
 #define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
+#define NORMAL_OFFSET 0.03   /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
 
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
@@ -42,6 +43,14 @@ uniform sampler2D bitCount16;         /**< Number of bits counter Texture(Max 16
 
 uniform mat4 projInv;
 
+
+/**
+ * Algorithm Parameters
+ */
+uniform float rfarPercent;
+uniform float contrast; 
+ 
+ 
 /**
  * Projection Parameters
  */
@@ -53,6 +62,8 @@ uniform float right;
 uniform float top;
 uniform int perspective;
 
+#define PROG_A0 4
+#define PROG_STEP 2.3
 #define ARITPROG_AN(a, d, n) int((a) + floor((n-1.0)*(d) + .5))
 #define ARITPROG_SUM(a, d, n) int((n)*((a)+ARITPROG_AN(a,d,n))/2.0)
 
@@ -79,6 +90,8 @@ uniform int perspective;
 #define WHITE vec4(1,1,1,1)
 #define BLACK vec4(0,0,0,1)
 #define ORANGE vec4(1.,.5, 0., 1.)
+
+#define OUT gl_FragData[0] 
 
 
 /**
@@ -181,7 +194,6 @@ float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float
 float normalizeConeAo(float coneAo, int numSpheresByCone);
 int getNumSphereSamplers(int i);
 vec3 getSphereSampler(int samplerDistIndex, int sphereIndex, int samplerIndex, float radius);
-//void initSphereSamplerArray(int samplerDistributionIndex, int numSpheresByCone, int n, float rfar);
 float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, out float secant);
 
 
@@ -257,27 +269,85 @@ void main()
   /*************************\
          Debug Area 
   \*************************/
- 
-  float rfar = .4*far;
+  
+  float rfar = rfarPercent*far;
   float ao = 0.0;
   
   mat3 rotMat = getHemisphereRotationMatrix(normal);
-  //int sumSphereSumplers = ARITPROG_SUM(4.0, 2.3, numSpheresByCone);
-  //vec3 sphereSamplersArray[numCones];
-  //initSphereSamplerArray(samplerDistributionIndex, numSpheresByCone, sumSphereSumplers, rfar);
   
   for(int i = 0; i < numCones; ++i)
-  {
-    vec3 coneDir = getConeDir(samplerDistributionIndex, i, rotMat);
+  //for(int i = 1; i < 2; ++i)
+    {
+    vec3 coneDir = getConeDir(0, i, rotMat);
     float coneAo = 0.0;
     for(int j = 0; j < numSpheresByCone; ++j)
+    //for(int j = 2; j < numSpheresByCone; ++j)
     {
-      vec3 sphereCenter = getSphereCenter(eyePosition, coneDir, j, rfar, numSpheresByCone);
-
+      vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, j, rfar, numSpheresByCone);
       float sphereRadius = getSphereRadius(j, rfar, numSpheresByCone, numCones);
       float sphereAo = calcSphereOcclusion(0, sphereCenter, sphereRadius, j);
       
-      coneAo += sphereAo*(1.0-coneAo);
+      
+      /***********************************************************************
+      int index = j;
+      float ao2 = 0.0;
+      float s = 0.0;
+
+      int numSphereSamplers = getNumSphereSamplers(index);
+      int sphereIndex = ARITPROG_SUM(PROG_A0, PROG_STEP, float(index));
+      vec3 sphereSampler = getSphereSampler(0, sphereIndex, 1, sphereRadius*.99);
+      
+        unsigned int gridIndexTopN  = 0u;
+        unsigned int gridIndexBottonN = 0u;
+        float secant = 0.0;
+
+        float d = length(sphereSampler);
+        float zi = sqrt(sphereRadius*sphereRadius - d*d) ;
+        float zo = -zi;
+        secant = 2.0*zi;
+
+        vec3 point = sphereCenter + sphereSampler;
+        vec3 win = eye2window(point, bool(perspective));
+        float zzNear = getZnear(win.xy);
+        
+        //if(zzNear < 0.0)
+          //return 0.0;
+       
+        float zGridIndex = getZGridIndex(point.z, zzNear);
+        vec3 samplerGridIndex = vec3(win.x/screenWidth, win.y/screenHeight, zGridIndex);
+
+        float gridIndexTop  = getClampedZGridIndex(point.z + zi, zzNear); //Closer to The Eye
+        float gridIndexBotton = getClampedZGridIndex(point.z + zo, zzNear);
+
+        gridIndexBottonN = getGridIndexNormalized(gridIndexBotton);
+        gridIndexTopN = getGridIndexNormalized(gridIndexTop);
+        
+        //if(samplerGridIndex.x < 0.0)
+          //return 0.0;
+          
+        //if(gridIndexBottonN == gridIndexTopN)
+          //return 0.0;
+
+        unsigned int numFullVoxels = countFullVoxelsVolSphere(samplerGridIndex, gridIndexBottonN, gridIndexTopN);
+        float zznear = getZnear(samplerGridIndex.xy*vec2(screenWidth, screenHeight));
+        float height = min(float(numFullVoxels)*(far - zznear)/128.0, secant);
+        ao2 = height;
+      
+      if(gl_FragCoord.x == 256.5 &&  gl_FragCoord.y == 246.5)
+      {
+        vec3 w = eye2window(sphereCenter, bool(perspective));
+        float f = float(countFullVoxelsInRange(texture2D(voxelGrid, samplerGridIndex.xy).g, gridIndexTopN%32, gridIndexBottonN%32));
+        OUT = vec4(samplerGridIndex.x*512*4,samplerGridIndex.y*512*512*4,floor(samplerGridIndex.y*512)*512*4 + floor(samplerGridIndex.x*512)*4,f);
+        return;
+      }
+      
+      if(gl_FragCoord.x == 255.5 &&  gl_FragCoord.y == 241.5)
+      {
+        OUT = BLUE;
+        return;
+      }
+      /*********************************************************************/  
+      coneAo += sphereAo*(1.0 - coneAo);
       if(coneAo > 1.)
       {
         gl_FragData[0] = RED;
@@ -285,18 +355,15 @@ void main()
       }
         //break;
     }
-    //coneAo = normalizeConeAo(coneAo, numSpheresByCone);
+    coneAo = normalizeConeAo(coneAo, numSpheresByCone);
 
     ao += coneAo;
   }
    
   ao = normalizeAo(ao, numCones);
-  ao = clamp(ao, 0.0, 1.0);
+  ao = clamp(ao*contrast, 0.0, 1.0);
 
   gl_FragData[0] = WHITE*(1.0 - ao);
-  
-  
-
 }
 
 /****************************************************************************/
@@ -374,7 +441,7 @@ float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float
   float s = 0.0;
 
   int numSphereSamplers = getNumSphereSamplers(index);
-  int sphereIndex = ARITPROG_SUM(4.0, 2.3, float(index));
+  int sphereIndex = ARITPROG_SUM(PROG_A0, PROG_STEP, float(index));
   
   for(int i = 0; i < numSphereSamplers; ++i)
   {
@@ -393,29 +460,18 @@ float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float
 
 int getNumSphereSamplers(int i)
 {
-  return ARITPROG_AN(4.0, 2.3, float(i + 1));
+  return ARITPROG_AN(PROG_A0, PROG_STEP, float(i + 1));
 } 
 
 vec3 getSphereSampler(int samplerDistIndex, int sphereIndex, int samplerIndex, float radius)
 {
   float sphereSamplerIndex = (float(samplerDistIndex + sphereIndex + samplerIndex) + .5)/float(sphereSamplersWidth);
   vec3 sphereSampler = texture1D(sphereSamplers, sphereSamplerIndex).rgb;
+  
   //vec3 sphereSampler = sphereSamplersArray[samplerDistIndex + sphereIndex + samplerIndex];
+  
   return sphereSampler*radius;
 }
-
-//void initSphereSamplerArray(int samplerDistributionIndex, int numSpheresByCone, int n, float rfar)
-//{
-  //for(int i = 0;i < numSpheresByCone; ++i)
-  //{
-    //int numSphereSamplers = getNumSphereSamplers(i);
-    //for(int j = 0; j < numSphereSamplers; ++j)
-    //{
-      //float sphereRadius = getSphereRadius(j, rfar, numSpheresByCone, numCones);
-      //sphereSamplersArray[i] = getSphereSampler(samplerDistributionIndex, j, sphereRadius*.99);
-    //}
-  //}
-//}
 
 float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, out float secant)
 {
@@ -438,11 +494,8 @@ float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, ou
   float zGridIndex = getZGridIndex(point.z, zzNear);
   vec3 samplerGridIndex = vec3(win.x/screenWidth, win.y/screenHeight, zGridIndex);
 
-  float zInGridIndex  = getClampedZGridIndex(point.z + zi, zzNear); //Closer to The Eye
-  float zOutGridIndex = getClampedZGridIndex(point.z + zo, zzNear);
-
-  float gridIndexTop = zInGridIndex;
-  float gridIndexBotton = zOutGridIndex;
+  float gridIndexTop  = getClampedZGridIndex(point.z + zi, zzNear); //Closer to The Eye
+  float gridIndexBotton = getClampedZGridIndex(point.z + zo, zzNear);
 
   gridIndexBottonN = getGridIndexNormalized(gridIndexBotton);
   gridIndexTopN = getGridIndexNormalized(gridIndexTop);
