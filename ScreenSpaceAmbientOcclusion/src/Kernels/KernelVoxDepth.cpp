@@ -14,7 +14,7 @@ KernelVoxDepth::KernelVoxDepth()
 }
 
 KernelVoxDepth::KernelVoxDepth(char* path, int width, int height)
-:KernelBase(path, "voxDepth.vert", "voxDepth.frag", width, height)
+:KernelBase(path, "vox_depth.vert", "vox_depth.frag", width, height)
 {
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
   //Output

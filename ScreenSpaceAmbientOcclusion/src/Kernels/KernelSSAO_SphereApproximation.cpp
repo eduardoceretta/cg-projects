@@ -677,7 +677,7 @@ KernelSSAO_SphereApproximation::KernelSSAO_SphereApproximation(char* path, int w
                        GLuint positionTexId, 
                        GLuint depht0_normalTexId, GLuint depht1_normalTexId, 
                        GLuint depht2_normalTexId)
-: KernelBase(path, "ssao.vert", "ssao.frag", width, height){
+: KernelBase(path, "ssao_sphere_approximation.vert", "ssao_sphere_approximation.frag", width, height){
 	//Output
   m_colorTexId = addOutput(0);
 

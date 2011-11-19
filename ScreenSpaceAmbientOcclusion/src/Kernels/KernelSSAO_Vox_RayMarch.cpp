@@ -18,7 +18,7 @@
 KernelSSAO_Vox_RayMarch::KernelSSAO_Vox_RayMarch(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
                                                  GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
-: KernelBase(path, "ssao_vox.vert", "ssao_vox.frag", width, height)
+: KernelBase(path, "ssao_vox_ray_march.vert", "ssao_vox_ray_march.frag", width, height)
 ,m_width(width)
 ,m_height(height)
 ,m_numRayDirections(8)

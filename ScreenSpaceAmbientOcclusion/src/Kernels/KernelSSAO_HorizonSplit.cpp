@@ -14,7 +14,7 @@
 
 KernelSSAO_HorizonSplit::KernelSSAO_HorizonSplit(char* path, int width, int height, 
                        GLuint depht0_normalTexId)
-: KernelBase(path, "ssao_vis.vert", "ssao_vis.frag", width, height){
+: KernelBase(path, "ssao_horizon_split.vert", "ssao_horizon_split.frag", width, height){
 	//Output
   m_colorTexId = addOutput(0);
 
