@@ -191,7 +191,7 @@ void GLTextureObject::render2DTexture()
   glPopAttrib();
 }
 
-void GLTextureObject::write2DToFile(string fileName, ImageFileType fileType /*= PNG*/ )
+void GLTextureObject::write2DToFile(string path, string fileName, ImageFileType fileType /*= PNG*/ )
 {
   int w = readTextureWidth();
   int h = readTextureHeight();
@@ -253,19 +253,25 @@ void GLTextureObject::write2DToFile(string fileName, ImageFileType fileType /*= 
       bits += pitch;
     }
   }
-
-  if (FreeImage_Save(fif, dib, fileName.c_str())) {
+  string pathFileName = path + string("/") + fileName;
+  if (FreeImage_Save(fif, dib, pathFileName.c_str())) {
     // bitmap successfully saved!
   }
   //FreeImage_DeInitialise();
 
 }
 
-void GLTextureObject::createTexture1D(int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
+GLuint GLTextureObject::createTexture1D(int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
 {
   GLuint textureId;
-  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   glGenTextures(1, &textureId);
+  setTexture1D(textureId, width, internalFormat, format, type, data);
+  return textureId;
+}
+
+void GLTextureObject::setTexture1D(GLuint textureId, int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
+{
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   setId(textureId, GL_TEXTURE_1D);
   glEnable(GL_TEXTURE_1D);
   glBindTexture(GL_TEXTURE_1D, m_id);
@@ -275,11 +281,17 @@ void GLTextureObject::createTexture1D(int width, GLenum internalFormat, GLenum f
   glPopAttrib();
 }
 
-void GLTextureObject::createTexture2D( int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
+GLuint GLTextureObject::createTexture2D( int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
 {
   GLuint textureId;
-  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   glGenTextures(1, &textureId);
+  setTexture2D(textureId, width, height, internalFormat, format, type, data);
+  return textureId;
+}
+
+void GLTextureObject::setTexture2D(GLuint textureId, int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
+{
+  glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   setId(textureId, GL_TEXTURE_2D);
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, m_id);

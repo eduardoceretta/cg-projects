@@ -46,6 +46,19 @@
 
 #define STR(s) #s
 
+
+string App::s_renderModeStr[] = {
+  STR(NoShader)
+  ,STR(SSAO_SphereApproximation)
+  ,STR(SSAO_HorizonSplit)
+  ,STR(SSAO_Vox_RayMarch)
+  ,STR(SSAO_Vox_TanSphereVolume)
+  ,STR(SSAO_Vox_ConeTracing)
+  ,STR(Voxelization)
+  ,STR(Debug)
+};
+
+
 /**
  * Tests
  */
@@ -57,6 +70,12 @@ TimeTest timeTest;
 
 #ifdef SCREENSHOT_TEST
 ScreenShotTest screenShotTest;
+enum TestCamView{back = 0, botton, front, left, right, top};
+string testCamViewName[] = {STR(back), STR(botton), STR(front), STR(left), STR(right),STR(top)};
+
+int screenShotTestCounter = 0;
+bool screenShotTestEnabled = false;
+TestCamView screenShotTestEnum = TestCamView::back;
 #endif
 
 
@@ -64,15 +83,13 @@ ScreenShotTest screenShotTest;
 /* App                                     */
 /*******************************************/
 App::App()
-:m_argc(0)
-,m_argv(NULL)
-,m_scenePath(APP_DEFAULT_SCENE_PATH)
+:m_scenePath(APP_DEFAULT_SCENE_PATH)
 ,m_shaderPath(APP_DEFAULT_SHADER_PATH)
-,m_appWidth(APP_INITIAL_WIDTH)
-,m_appHeight(APP_INITIAL_HEIGHT)
-,m_nearPlane(APP_NEAR)
-,m_farPlane(APP_FAR)
-,m_fov(APP_FOV)
+,m_appWidth(APP_DEFAULT_WIDTH)
+,m_appHeight(APP_DEFAULT_HEIGHT)
+,m_nearPlane(APP_DEFAULT_NEAR)
+,m_farPlane(APP_DEFAULT_FAR)
+,m_fov(APP_DEFAULT_FOV)
 ,m_camHandler(NULL)
 ,m_fontRender(new GLFont())
 ,m_frames(new Frames())
@@ -95,30 +112,35 @@ App::App()
 ,m_minerLight_on(false)
 ,m_updateCamHandler(true)
 ,m_wireframe_on(false)
-,m_voxrender_on(false)
+,m_debugrender_on(false)
 ,m_blurr_on(false)
 ,m_orthographicProjection_on(false)
 ,m_SSAO_rfarPercent(30.0f)
-,m_SSAO_SphereAprox_pixelmaskSize(.8f)
-,m_SSAO_SphereAprox_offsetSize(5.0f)
+,m_SSAO_pixelmaskSize(.8f)
+,m_SSAO_offsetSize(5.0f)
 ,m_SSAO_contrast(20.0f)
-,m_SSAO_SphereAprox_numPeelings(3)
+,m_SSAO_numPeelings(3)
 ,m_voxProjectionMatrix(new GLProjectionMatrix())
 ,m_updateVoxelgrid(true)
 ,m_renderMode(SSAO_Vox_ConeTracing)
 {
-  m_clearColor[0] = .8f;
-  m_clearColor[1] = .8f;
-  m_clearColor[2] = 1.0f;
-  m_clearColor[3] = -1.;
+  m_clearColor[0] =  0.8f;
+  m_clearColor[1] =  0.8f;
+  m_clearColor[2] =  1.0f;
+  m_clearColor[3] = -1.0f;
+
+  m_ambientColor[0] = 0.2f;
+  m_ambientColor[1] = 0.2f;
+  m_ambientColor[2] = 0.2f;
+  m_ambientColor[3] = 1.0f;
 
   //Initializes Arguments
   m_acceptedArgsString["-scenepath"] = &m_scenePath;
   m_acceptedArgsString["-shaderpath"] = &m_shaderPath;
 
   m_acceptedArgsFloat["-rfar"] = &m_SSAO_rfarPercent;
-  m_acceptedArgsFloat["-offset"] = &m_SSAO_SphereAprox_offsetSize;
-  m_acceptedArgsFloat["-intensity"] = &m_SSAO_contrast;
+  m_acceptedArgsFloat["-offset"] = &m_SSAO_offsetSize;
+  m_acceptedArgsFloat["-contrast"] = &m_SSAO_contrast;
 }
 
 App::~App()
@@ -126,9 +148,16 @@ App::~App()
   delete m_fontRender;
   delete m_frames;
 
-  if(m_camHandler)
-    delete m_camHandler;
-
+  //vector<SphereGLCameraHandler*> :: iterator camHandlersIt;
+  //for(camHandlersIt = m_kernelsCamHandleres.begin(); camHandlersIt != m_kernelsCamHandleres.end(); ++camHandlersIt)
+  //{
+  //  if(*camHandlersIt)
+  //  {  
+  //    delete *camHandlersIt;
+  //    *camHandlersIt = NULL;
+  //  }
+  //}
+  
   if(m_rtScene)
     delete m_rtScene;
 
@@ -184,6 +213,7 @@ void App::initGL(int *argc, char *argv[])
   glutInitWindowPosition(100, 100);
   glutCreateWindow(APP_NAME);
 
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, m_ambientColor);
   glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
 
   glShadeModel(GL_SMOOTH);
@@ -204,20 +234,22 @@ void App::initGL(int *argc, char *argv[])
 
   //Disables cursor
   //glutSetCursor(GLUT_CURSOR_NONE);
+}
 
-  m_argc = *argc;
-  m_argv = argv;
+void App::loadParameters(int argc, char *argv[])
+{
+  loadArgs(argc, argv);
+  loadSceneParameters();
 }
 
 void App::loadResources()
 {
-  loadArgs();
   loadScene();
   loadKernels();
+  loadCameras();
   listenReshape(m_appWidth, m_appHeight);
 }
 
-//#define RENDER_SAMPLER
 
 void App::render()
 {
@@ -226,43 +258,86 @@ void App::render()
   timeTest.totalTimer.reset();
 #endif
 
-#ifdef SCREENSHOT_TEST
-  screenShotTest.update();
-  screenShotTest.configureCamera(m_camHandler);
-#endif
-
-#ifdef RENDER_SAMPLER
-  static int iiii = 0;
-  if(!iiii)
-    m_camHandler->setViewBoundingBox(Vector3(-1.5f,-.5f,-1.5f), Vector3(1.5f,1.5f,1.5f),  m_fov);
-  iiii++;
-#endif // RENDER_SAMPLER
+//#ifdef SCREENSHOT_TEST
+//  screenShotTest.update();
+//  screenShotTest.configureCamera(m_camHandler);
+//#endif
 
   m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
 
-#ifdef RENDER_SAMPLER
-  glMatrixMode (GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity ();
-  gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
-  glMatrixMode (GL_MODELVIEW);
-  glPushMatrix();
-  static int ccounter = 0;
 
-  //m_kernelSSAO_Voxelization->renderRayDistribution(4);
-  //m_kernelSSAO_Voxelization_Volume->renderSamplerDistribution(((++ccounter)/100)%5);
-  //m_kernelSSAO_Voxelization_Cone->renderSamplerDistribution(((++ccounter)/100)%5);
-  m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(0);
-  //m_kernelSSAO_Voxelization_Cone->renderSphereSamplerDistribution(((++ccounter)/100)%3);
-  glPopMatrix();
-  glMatrixMode (GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode (GL_MODELVIEW);
-#else
-  switch(m_renderMode)
+#ifdef SCREENSHOT_TEST
+  if(screenShotTestEnabled)
   {
+    screenShotTest.update();
+    glLoadIdentity();
+
+    switch(screenShotTestEnum)
+    {
+    case TestCamView::front:
+      gluLookAt(-28.1103, 5.09934, -2.07215, -6.61092e-008, 4.96995, -4.15856e-009,   0.00135533, 0.999031, 0.043997);
+      break;
+    case TestCamView::back:
+      gluLookAt(27.7427, 1.57225, -3.64703,  3.3931e-007, 4.96995, 7.40699e-007,      0.110213, 0.990331, -0.084241);
+      break;
+    case TestCamView::right:
+      gluLookAt(0.699758, 6.52407, 28.1354,  8.94602e-007, 4.96995, 8.67915e-007,     0.00236674, 0.998472, -0.0552121);
+      break;
+    case TestCamView::left:
+      gluLookAt(0.514386, 2.11135, -28.0369, 8.53611e-007, 4.96995, 8.28582e-007,     0.00899126,0.994819, -0.101265);
+      break;
+    case TestCamView::top:   
+      gluLookAt(0.434503, 32.6008, -5.55447, 8.12403e-007, 4.96995, 7.57458e-007,     -0.0748029,0.197659, 0.977413);
+      break;
+    case TestCamView::botton:
+      gluLookAt(3.24169, -23.0011, 1.27389,  8.93577e-007, 4.96995, 1.06895e-006,     0.0368047, -0.041208, -0.998473);
+      break;
+    }
+  }
+#endif
+
+  if(m_debugrender_on)
+  {
+    glMatrixMode (GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity ();
+    gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, .0001, 1000.);
+    glMatrixMode (GL_MODELVIEW);
+    glPushMatrix();
+
+    static int ccounter = 0;
+    switch(m_renderMode)
+    {
+    default:
+    case NoShader:
+    case SSAO_SphereApproximation:
+    case SSAO_HorizonSplit:
+      break;
+    case SSAO_Vox_RayMarch:
+      m_kernelSSAO_Vox_RayMarch->renderRayDistribution(4);
+      break;
+    case SSAO_Vox_TanSphereVolume:
+      m_kernelSSAO_Vox_TanSphereVolume->renderSamplerDistribution(((++ccounter)/100)%5);
+      break;
+    case SSAO_Vox_ConeTracing:
+      m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(((++ccounter)/200)%5);
+      //m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(0);
+      //m_kernelSSAO_Vox_ConeTracing->renderSphereSamplerDistribution(((++ccounter)/200)%5, ((ccounter)/1000)%3);
+      break;
+    case Voxelization:
+      renderVoxelization();
+      break;
+    }
+    glPopMatrix();
+    glMatrixMode (GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode (GL_MODELVIEW);
+  }else
+  {
+    switch(m_renderMode)
+    {
     default:
     case NoShader:
       renderNoShader();
@@ -282,15 +357,63 @@ void App::render()
     case SSAO_Vox_ConeTracing:
       renderSSAOVoxConeTracing();
       break;
+    case Voxelization:
+      renderVoxelization();
+      break;
+    }
   }
   renderGUI();
-#endif // RENDER_SAMPLER
 #ifdef SCREENSHOT_TEST
-  if(screenShotTest.isTestEnded())
-    exit(42);
-  screenShotTest.save(m_kernelCombine->getColorTexId());
+  if(screenShotTestEnabled)
+  {
+    //if(screenShotTest.isTestEnded())
+    //  exit(42);
+
+    char a[500] = "";
+
+
+    GLuint texId = 0;
+    switch(m_renderMode)
+    {
+    default:
+    case NoShader:
+    case Voxelization:
+      break;
+    case SSAO_SphereApproximation:
+    case SSAO_HorizonSplit:
+       texId = m_kernelCombine->getOutputTexture(0);
+       sprintf(a,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
+      break;
+    case SSAO_Vox_RayMarch:
+      texId = m_kernelSSAO_Vox_RayMarch->getOutputTexture(KernelSSAO_Vox_RayMarch::SSAO);
+      sprintf(a,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
+      break;
+    case SSAO_Vox_TanSphereVolume:
+      texId = m_kernelSSAO_Vox_TanSphereVolume->getOutputTexture(KernelSSAO_Vox_RayMarch::SSAO);
+      sprintf(a,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
+      break;
+    case SSAO_Vox_ConeTracing:
+      texId = m_kernelSSAO_Vox_ConeTracing->getOutputTexture(KernelSSAO_Vox_ConeTracing::SSAO);
+      sprintf(a,"-Rfar=%.2f_Contrast=%.2f_NumCones=%d_NumSpheres=%d", 
+        m_SSAO_rfarPercent, m_SSAO_contrast, 
+        m_kernelSSAO_Vox_ConeTracing->getNumCones(), 
+        m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
+      break;
+    }
+    
+    screenShotTest.save(texId, 
+      SCREEN_TEST_PATH,
+      s_renderModeStr[m_renderMode] + string("-") + testCamViewName[screenShotTestEnum] + a);    
+
+    screenShotTestCounter++;
+    screenShotTestEnum = (TestCamView) (screenShotTestCounter/SCREEN_TEST_INTERSCREEN_FRAMES);
+
+    if(screenShotTestEnum > TestCamView::top)
+      screenShotTestEnabled = false;
+  }
 #endif
 }
+
 
 void App::listenReshape( int w, int h )
 {
@@ -314,15 +437,10 @@ void App::listenKeyboard( int key )
     exit(42);
     break;
 
-  case 'V':
-  case 'v':
-    if(m_renderMode == SSAO_Vox_RayMarch  && !m_updateVoxelgrid)
-    {
-      if(m_voxrender_on)
-        m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
-      else m_camHandler->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
-      m_voxrender_on = !m_voxrender_on;
-    }
+  case 'D':
+  case 'd':
+    m_debugrender_on = !m_debugrender_on;
+    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 'M':
@@ -347,28 +465,88 @@ void App::listenKeyboard( int key )
 
   case '=':
   case '+':
-    m_SSAO_SphereAprox_numPeelings++;
+    m_SSAO_numPeelings++;
     break;
   case '_':
   case '-':
-    m_SSAO_SphereAprox_numPeelings = max(m_SSAO_SphereAprox_numPeelings - 1, 1);
+    m_SSAO_numPeelings = max(m_SSAO_numPeelings - 1, 1);
     break;
   case '*':
     m_camHandler->setSphereAlpha(0.0);
     m_camHandler->setSphereBeta(90.0);
     break;
 
+#ifdef SCREENSHOT_TEST
+  case 'T':
+  case 't':
+    screenShotTest.reset();
+    screenShotTestEnabled = true;
+    screenShotTestCounter = 0;
+    screenShotTestEnum = back;
+    break;
+#endif // SCREENSHOT_TEST
+
   case 'K':
-    m_SSAO_SphereAprox_offsetSize = min(m_SSAO_SphereAprox_offsetSize + 1.0f, m_appWidth/2.0f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_offsetSize = min(m_SSAO_offsetSize + 1.0f, m_appWidth/2.0f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
+      numSpheres = ceil(numSpheres * 1.1);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      break;
+    }
+    
     break;
   case 'k':
-    m_SSAO_SphereAprox_offsetSize = min(m_SSAO_SphereAprox_offsetSize + .1f, m_appWidth/2.0f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_offsetSize = min(m_SSAO_offsetSize + .1f, m_appWidth/2.0f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
+      numSpheres += 1;
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      break;
+    }
     break;
+
   case 'J':
-    m_SSAO_SphereAprox_offsetSize = max(m_SSAO_SphereAprox_offsetSize - 1.0f, 1.0f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_offsetSize = max(m_SSAO_offsetSize - 1.0f, 1.0f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
+      numSpheres = max(int(floor(numSpheres*.9)), 1);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      break;
+    }
     break;
   case 'j':
-    m_SSAO_SphereAprox_offsetSize = max(m_SSAO_SphereAprox_offsetSize - .1f, 1.0f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_offsetSize = max(m_SSAO_offsetSize - .1f, 1.0f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
+      numSpheres = max(numSpheres - 1, 1);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      break;
+    }
     break;
 
   case 'R':
@@ -387,19 +565,68 @@ void App::listenKeyboard( int key )
 
   
   case 'I':
-    m_SSAO_SphereAprox_pixelmaskSize = min(m_SSAO_SphereAprox_pixelmaskSize + .01f * 10 , .999f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_pixelmaskSize = min(m_SSAO_pixelmaskSize + .01f * 10 , .999f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
+      numCones = ceil(numCones * 1.1);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      break;
+    }
+    
     break;
 
   case 'i':
-    m_SSAO_SphereAprox_pixelmaskSize = min(m_SSAO_SphereAprox_pixelmaskSize + .01f, .999f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_pixelmaskSize = min(m_SSAO_pixelmaskSize + .01f, .999f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
+      numCones += 1;
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      break;
+    }
     break;
 
 
   case 'U':
-    m_SSAO_SphereAprox_pixelmaskSize = max(m_SSAO_SphereAprox_pixelmaskSize - .01f * 10, 0.001f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_pixelmaskSize = max(m_SSAO_pixelmaskSize - .01f * 10, 0.001f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
+      numCones = max(int(floor(numCones*.5)), 1);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      break;
+    }
     break;
   case 'u':
-    m_SSAO_SphereAprox_pixelmaskSize = max(m_SSAO_SphereAprox_pixelmaskSize - .01f, 0.001f);
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_SphereApproximation:
+      m_SSAO_pixelmaskSize = max(m_SSAO_pixelmaskSize - .01f, 0.001f);
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
+      numCones = max(numCones - 2, 1);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      break;
+    }
     break;
   
   
@@ -458,51 +685,61 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 3: //F3
-    m_SSAO_rfarPercent = 30.0f;
-    m_SSAO_contrast = 20.0;
+    if(modifier == GLUT_ACTIVE_SHIFT)
+    {
+      m_SSAO_rfarPercent = 30.0f;
+      m_SSAO_contrast = 20.0;
 
-    m_SSAO_SphereAprox_pixelmaskSize = .8;
-    m_SSAO_SphereAprox_offsetSize = 5.0;
+      m_SSAO_pixelmaskSize = .8;
+      m_SSAO_offsetSize = 5.0;
+    }
     
-    if(m_renderMode == SSAO_Vox_RayMarch && m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
     m_renderMode =  SSAO_SphereApproximation;
+    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 4: //F4
-    m_SSAO_rfarPercent = .01f;
-    m_SSAO_contrast = 1.0;
-
-    if(m_renderMode == SSAO_Vox_RayMarch && m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
     m_renderMode = SSAO_HorizonSplit;
+    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
   
   case 5: //F5
-    if(m_renderMode == SSAO_Vox_RayMarch && m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
-    m_renderMode = SSAO_Vox_RayMarch;
+    m_updateVoxelgrid = true;
+    m_renderMode = Voxelization;
+    m_camHandler = m_kernelsCamHandleres[m_renderMode];
     break;
 
-
   case 6: //F6
-    m_updateVoxelgrid = true;
-    if(m_renderMode == SSAO_Vox_RayMarch && m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+    if(modifier == GLUT_ACTIVE_SHIFT)
+    {
+      m_SSAO_rfarPercent = .5f;
+      m_SSAO_contrast = 1.0;
+    }
 
     m_renderMode = SSAO_Vox_RayMarch;
+    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 7: //F7
-    if(m_renderMode == SSAO_Vox_RayMarch && m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+    if(modifier == GLUT_ACTIVE_SHIFT)
+    {
+      m_SSAO_rfarPercent = .03f;
+      m_SSAO_contrast = 1.0;
+    }
     m_renderMode = SSAO_Vox_TanSphereVolume;
+    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 8: //F8
-    if(m_renderMode == SSAO_Vox_RayMarch && m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+    if(modifier == GLUT_ACTIVE_SHIFT)
+    {
+      m_SSAO_rfarPercent = .1f;
+      m_SSAO_contrast = 8.86;
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(6);
+    }
     m_renderMode = SSAO_Vox_ConeTracing;
+    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 10: //F10
@@ -514,29 +751,34 @@ void App::listenKeyboardSpecial( int key )
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     break;
 
-  case 11:
-    if(m_renderMode == SSAO_Vox_RayMarch && m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
-
+  case 11: //F11
     m_renderMode = NoShader;
+    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
+
     break;
 
-  case GLUT_KEY_PAGE_UP:
-    m_SSAO_rfarPercent = m_SSAO_rfarPercent + 1. * (modifier == GLUT_ACTIVE_SHIFT ? 1. : .1);
+  case GLUT_KEY_PAGE_UP: //PgUp
+    if(modifier == GLUT_ACTIVE_SHIFT)
+      m_SSAO_rfarPercent *= 1.1f;
+    else 
+      m_SSAO_rfarPercent += .01f;
     break;
 
-  case GLUT_KEY_PAGE_DOWN:
-    m_SSAO_rfarPercent = max(m_SSAO_rfarPercent - 1. * (modifier == GLUT_ACTIVE_SHIFT ? 1. : .1) , 0.0);
+  case GLUT_KEY_PAGE_DOWN: //PgDown
+    if(modifier == GLUT_ACTIVE_SHIFT)
+      m_SSAO_rfarPercent = max(m_SSAO_rfarPercent*.9f, .01f);
+    else 
+      m_SSAO_rfarPercent = max(m_SSAO_rfarPercent - .01f, .01f);
     break;
 
-  case GLUT_KEY_HOME:
+  case GLUT_KEY_HOME: //Home
     if(modifier == GLUT_ACTIVE_SHIFT)
       m_SSAO_contrast *= 1.1f;
     else 
       m_SSAO_contrast += .05;
     break;
 
-  case GLUT_KEY_END:
+  case GLUT_KEY_END: //END
     if(modifier == GLUT_ACTIVE_SHIFT)
       m_SSAO_contrast= max(m_SSAO_contrast*.9f, .01f);
     else 
@@ -555,49 +797,48 @@ void App::listenMouseClick( int button, int state, int x, int y )
   m_camHandler->listenMouseClick(button, state, (float)x/m_appWidth, (float)y/m_appHeight);
 }
 
-void App::loadArgs()
+void App::loadArgs(int argc, char *argv[])
 {
   map<string, string*> :: iterator strIt;
   map<string, int*> :: iterator intIt;
   map<string, float*> :: iterator floatIt;
 
-  for(int i = 1; i < m_argc; ++i)
+  for(int i = 1; i < argc; ++i)
   {
-    if(m_argv[i][0] != '-')
+    if(argv[i][0] != '-')
       continue;
 
-    string arg = string(m_argv[i]);
+    string arg = string(argv[i]);
 
     strIt = m_acceptedArgsString.find(arg);
     if(strIt != m_acceptedArgsString.end())
     {
-      if(m_argc > i + 1 && m_argv[i + 1][0] != '-') 
-        *(strIt->second) = string(m_argv[i + 1]);
+      if(argc > i + 1 && argv[i + 1][0] != '-') 
+        *(strIt->second) = string(argv[i + 1]);
       else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
     }
-    
 
     floatIt = m_acceptedArgsFloat.find(arg);
     if(floatIt != m_acceptedArgsFloat.end())
     {
-      if(m_argc > i + 1 && m_argv[i + 1][0] != '-') 
-        *(floatIt->second) = atof(m_argv[i + 1]);
+      if(argc > i + 1 && argv[i + 1][0] != '-') 
+        *(floatIt->second) = atof(argv[i + 1]);
       else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
     }
 
     intIt = m_acceptedArgsInt.find(arg);
     if(intIt != m_acceptedArgsInt.end())
     {
-      if(m_argc > i + 1 && m_argv[i + 1][0] != '-') 
-        *(intIt->second) = atoi(m_argv[i + 1]);
+      if(argc > i + 1 && argv[i + 1][0] != '-') 
+        *(intIt->second) = atoi(argv[i + 1]);
       else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
     }
   }
 #ifdef LOG_TESTS
   TestLogger::inst()->logLine("Program and argument list:");
-  TestLogger::inst()->logLine(string("  ") + m_argv[0]);
-  for(int i = 1; i < m_argc; ++i)
-    TestLogger::inst()->log(string("  ") + m_argv[i]);
+  TestLogger::inst()->logLine(string("  ") + argv[0]);
+  for(int i = 1; i < argc; ++i)
+    TestLogger::inst()->log(string("  ") + argv[i]);
   TestLogger::inst()->logLine("\nActiveDebugs:");
 #ifdef TIME_TEST
   TestLogger::inst()->logLine("  TIME_TEST");
@@ -608,9 +849,30 @@ void App::loadArgs()
   TestLogger::inst()->logLine("\n\n");
 #endif // LOG_TESTS
 }
+void App::loadSceneParameters()
+{
+  m_rtScene = new ScScene();
+  m_rtScene->readSceneParameters(m_scenePath);
+
+  m_appWidth = m_rtScene->getScreenWidth();
+  m_appHeight = m_rtScene->getScreenHeight();
+
+  Color ambientColor = m_rtScene->getAmbientColor();
+  m_ambientColor[0] = ambientColor.r;
+  m_ambientColor[1] = ambientColor.g;
+  m_ambientColor[2] = ambientColor.b;
+
+  Color sceneClearColor = m_rtScene->getClearColor();
+  m_clearColor[0] = sceneClearColor.r;
+  m_clearColor[1] = sceneClearColor.g;
+  m_clearColor[2] = sceneClearColor.b;
+}
+
 void App::loadScene()
 {
-  m_rtScene = new ScScene(m_scenePath);
+  if(!m_rtScene)
+    m_rtScene = new ScScene();
+  m_rtScene->readSceneObjects(m_scenePath);
 
   for(int i=0; i<m_rtScene->getNumMeshes();++i)
   {
@@ -630,51 +892,6 @@ void App::loadScene()
 
   if(m_rtScene->getNumMeshes() == 0)
     cout << "No Mesh Loaded!!" <<endl;
-
-  GLfloat amb [4] = {0,0,0,1};
-  Color ambientColor = m_rtScene->getAmbientColor();
-  amb[0] = ambientColor.r;
-  amb[1] = ambientColor.g;
-  amb[2] = ambientColor.b;
-  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
-
-  Color sceneClearColor = m_rtScene->getClearColor();
-  m_clearColor[0] = sceneClearColor.r;
-  m_clearColor[1] = sceneClearColor.g;
-  m_clearColor[2] = sceneClearColor.b;
-
-  Vector3 bbSize = m_rtScene->getSceneBoundingBoxSize();
-  float bbMaxSize = max(bbSize.x, max(bbSize.y, bbSize.z));
-
-  m_fov = m_rtScene->getCamera()->getFovy();
-  m_appWidth = m_rtScene->getCamera()->getScreenWidth();
-  m_appHeight = m_rtScene->getCamera()->getScreenHeight();
-
-  m_camHandler = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
-  m_camHandler->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
-
-  m_nearPlane = m_camHandler->getSphereRadius()*.05f; 
-  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
-  
-  //m_nearPlane = m_camHandler->getSphereRadius()*.85; 
-  //m_farPlane =  m_camHandler->getSphereRadius()*1.15; 
-
-  //m_nearPlane = m_camHandler->getSphereRadius()*1.0; 
-  //m_farPlane =  m_camHandler->getSphereRadius()*1.1; 
-
-
-  //m_nearPlane = m_camHandler->getSphereRadius()*1.0f; //.1
-  //m_farPlane = m_camHandler->getSphereRadius()*.8 + bbMaxSize * .01f; //1.5
-
-  //m_nearPlane = m_camHandler->getSphereRadius();
-  //m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize;
-
-
-  GLLight *minerLight = m_camHandler->getMinerLight();
-  minerLight->setAmbientColor(Color(0.0,0.0,0.0));
-  minerLight->setDiffuseColor(Color(.8,.8,.8));
-  minerLight->setSpecularColor(Color(1.,1.,1.));
-  minerLight->setPosition(Vector3(0,100,0));
 }
 
 void App::loadKernels()
@@ -694,6 +911,19 @@ void App::loadKernels()
 
   m_kernelColor = new KernelColor(m_appWidth, m_appHeight);
 
+
+  m_kernelCombine = new KernelCombine((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelColor->getTexIdColor()
+    );
+
+  m_kernelVoxDepth = new KernelVoxDepth((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight);
+
+  m_kernelVoxelization = new KernelVoxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight 
+    ,1 
+    ,m_kernelVoxDepth->getTexIdEyePos()
+    );
+
+
   m_kernelSSAO_SphereApproximation = new KernelSSAO_SphereApproximation((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelDeferred_Peeling->getTexIdPosition(0)
     ,m_kernelDeferred_Peeling->getTexIdNormal(0)
@@ -706,18 +936,6 @@ void App::loadKernels()
     ,m_kernelDeferred_Peeling->getTexIdNormal(0)
     );
 
-  m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
-    ,m_kernelSSAO_SphereApproximation->getColorTexId()
-    );
-  m_kernelCombine = new KernelCombine((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
-    ,m_kernelColor->getTexIdColor()
-    );
-
-  m_kernelVoxDepth = new KernelVoxDepth((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight);
-  m_kernelVoxelization = new KernelVoxelization((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight 
-    ,1 
-    ,m_kernelVoxDepth->getTexIdEyePos()
-    );
   m_kernelSSAO_Vox_RayMarch = new KernelSSAO_Vox_RayMarch((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelVoxDepth->getTexIdEyePos()
     ,m_kernelVoxDepth->getTexIdNormalDepth()
@@ -738,6 +956,67 @@ void App::loadKernels()
     ,m_kernelVoxelization->getTexIdGrid0()
     ,m_kernelVoxelization->getTexIdGridInvFunc()
     );
+
+  m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelSSAO_SphereApproximation->getColorTexId()
+    );
+}
+
+void App::loadCameras()
+{
+  Vector3 bbSize = m_rtScene->getSceneBoundingBoxSize();
+  float bbMaxSize = max(bbSize.x, max(bbSize.y, bbSize.z));
+
+  m_fov = m_rtScene->getCamera()->getFovy();
+
+  SphereGLCameraHandler *cam3D = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
+  SphereGLCameraHandler *voxDebug = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
+  SphereGLCameraHandler *samplersDebug = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
+
+  cam3D->setViewBoundingBox(m_rtScene->getSceneBoundingBoxMin(), m_rtScene->getSceneBoundingBoxMax(),  m_fov);
+  voxDebug->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
+  samplersDebug->setViewBoundingBox(Vector3(-1.5f,-.5f,-1.5f), Vector3(1.5f,1.5f,1.5f),  m_fov);
+  
+  m_kernelsCamHandleres.push_back(cam3D); //NoShader
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_SphereApproximation
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_HorizonSplit
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_Vox_RayMarch
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_Vox_TanSphereVolume
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_Vox_ConeTracing
+  m_kernelsCamHandleres.push_back(cam3D); //Voxelization
+  //Debug
+  m_kernelsCamHandleres.push_back(cam3D); //NoShader
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_SphereApproximation
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_HorizonSplit
+  m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_RayMarch
+  m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_TanSphereVolume
+  m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_ConeTracing
+  m_kernelsCamHandleres.push_back(voxDebug); //Voxelization
+
+
+  m_camHandler = cam3D;
+
+  m_nearPlane = m_camHandler->getSphereRadius()*.05f; 
+  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
+
+  //m_nearPlane = m_camHandler->getSphereRadius()*.85; 
+  //m_farPlane =  m_camHandler->getSphereRadius()*1.15; 
+
+  //m_nearPlane = m_camHandler->getSphereRadius()*1.0; 
+  //m_farPlane =  m_camHandler->getSphereRadius()*1.1; 
+
+
+  //m_nearPlane = m_camHandler->getSphereRadius()*1.0f; //.1
+  //m_farPlane = m_camHandler->getSphereRadius()*.8 + bbMaxSize * .01f; //1.5
+
+  //m_nearPlane = m_camHandler->getSphereRadius();
+  //m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize;
+
+  GLLight *minerLight = m_camHandler->getMinerLight();
+  minerLight->setAmbientColor(Color(0.0, 0.0, 0.0));
+  minerLight->setDiffuseColor(Color(0.8, 0.8, 0.8));
+  minerLight->setSpecularColor(Color(1.0, 1.0, 1.0));
+  minerLight->setPosition(Vector3(0, 100, 0));
 }
 
 void App::drawScene()
@@ -752,6 +1031,56 @@ void App::drawScene()
   glPopAttrib();
 }
 
+void App::voxelize()
+{
+  if(m_orthographicProjection_on)
+  {
+    glMatrixMode (GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity ();
+
+    Vector3 size = m_rtScene->getSceneBoundingBoxSize();
+    float orthoSize = max(max(size.x, size.y), size.z);
+    glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
+    glMatrixMode (GL_MODELVIEW);
+    glPushMatrix();
+  }
+  glPushAttrib(GL_POLYGON_BIT);
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_POLYGON_BIT
+  m_kernelVoxDepth->setActive(true);
+  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+  drawScene();
+  m_kernelVoxDepth->setActive(false);
+
+  m_voxProjectionMatrix->readGLProjection();
+
+  m_kernelVoxelization->setActive(true);
+  drawScene();
+  m_kernelVoxelization->setActive(false);
+
+  glPopAttrib();
+
+  if(m_orthographicProjection_on)
+  {
+    glPopMatrix();
+    glMatrixMode (GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode (GL_MODELVIEW);
+  }
+  //m_kernelVoxDepth->renderOutput(0);
+  //m_kernelVoxelization->renderOutput(2);
+
+
+  //GLTextureObject texObj;
+  //texObj = GLTextureObject(m_kernelVoxDepth->getOutputTexture(2));
+  //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(1));
+  //GLuint * i = texObj.read2DTextureUIntData();
+  //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
+  //GLTextureObject t2 = GLTextureObject(m_kernelVoxDepth->getOutputTexture(1));
+  //GLfloat* f = t2.read2DTextureFloatData();
+  //GLuint * d = t2.read2DTextureUIntData();
+}
 void App::renderGUI()
 {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -759,80 +1088,107 @@ void App::renderGUI()
   m_fontRender->initText(m_appWidth, m_appHeight);
 
   char a[100];
-  int i = 0;
-  float x = .70;
-  float y = .03;
-
+  int yRight_i = 0;
+  int yLeft_i = 0;
+  float xTop = .65;
+  float yRight = .03;
+  
+  ///Top Right//////////////////////////////
+  //                                      //
+  //////////////////////////////////////////
   sprintf(a,"(F1) %s Menu", m_menu_on?"Close":"Open");
-  m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+  m_fontRender->print(m_appWidth*xTop*.95f, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
   if(m_menu_on)
   {
-    sprintf(a,"(F11) Shader %s", m_renderMode == NoShader? "On":"Off");
-    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
-
-    sprintf(a,"(o) Orthographic Proj %s", m_orthographicProjection_on? "On":"Off");
-    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
-
-    sprintf(a,"(l) Lights %s", m_lights_on? "On":"Off");
-    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
-
-    sprintf(a,"(m) Mine Light: %s", m_minerLight_on? "On":"Off");
-    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
-
-    sprintf(a,"(b) Blur %s", m_blurr_on? "On":"Off");
-    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    sprintf(a,"(O) Proj: %s", m_orthographicProjection_on? "Orthographic":"Perspective");
+    m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
     sprintf(a,"(PgUp/PgDn) Rfar: %.2f ", m_SSAO_rfarPercent);
-    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
     sprintf(a,"(Home/End) Contrast: %.2f ", m_SSAO_contrast);
-    m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+    m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
   }
 
   switch(m_renderMode)
   {
+    case SSAO_SphereApproximation:
+    case SSAO_HorizonSplit:
+      if(m_menu_on)
+      {
+        sprintf(a,"(L) Lights %s", m_lights_on? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(M) Mine Light: %s", m_minerLight_on? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(B) Blur %s", m_blurr_on? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(+/-)%d Num Peelings", m_SSAO_numPeelings);
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(I/U) Pixmask: %.3f ", m_SSAO_pixelmaskSize);
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(K/J) Offsets_size: %.1f ", m_SSAO_offsetSize);
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+      }
     default:
     case NoShader:
+      if(m_menu_on)
+      {
+        sprintf(a,"(L) Lights %s", m_lights_on? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(M) Mine Light: %s", m_minerLight_on? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(B) Blur %s", m_blurr_on? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+      }
       sprintf(a,"%s", STR(NoShader));
       break;
 
-    case SSAO_SphereApproximation:
+    case SSAO_Vox_RayMarch:
+      break;
+    case SSAO_Vox_TanSphereVolume:
+      break;
+    case SSAO_Vox_ConeTracing:
       if(m_menu_on)
       {
-        sprintf(a,"(+/-)%d Num Peelings", m_SSAO_SphereAprox_numPeelings);
-        m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+        sprintf(a,"(I/U) N Cones: %d ", m_kernelSSAO_Vox_ConeTracing->getNumCones());
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
-        sprintf(a,"(I/U) Pixmask: %.3f ", m_SSAO_SphereAprox_pixelmaskSize);
-        m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
-
-        sprintf(a,"(K/J) Offsets_size: %.1f ", m_SSAO_SphereAprox_offsetSize);
-        m_fontRender->print(m_appWidth*x,m_appHeight*y + 25*i++,a, Color(0., 0., 0.));
+        sprintf(a,"(J/K) N Spheres: %d ", m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
       }
-
-      sprintf(a,"%s", STR(SSAO_SphereApproximation));
-      break;
-
-    case SSAO_HorizonSplit:
-      sprintf(a,"%s", STR(SSAO_HorizonSplit));
-      break;
-
-    case SSAO_Vox_RayMarch:
-      sprintf(a,"%s", STR(SSAO_Vox_RayMarch));
-      break;
-
-    case SSAO_Vox_TanSphereVolume:
-      sprintf(a,"%s", STR(SSAO_Vox_TanSphereVolume));
-      break;
-
-    case SSAO_Vox_ConeTracing:
-      sprintf(a,"%s", STR(SSAO_Vox_ConeTracing));
       break;
   }
-  m_fontRender->print(m_appWidth*.03,m_appHeight*.03, a, Color(0., 0., 0.));
 
+  ///Top Left///////////////////////////////
+  //                                      //
+  //////////////////////////////////////////
+  m_fontRender->print(m_appWidth*.03,m_appHeight*.03 + 25*yLeft_i++, s_renderModeStr[m_renderMode].c_str(), Color(0., 0., 0.));
+
+  if(m_wireframe_on)
+  {
+    sprintf(a,"(F10) WireFrame On");
+    m_fontRender->print(m_appWidth*.03,m_appHeight*.03 + + 25*yLeft_i++, a, Color(0., 0., 0.));
+  }
+
+  if(m_debugrender_on)
+  {
+    sprintf(a,"(D) Render Debug");
+    m_fontRender->print(m_appWidth*.03,m_appHeight*.03 + 25*yLeft_i++, a, Color(0., 0., 0.));
+  }
+
+  //////////////////////////////////////////
+  //                                      //
+  ////////////////////////////Bottom Right//
   sprintf(a,"%.2f FPS", m_frames->getFPS());
-  m_fontRender->print(m_appWidth*.85,m_appHeight*.85+55,a, Color(0., 0., 0.));
+  m_fontRender->print(m_appWidth*.85,m_appHeight*.85 + 55,a, Color(0., 0., 0.));
 
   m_fontRender->endText();
   glPopAttrib();
@@ -871,8 +1227,6 @@ void App::renderSSAOSphereAproximation()
 #endif
   //COLOR PASS
   m_kernelColor->setActive(true);
-
-  glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
   glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
   glDisable(GL_CULL_FACE);
   drawScene();
@@ -890,12 +1244,11 @@ void App::renderSSAOSphereAproximation()
   timeTest.resetTimer();
 #endif
   //DEPTH PEELING PASS
-  for(int i=0; i < m_SSAO_SphereAprox_numPeelings; ++i)
+  for(int i = 0; i < m_SSAO_numPeelings; ++i)
   {
     m_kernelDeferred_Peeling->step(i);
     m_kernelDeferred_Peeling->setActive(true);
 
-    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     drawScene();
@@ -910,7 +1263,7 @@ void App::renderSSAOSphereAproximation()
   timeTest.resetTimer();
 #endif
   //SSAO PASS
-  m_kernelSSAO_SphereApproximation->step(projectionMatrix, m_SSAO_rfarPercent, m_SSAO_SphereAprox_pixelmaskSize,m_SSAO_SphereAprox_offsetSize, m_SSAO_contrast);
+  m_kernelSSAO_SphereApproximation->step(projectionMatrix, m_SSAO_rfarPercent, m_SSAO_pixelmaskSize,m_SSAO_offsetSize, m_SSAO_contrast);
 #ifdef TIME_TEST
   timeTest.kSSAOTime += timeTest.getTime();
 #endif
@@ -955,12 +1308,9 @@ void App::renderSSAOHorizonSplit()
 #endif
   //COLOR PASS
   m_kernelColor->setActive(true);
-
-  glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
-  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-  glDisable(GL_CULL_FACE);
-  drawScene();
-
+    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+    glDisable(GL_CULL_FACE);
+    drawScene();
   m_kernelColor->setActive(false);
 
 #ifdef TIME_TEST 
@@ -974,12 +1324,11 @@ void App::renderSSAOHorizonSplit()
   timeTest.resetTimer();
 #endif
   //DEPTH PEELING PASS
-  for(int i=0; i < m_SSAO_SphereAprox_numPeelings; ++i)
+  for(int i=0; i < m_SSAO_numPeelings; ++i)
   {
     m_kernelDeferred_Peeling->step(i);
     m_kernelDeferred_Peeling->setActive(true);
 
-    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
     glDisable(GL_CULL_FACE);
     drawScene();
@@ -994,7 +1343,7 @@ void App::renderSSAOHorizonSplit()
   timeTest.resetTimer();
 #endif
   //SSAO PASS
-  m_kernelSSAO_HorizonSplit->step(projectionMatrix, m_SSAO_rfarPercent, m_SSAO_SphereAprox_pixelmaskSize,m_SSAO_SphereAprox_offsetSize, m_SSAO_contrast);
+  m_kernelSSAO_HorizonSplit->step(projectionMatrix, m_SSAO_rfarPercent, m_SSAO_pixelmaskSize,m_SSAO_offsetSize, m_SSAO_contrast);
 #ifdef TIME_TEST
   timeTest.kSSAOTime += timeTest.getTime();
 #endif
@@ -1032,66 +1381,16 @@ void App::renderSSAOHorizonSplit()
   //RENDER RESULT
   m_kernelCombine->renderOutput(0);
 }
-
-void App::renderSSAOVoxRayMarch()
+void App::renderVoxelization()
 {
-  if(m_updateVoxelgrid || !m_voxrender_on)
+  if(m_updateVoxelgrid)
   {
-    if(m_orthographicProjection_on)
-    {
-      glMatrixMode (GL_PROJECTION);
-      glPushMatrix();
-      glLoadIdentity ();
-
-      Vector3 size = m_rtScene->getSceneBoundingBoxSize();
-      float orthoSize = max(max(size.x, size.y), size.z);
-      glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
-      glMatrixMode (GL_MODELVIEW);
-      glPushMatrix();
-    }
-    glPushAttrib(GL_POLYGON_BIT);
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_POLYGON_BIT
-    m_kernelVoxDepth->setActive(true);
-
-    glClearColor(-1,-1,-1,-1);
-    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-    drawScene();
-    m_kernelVoxDepth->setActive(false);
-    
-    m_voxProjectionMatrix->readGLProjection();
-
-    m_kernelVoxelization->setActive(true);
-    drawScene();
-    m_kernelVoxelization->setActive(false);
-
-    glPopAttrib();
-
-    if(m_orthographicProjection_on)
-    {
-      glPopMatrix();
-      glMatrixMode (GL_PROJECTION);
-      glPopMatrix();
-      glMatrixMode (GL_MODELVIEW);
-    }
-
-    //m_kernelVoxDepth->renderOutput(0);
-    //m_kernelVoxelization->renderOutput(2);
-
-    
-    //GLTextureObject texObj;
-    //texObj = GLTextureObject(m_kernelVoxDepth->getOutputTexture(2));
-    //texObj = GLTextureObject(m_kernelVoxelization->getOutputTexture(1));
-    //GLuint * i = texObj.read2DTextureUIntData();
-    //GLTextureObject t2 = GLTextureObject(m_kernelVoxelization->getOutputTexture(2));
-    //GLTextureObject t2 = GLTextureObject(m_kernelVoxDepth->getOutputTexture(1));
-    //GLfloat* f = t2.read2DTextureFloatData();
-    //GLuint * d = t2.read2DTextureUIntData();
+    voxelize();
 
     m_updateVoxelgrid = false;
-    if(m_voxrender_on)
-      m_camHandler->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
-  }else if(m_voxrender_on)
+    m_kernelsCamHandleres[Debug + Voxelization]->setViewBoundingBox(m_kernelVoxelization->getVoxBBMin(), m_kernelVoxelization->getVoxBBMax(),  m_fov);
+    m_camHandler = m_kernelsCamHandleres[Debug + Voxelization];
+  }else
   {
     glMatrixMode (GL_PROJECTION);
     glPushMatrix();
@@ -1120,137 +1419,57 @@ void App::renderSSAOVoxRayMarch()
     glPopMatrix();
     glMatrixMode (GL_MODELVIEW);
   }
+}
+void App::renderSSAOVoxRayMarch()
+{
+  voxelize();
 
-  if(!m_voxrender_on)
-  {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    m_kernelSSAO_Vox_RayMarch->step(m_voxProjectionMatrix);
-    m_kernelSSAO_Vox_RayMarch->renderOutput(KernelSSAO_Vox_RayMarch::SSAO);
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  m_kernelSSAO_Vox_RayMarch->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_contrast);
+  m_kernelSSAO_Vox_RayMarch->renderOutput(KernelSSAO_Vox_RayMarch::SSAO);
 
-    //GLTextureObject texObj = GLTextureObject(m_kernelSSAO_Voxelization->getOutputTexture(1));
-    //GLuint* i = texObj.read2DTextureUIntData();
-    //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization->getOutputTexture(0));
-    //GLfloat* f = t2.read2DTextureFloatData();
-    glPopAttrib();
-  }
+  //GLTextureObject texObj = GLTextureObject(m_kernelSSAO_Voxelization->getOutputTexture(1));
+  //GLuint* i = texObj.read2DTextureUIntData();
+  //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization->getOutputTexture(0));
+  //GLfloat* f = t2.read2DTextureFloatData();
+  glPopAttrib();
 }
 
 
 void App::renderSSAOVoxTanSphereVolume()
 {
-  {
-    if(m_orthographicProjection_on)
-    {
-      glMatrixMode (GL_PROJECTION);
-      glPushMatrix();
-      glLoadIdentity ();
+  voxelize();
 
-      Vector3 size = m_rtScene->getSceneBoundingBoxSize();
-      float orthoSize = max(max(size.x, size.y), size.z);
-      glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
-      glMatrixMode (GL_MODELVIEW);
-      glPushMatrix();
-    }
-    glPushAttrib(GL_POLYGON_BIT);
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  m_kernelSSAO_Vox_TanSphereVolume->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_contrast);
+  m_kernelSSAO_Vox_TanSphereVolume->renderOutput(KernelSSAO_Vox_RayMarch::SSAO);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_POLYGON_BIT
-    m_kernelVoxDepth->setActive(true);
-      glClearColor(-1,-1,-1,-1);
-      glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-      drawScene();
-    m_kernelVoxDepth->setActive(false);
+  //GLTextureObject texObj = GLTextureObject(m_kernelSSAO_Voxelization_Volume->getOutputTexture(1));
+  //GLuint* i = texObj.read2DTextureUIntData();
+  //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization_Volume->getOutputTexture(0));
+  //GLfloat* f = t2.read2DTextureFloatData();
 
-    m_voxProjectionMatrix->readGLProjection();
-
-    m_kernelVoxelization->setActive(true);
-      drawScene();
-    m_kernelVoxelization->setActive(false);
-
-    glPopAttrib();
-
-    if(m_orthographicProjection_on)
-    {
-      glPopMatrix();
-      glMatrixMode (GL_PROJECTION);
-      glPopMatrix();
-      glMatrixMode (GL_MODELVIEW);
-    }
-  }
-
-  {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    m_kernelSSAO_Vox_TanSphereVolume->step(m_voxProjectionMatrix);
-    m_kernelSSAO_Vox_TanSphereVolume->renderOutput(KernelSSAO_Vox_RayMarch::SSAO);
-
-    //GLTextureObject texObj = GLTextureObject(m_kernelSSAO_Voxelization_Volume->getOutputTexture(1));
-    //GLuint* i = texObj.read2DTextureUIntData();
-    //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization_Volume->getOutputTexture(0));
-    //GLfloat* f = t2.read2DTextureFloatData();
-
-    glPopAttrib();
-  }
+  glPopAttrib();
 }
 
 
 void App::renderSSAOVoxConeTracing()
 {
-  {
-    if(m_orthographicProjection_on)
-    {
-      glMatrixMode (GL_PROJECTION);
-      glPushMatrix();
-      glLoadIdentity ();
+  voxelize();
 
-      Vector3 size = m_rtScene->getSceneBoundingBoxSize();
-      float orthoSize = max(max(size.x, size.y), size.z);
-      glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
-      glMatrixMode (GL_MODELVIEW);
-      glPushMatrix();
-    }
-    glPushAttrib(GL_POLYGON_BIT);
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_contrast);
+  m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_POLYGON_BIT
-    m_kernelVoxDepth->setActive(true);
-    glClearColor(-1,-1,-1,-1);
-    glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
-    drawScene();
-    m_kernelVoxDepth->setActive(false);
+  //GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
+  //GLuint* i = texObj.read2DTextureUIntData();
+  //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
+  //GLfloat* f = t2.read2DTextureFloatData();
 
-    m_voxProjectionMatrix->readGLProjection();
-
-    m_kernelVoxelization->setActive(true);
-    drawScene();
-    m_kernelVoxelization->setActive(false);
-
-    glPopAttrib();
-
-    if(m_orthographicProjection_on)
-    {
-      glPopMatrix();
-      glMatrixMode (GL_PROJECTION);
-      glPopMatrix();
-      glMatrixMode (GL_MODELVIEW);
-    }
-  }
-
-  {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glClearColor(m_clearColor[0], m_clearColor[1], m_clearColor[2], m_clearColor[3]);
-    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_contrast);
-    m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_RayMarch::SSAO);
-
-    GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
-    GLuint* i = texObj.read2DTextureUIntData();
-    GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
-    GLfloat* f = t2.read2DTextureFloatData();
-
-    glPopAttrib();
-  }
+  glPopAttrib();
 }
 
 

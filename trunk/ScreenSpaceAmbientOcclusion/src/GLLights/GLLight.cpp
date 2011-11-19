@@ -63,7 +63,7 @@ void GLLight :: render()
       glEnable(m_myLightNum);
       glLightfv(m_myLightNum, GL_POSITION, m_pos); 
 
-      if(m_renderSphereRadius)
+      if(m_renderSphereEnabled)
       {
         glPushAttrib(GL_LIGHTING_BIT);
           GLfloat color[4] = {1,1,1,1};

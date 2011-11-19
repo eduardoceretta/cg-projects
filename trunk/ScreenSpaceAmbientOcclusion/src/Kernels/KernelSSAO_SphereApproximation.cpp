@@ -733,6 +733,7 @@ void KernelSSAO_SphereApproximation::step(float* projectionMatrix, float rfar, f
     addInputFloat("offsets_size", offsets_size);
     addInputFloat("intensity", intensity);
   m_shader->setActive(false);
+  
   KernelBase::step();
 }
 

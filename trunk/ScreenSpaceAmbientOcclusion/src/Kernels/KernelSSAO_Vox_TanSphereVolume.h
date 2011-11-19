@@ -56,7 +56,7 @@ public:
    *  and deactivate the shader and the FBO.
    *  Calculate the projection parameters needed by the shader
    */
-  void step(GLProjectionMatrix *projectionMatrix);
+  void step(GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast);
 
   /**
    * Get output SSAO texture Id.

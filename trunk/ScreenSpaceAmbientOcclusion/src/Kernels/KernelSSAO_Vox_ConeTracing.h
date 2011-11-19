@@ -40,7 +40,20 @@ public:
    */
   ~KernelSSAO_Vox_ConeTracing();
 
-   /**
+  /**
+   * Parameters Getters and Setters
+   */ 
+  int getNumCones() const;
+  void setNumCones(int val);
+
+  int getNumSpheresByCone() const;
+  void setNumSpheresByCone(int val);
+
+  int getNumSamplersDistributions() const;
+  void setNumSamplersDistributions(int val);
+  
+  
+  /**
    * Activate/Deactivate the Kernel's FBO and shader
    *  Calculate the projection parameters needed by the shader
    */
@@ -69,13 +82,20 @@ public:
    * Render the specific sampler distribution directions.
    */
   void renderSamplerDistribution(int distribution);
-  void renderSphereSamplerDistribution(int distribution);
+  void renderSphereSamplerDistribution(int distribution, int sphereIndex);
 private:
 
-  void createConeSamplerTexture();
-
-  void createBitCount16Texture();
-  void createSphereSamplerTexture();
+  /**
+   * Reload Shader Input
+   */
+  void reloadShaderInput();
+  
+  /**
+   * Create Data Textures 
+   */
+  void setConeSamplerTexture();
+  void setSphereSamplerTexture();
+  void setBitCount16Texture();
 
   /**
    * Grid Dimensions	
@@ -89,18 +109,19 @@ private:
   GLuint m_texIdSSAO;
   GLuint m_texIdDebug;
   
+  /**
+   * Parameters
+   */
+  int m_numCones;
+  int m_numSpheresByCone;
+  int m_numSamplersDistributions;
 
   /**
-   * Volume Samplers
+   * Cone Dir Samplers
    */
-  int m_numSamplersDistributions;
   int m_coneDirSamplersWidth;
   GLuint m_texIdConeDirSamplers;
 
-  int m_numCones;
-  int m_numSpheresByCone;
-  int m_numSamplersAlpha;
-  int m_numSamplersBeta;
 
   /**
    * BitCount 16
@@ -116,8 +137,9 @@ private:
   GLuint m_texIdSphereSamplers;  
   GLfloat* m_sphereSamplers;
 
-
-
+  /**
+   * Render Samplers Objects
+   */
   GLPointLight m_pointLight;
 };
 

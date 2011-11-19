@@ -151,6 +151,7 @@ std::string TimeTest::results()
 /* ScreenShotTest                          */
 /*******************************************/
 #ifdef SCREENSHOT_TEST
+
 #include <ctime>
 ScreenShotTest::ScreenShotTest()
 :m_texDebug(new GLTextureObject())
@@ -163,7 +164,7 @@ ScreenShotTest::~ScreenShotTest()
   delete m_texDebug;
 }
 
-void ScreenShotTest::save(GLint texid, string type /*= ""*/)
+void ScreenShotTest::save(GLint texid, string path /*= ""*/,  string type /*= ""*/)
 {
   if(m_frameCounter < 0 || m_frameCounter%SCREEN_TEST_INTERSCREEN_FRAMES != 0)
     return;
@@ -174,10 +175,10 @@ void ScreenShotTest::save(GLint texid, string type /*= ""*/)
 
   struct tm *ttm = localtime(&rawtime);
   char date[100];
-  sprintf(date, "_%d_%d_%d-%d_%d_%d-%ld", ttm->tm_year + 1900, ttm->tm_mon, ttm->tm_mday,
+  sprintf(date, "%d_%d_%d-%d_%d_%d-%ld_", ttm->tm_year + 1900, ttm->tm_mon, ttm->tm_mday,
                                          ttm->tm_hour, ttm->tm_min, ttm->tm_sec, clock());
-  string fileName = string("screen_") + type + string(date) + ".png";
-  m_texDebug->write2DToFile(fileName);
+  string fileName = string("screen_")+ string(date) + type + ".png";
+  m_texDebug->write2DToFile(path, fileName);
   
   TestLogger::inst()->logLine(string("ScreenShot Test - Created File: ") + fileName);
 }
@@ -195,7 +196,13 @@ void ScreenShotTest::update()
   m_frameCounter++;
 }
 
-bool ScreenShotTest::isTestEnded()
+void ScreenShotTest::reset()
+{
+  m_frameCounter = -SCREEN_TEST_INTERSCREEN_FRAMES;
+}
+
+
+bool ScreenShotTest::isOver()
 {
   return SCREEN_TEST_CAM_ROT_ANGLE*m_frameCounter/SCREEN_TEST_INTERSCREEN_FRAMES >= 360;
 }

@@ -15,7 +15,10 @@
 #include "app.h"
 
 App ssaoApp;
+
 int main(int argc, char *argv[]){
+
+  ssaoApp.loadParameters(argc, argv);
   ssaoApp.initGL(&argc, argv);
   ssaoApp.loadResources();
 

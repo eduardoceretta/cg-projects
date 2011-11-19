@@ -140,6 +140,7 @@ void KernelBase::renderShader()
 
 void KernelBase::step(){
   m_fbo->setActive(true);
+  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
   if(m_shader)
     m_shader->setActive(true);
   renderScreenQuad();

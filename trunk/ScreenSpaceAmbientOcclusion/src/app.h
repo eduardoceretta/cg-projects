@@ -13,6 +13,7 @@
 #define _APP_H_
 
 #include <string>
+#include <vector>
 #include <map>
 
 /**
@@ -20,11 +21,11 @@
  */
 #define APP_NAME "ScreenSpaceAmbientOcclusion"
 
-#define APP_INITIAL_WIDTH 512
-#define APP_INITIAL_HEIGHT 512
-#define APP_FOV 60.0f
-#define APP_NEAR 5.0f
-#define APP_FAR 1000.0f
+#define APP_DEFAULT_WIDTH 512
+#define APP_DEFAULT_HEIGHT 512
+#define APP_DEFAULT_FOV 60.0f
+#define APP_DEFAULT_NEAR 5.0f
+#define APP_DEFAULT_FAR 1000.0f
 #define APP_DEFAULT_SCENE_PATH "./resources/Scenes/scene.rt4"
 #define APP_DEFAULT_SHADER_PATH "./resources/Shaders/"
 
@@ -58,12 +59,6 @@ using namespace std;
 
 class App 
 {
-  /**
-   * Command line Arguments
-   */
-  int m_argc;
-  char **m_argv;
-
   map<string, string*> m_acceptedArgsString;
   map<string, int*> m_acceptedArgsInt;
   map<string, float*> m_acceptedArgsFloat;
@@ -83,11 +78,14 @@ class App
   float m_farPlane;
   float m_fov;
   GLfloat m_clearColor[4];
+  GLfloat m_ambientColor[4];
 
   /**
    * Render Objects
    */
   SphereGLCameraHandler *m_camHandler;
+  vector<SphereGLCameraHandler*> m_kernelsCamHandleres;
+
   GLFont *m_fontRender;
   Frames *m_frames;
   float m_fps;
@@ -124,7 +122,7 @@ class App
   bool m_updateCamHandler;
   bool m_orthographicProjection_on;
   bool m_blurr_on;
-  bool m_voxrender_on;
+  bool m_debugrender_on;
   
   /**
    * Global Algorithm Parameters
@@ -135,9 +133,9 @@ class App
   /**
    * Sphere ALgorithm Parameters
    */
-  float m_SSAO_SphereAprox_pixelmaskSize;
-  float m_SSAO_SphereAprox_offsetSize;
-  int m_SSAO_SphereAprox_numPeelings;
+  float m_SSAO_pixelmaskSize;
+  float m_SSAO_offsetSize;
+  int m_SSAO_numPeelings;
 
   /**
    * Voxelization Algorithm Parameters
@@ -148,7 +146,17 @@ class App
   /**
    * Render Mode
    */
-  enum RenderMode{NoShader, SSAO_SphereApproximation, SSAO_HorizonSplit, SSAO_Vox_RayMarch, SSAO_Vox_TanSphereVolume, SSAO_Vox_ConeTracing};
+  enum RenderMode{NoShader
+                 ,SSAO_SphereApproximation
+                 ,SSAO_HorizonSplit
+                 ,SSAO_Vox_RayMarch
+                 ,SSAO_Vox_TanSphereVolume
+                 ,SSAO_Vox_ConeTracing
+                 ,Voxelization
+                 ,Debug};
+
+  static string s_renderModeStr[];
+
   RenderMode m_renderMode;
 
   /**
@@ -161,6 +169,12 @@ public:
   ~App();
   
   void initGL(int *argc, char *argv[]);
+  
+  
+  /**
+   * Load scene and application parameters (win size, clear color...)
+   */
+  void loadParameters(int argc, char *argv[]);
   
   /**
    * Load and Initializes the Application Resources
@@ -201,17 +215,27 @@ private:
   /**
    * Process the application arguments
    */
-  void loadArgs();
-
+  void loadArgs(int argc, char *argv[]);
+  
   /**
-   * Load and Initializes the Scene to be rendered
+   * Load and Initializes the Scene objects to be rendered
    */
   void loadScene();
+  
+  /**
+   * Load and Initializes the Scene parameters (win size, clear color...)
+   */
+  void loadSceneParameters();
   
   /**
    * Initializes the kernels that will process the scene
    */
   void loadKernels();
+
+  /**
+   * Initializes the cameras that will display the scene
+   */
+  void loadCameras();
 
   /**
    * Draw the Scene
@@ -222,6 +246,11 @@ private:
    * Draw the Graphical User Interface
    */
   void renderGUI();
+
+  /**
+   * Voxelize the Scene
+   */
+  void voxelize();
   
   /**
    * Draw Kernels
@@ -232,6 +261,7 @@ private:
   void renderSSAOVoxRayMarch();
   void renderSSAOVoxTanSphereVolume();
   void renderSSAOVoxConeTracing();
+  void renderVoxelization();
 };
 
 #endif
