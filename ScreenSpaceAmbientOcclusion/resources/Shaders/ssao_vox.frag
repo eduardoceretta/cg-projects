@@ -30,6 +30,13 @@ uniform sampler2D eyePos;             /**< Eye Position(rgb) Nearest Eye Fragmen
 uniform sampler2D normalDepth;         /**< Normal(rgb) Depth(a)*/
 uniform usampler2D voxelGrid;         /**< None Uniform Voxel Grid of the Scene*/
 
+
+/**
+ * Algorithm Parameters
+ */
+uniform float rfarPercent;
+uniform float contrast; 
+
 /**
  * Projection Parameters
  */
@@ -129,11 +136,6 @@ float normalizeAo(float ao, int numRays);
 
 void main()
 {
-  int numRays = numRayDirections*numRayHemispherDivision;
-  //int halfDist = numRayDistribution/2 + 1;
-  //int rayDistributionIndex = clamp(int(floor(gl_FragCoord.x))%halfDist + halfDist - int(floor(gl_FragCoord.y))%halfDist, 0, numRayDistribution);
-  int rayDistributionIndex = int(floor(rand(gl_FragCoord.xy)*float(numRayDistribution)))*numRays;
-  
   vec3 normal;
   vec3 eyePosition;
   float depth;
@@ -145,6 +147,12 @@ void main()
   mat3 rotMat = getHemisphereRotationMatrix(normal);
   
   vec3 fragGridIndex = getGridIndex(vec3(0,0,0), eyePosition);
+  
+  int numRays = numRayDirections*numRayHemispherDivision;
+  //int halfDist = numRayDistribution/2 + 1;
+  //int rayDistributionIndex = clamp(int(floor(fragGridIndex.x))%halfDist + halfDist - int(floor(fragGridIndex.y))%halfDist, 0, numRayDistribution);
+  int rayDistributionIndex = int(floor(rand(fragGridIndex.xy)*float(numRayDistribution)))*numRays;
+
  
   /**
 	 * TEST NORMAL
@@ -156,8 +164,7 @@ void main()
     gl_FragData[0] = vec4(nn, 1.);
     return;
   /**/
-  
-  float rfar = .5*far;
+  float rfar = rfarPercent*far;
   float rayStep = rfar/float(numRaySteps);
   float ao = 0.0;
   for(int i = 0; i < numRays; i++)
@@ -209,7 +216,7 @@ void main()
     }
   }
   
-  ao = normalizeAo(ao, numRays);
+  ao = normalizeAo(ao*contrast, numRays);
   ao = clamp(ao, 0.0, 1.0);
 
   gl_FragData[0] = WHITE*(1.0 - ao);

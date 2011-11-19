@@ -25,8 +25,9 @@ void main()
   // Do nothing if the alpha value is negative
 	if(input.a < 0.0)
 	{
-		gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
-		return;
+		//gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
+		//return;
+		discard;
 	}
 	
 	//Initialize the result

@@ -63,9 +63,9 @@ uniform float top;
 uniform int perspective;
 
 #define PROG_A0 4
-#define PROG_STEP 2.3
-#define ARITPROG_AN(a, d, n) int((a) + floor((n-1.0)*(d) + .5))
-#define ARITPROG_SUM(a, d, n) int((n)*((a)+ARITPROG_AN(a,d,n))/2.0)
+#define PROG_STEP 2
+#define ARITPROG_AN(a, d, n) int((a) + ((n-1.0)*(d)))
+#define ARITPROG_SUM(a, d, n) int(((n)*((a)+ARITPROG_AN(a,d,n))/2.0))
 
 #define func(i, numSpheresByCone) \
   (pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)),3.0))
@@ -189,8 +189,8 @@ float getVoxelDensity(vec3 gridIndex);
 float normalizeAo(float ao, int numSamplers);
 
 mat3 getHemisphereRotationMatrix(vec3 normal);
-vec3 getConeDir(int samplerDistributionIndex, int i, mat3 rotMat);
-float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float sphereRadius, int index);
+vec3 getConeDir(int coneDirSamplerDistributionIndex, int i, mat3 rotMat);
+float calcSphereOcclusion(int coneDirSamplerDistributionIndex, vec3 sphereCenter, float sphereRadius, int index);
 float normalizeConeAo(float coneAo, int numSpheresByCone);
 int getNumSphereSamplers(int i);
 vec3 getSphereSampler(int samplerDistIndex, int sphereIndex, int samplerIndex, float radius);
@@ -212,18 +212,21 @@ float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, ou
 
 void main()
 {
-  int samplerDistributionIndex = int(floor(rand(gl_FragCoord.xy)*float(numSamplersDistributions)))*numCones;
-  
-  vec3 normal;
-  vec3 eyePosition;
-  float depth;
-  
+  vec3 normal; vec3 eyePosition; float depth;
   readInputData(normal, eyePosition, depth);
+  
   if(depth < 0.0)
     discard;
   
   vec3 fragGridIndex = getGridIndex(vec3(0,0,0), eyePosition);
- 
+  
+  int randNum = int(floor(rand(fragGridIndex.xy) * float(numSamplersDistributions)));
+  
+  int coneDirSamplerDistributionIndex = randNum * numCones;
+  //int coneDirSamplerDistributionIndex = 0;
+  int sphereSamplerDistributionIndex = randNum * ARITPROG_SUM(PROG_A0, PROG_STEP, numSpheresByCone);
+  //int sphereSamplerDistributionIndex = 0;
+     
   /**
 	 * TEST NORMAL
 	 *  Print the Normal's Color.
@@ -234,25 +237,24 @@ void main()
     gl_FragData[0] = vec4(nn, 1.);
     return;
   /**/
+  
   /*
-  mat3 rotMat = getHemisphereRotationMatrix(normal);
- 
-  float rfar = .5*far;
+  float rfar = rfarPercent*far;
   float ao = 0.0;
+  
+  mat3 rotMat = getHemisphereRotationMatrix(normal);
+  
   for(int i = 0; i < numCones; ++i)
   {
-    vec3 coneDir = getConeDir(samplerDistributionIndex, i, rotMat);
+    vec3 coneDir = getConeDir(coneDirSamplerDistributionIndex, i, rotMat);
     float coneAo = 0.0;
     for(int j = 0; j < numSpheresByCone; ++j)
     {
-      vec3 sphereCenter = getSphereCenter(eyePosition, coneDir, i, rfar, numSpheresByCone);
-
-      float sphereRadius = getSphereRadius(i, rfar, numSpheresByCone, numCones);
-      float sphereAo = calcSphereOcclusion(0, sphereCenter, sphereRadius, j);
+      vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, j, rfar, numSpheresByCone);
+      float sphereRadius = getSphereRadius(j, rfar, numSpheresByCone, numCones);
+      float sphereAo = calcSphereOcclusion(sphereSamplerDistributionIndex, sphereCenter, sphereRadius, j);
       
-      coneAo += sphereAo;
-      if(sphereAo > .85)
-        break;
+      coneAo += sphereAo*(1.0 - coneAo);
     }
     coneAo = normalizeConeAo(coneAo, numSpheresByCone);
 
@@ -260,7 +262,7 @@ void main()
   }
    
   ao = normalizeAo(ao, numCones);
-  ao = clamp(ao, 0.0, 1.0);
+  ao = clamp(ao*contrast, 0.0, 1.0);
 
   gl_FragData[0] = WHITE*(1.0 - ao);
   /**/
@@ -276,84 +278,16 @@ void main()
   mat3 rotMat = getHemisphereRotationMatrix(normal);
   
   for(int i = 0; i < numCones; ++i)
-  //for(int i = 1; i < 2; ++i)
-    {
-    vec3 coneDir = getConeDir(0, i, rotMat);
+  {
+    vec3 coneDir = getConeDir(coneDirSamplerDistributionIndex, i, rotMat);
     float coneAo = 0.0;
     for(int j = 0; j < numSpheresByCone; ++j)
-    //for(int j = 2; j < numSpheresByCone; ++j)
     {
       vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, j, rfar, numSpheresByCone);
       float sphereRadius = getSphereRadius(j, rfar, numSpheresByCone, numCones);
-      float sphereAo = calcSphereOcclusion(0, sphereCenter, sphereRadius, j);
+      float sphereAo = calcSphereOcclusion(sphereSamplerDistributionIndex, sphereCenter, sphereRadius, j);
       
-      
-      /***********************************************************************
-      int index = j;
-      float ao2 = 0.0;
-      float s = 0.0;
-
-      int numSphereSamplers = getNumSphereSamplers(index);
-      int sphereIndex = ARITPROG_SUM(PROG_A0, PROG_STEP, float(index));
-      vec3 sphereSampler = getSphereSampler(0, sphereIndex, 1, sphereRadius*.99);
-      
-        unsigned int gridIndexTopN  = 0u;
-        unsigned int gridIndexBottonN = 0u;
-        float secant = 0.0;
-
-        float d = length(sphereSampler);
-        float zi = sqrt(sphereRadius*sphereRadius - d*d) ;
-        float zo = -zi;
-        secant = 2.0*zi;
-
-        vec3 point = sphereCenter + sphereSampler;
-        vec3 win = eye2window(point, bool(perspective));
-        float zzNear = getZnear(win.xy);
-        
-        //if(zzNear < 0.0)
-          //return 0.0;
-       
-        float zGridIndex = getZGridIndex(point.z, zzNear);
-        vec3 samplerGridIndex = vec3(win.x/screenWidth, win.y/screenHeight, zGridIndex);
-
-        float gridIndexTop  = getClampedZGridIndex(point.z + zi, zzNear); //Closer to The Eye
-        float gridIndexBotton = getClampedZGridIndex(point.z + zo, zzNear);
-
-        gridIndexBottonN = getGridIndexNormalized(gridIndexBotton);
-        gridIndexTopN = getGridIndexNormalized(gridIndexTop);
-        
-        //if(samplerGridIndex.x < 0.0)
-          //return 0.0;
-          
-        //if(gridIndexBottonN == gridIndexTopN)
-          //return 0.0;
-
-        unsigned int numFullVoxels = countFullVoxelsVolSphere(samplerGridIndex, gridIndexBottonN, gridIndexTopN);
-        float zznear = getZnear(samplerGridIndex.xy*vec2(screenWidth, screenHeight));
-        float height = min(float(numFullVoxels)*(far - zznear)/128.0, secant);
-        ao2 = height;
-      
-      if(gl_FragCoord.x == 256.5 &&  gl_FragCoord.y == 246.5)
-      {
-        vec3 w = eye2window(sphereCenter, bool(perspective));
-        float f = float(countFullVoxelsInRange(texture2D(voxelGrid, samplerGridIndex.xy).g, gridIndexTopN%32, gridIndexBottonN%32));
-        OUT = vec4(samplerGridIndex.x*512*4,samplerGridIndex.y*512*512*4,floor(samplerGridIndex.y*512)*512*4 + floor(samplerGridIndex.x*512)*4,f);
-        return;
-      }
-      
-      if(gl_FragCoord.x == 255.5 &&  gl_FragCoord.y == 241.5)
-      {
-        OUT = BLUE;
-        return;
-      }
-      /*********************************************************************/  
       coneAo += sphereAo*(1.0 - coneAo);
-      if(coneAo > 1.)
-      {
-        gl_FragData[0] = RED;
-        return;
-      }
-        //break;
     }
     coneAo = normalizeConeAo(coneAo, numSpheresByCone);
 
@@ -428,14 +362,14 @@ mat3 getHemisphereRotationMatrix(vec3 normal)
   return getRotationMatrix(angle, axis);
 }  
 
-vec3 getConeDir(int samplerDistributionIndex, int i, mat3 rotMat)
+vec3 getConeDir(int coneDirSamplerDistributionIndex, int i, mat3 rotMat)
 {
-  float coneIndex = (float(samplerDistributionIndex + i) + .5)/float(coneDirSamplersWidth);
+  float coneIndex = (float(coneDirSamplerDistributionIndex + i) + .5)/float(coneDirSamplersWidth);
   vec3 coneDir = texture1D(coneDirSamplers, coneIndex).rgb;
   return normalize(rotMat*coneDir);
 }
     
-float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float sphereRadius, int index)
+float calcSphereOcclusion(int sphereSamplerDistributionIndex, vec3 sphereCenter, float sphereRadius, int index)
 {
   float ao = 0.0;
   float s = 0.0;
@@ -445,7 +379,7 @@ float calcSphereOcclusion(int samplerDistributionIndex, vec3 sphereCenter, float
   
   for(int i = 0; i < numSphereSamplers; ++i)
   {
-    vec3 sphereSampler = getSphereSampler(0, sphereIndex, i, sphereRadius*.99);
+    vec3 sphereSampler = getSphereSampler(sphereSamplerDistributionIndex, sphereIndex, i, sphereRadius*.99);
 
     float secant;
     ao += calcSphereAo(sphereSampler, sphereCenter, sphereRadius, secant);

@@ -1,16 +1,16 @@
 RT 4.0
-//SCENE (clear)r g b (ambient) r g b
-SCENE .8 .8 1.  .2  .2  .2 
+//SCENE (clear)r g b    (ambient) r g b  width  height 
+SCENE 0.341 0.549 0.85    0.2 0.2 0.2     640    480  
 
-//If using SphereCamera Handler only considers the fov and the width and heigh
-//CAMERA  (pos)x y z (at)x y z (up)x y z  fov  near  far  width  height 
-CAMERA   100 100 40  0 0 0     0 1 0     60    5   1000   512    512
+//If using SphereCamera Handler only considers the fov and scene's width and heigh
+//CAMERA  (pos)x y z (at)x y z (up)x y z  fov  near  far  
+CAMERA   100 100 40  0 0 0     0 1 0     30    5   1000   
 
 //MATERIAL (dif)r g b (spec)r g b spec_exponent reflectiveIndex refractiveIndex opacity 
-MATERIAL   .8 .8 .8     1. 1. 1.    50.   0.  0.8  0.4 
-MATERIAL   .8 .8 .8     0. 0. 0.    50.   0.  0.8  0.4 
-MATERIAL   .8 .6 .2     0. 0. 0.   100.   0.  0.8  0.4 
-MATERIAL   .8 .5 .4     .8 .8 .8   32.   0.  0.8  0.4 
+MATERIAL   .8 .8 .8     1. 1. 1.        50.0           0.0            0.8         0.4 
+MATERIAL   .8 .8 .8     0. 0. 0.        50.0           0.0            0.8         0.4 
+MATERIAL   .8 .6 .2     0. 0. 0.       100.0           0.0            0.8         0.4 
+MATERIAL   .8 .5 .4     .8 .8 .8        32.0           0.0            0.8         0.4 
 
 //LIGHT (pos)x y z (dif)r g b (spec)r g b [type]{Dir=0 Pnt=1 Spt=2} [spotExponent] [spotAngle] [spotDir] x y z
 LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
@@ -26,9 +26,9 @@ LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
 // MESH 1  0 0 0  1 1 1 resources/Models/venus.um
 
 ////////////////////////MSH MSH MSH MSH//////////////////////////
-MESH 1  0.2 0.2 0.2     .3 .3 .3  resources/Models/cube.msh
+//MESH 1  0.2 0.2 0.2     .3 .3 .3  resources/Models/cube.msh
 // MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_C.msh
-MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L_closed.msh
+//MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L_closed.msh
 // MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L.msh
 // MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/box.msh
 
@@ -70,7 +70,7 @@ MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_L_closed.msh
 // MESH 1 0 0 0 1 1 1 resources/Models/3DS/sponza.msb
 // MESH 1 0 0 0 1 1 1 resources/Models/3DS/city.msb
 // MESH 1 0 0 0 1 1 1 resources/Models/3DS/museumhallRD.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/3DS/dragon.msb
+MESH 1 0 0 0 1 1 1 resources/Models/3DS/dragon.msb
 
 
 ////////////////////////TEC TEC TEC TEC//////////////////////////

@@ -1,0 +1,1 @@
+lua DoDiff.lua > log.txt

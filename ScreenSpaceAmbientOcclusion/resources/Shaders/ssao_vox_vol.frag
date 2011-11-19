@@ -37,6 +37,12 @@ uniform sampler2D bitCount16;         /**< Number of bits counter Texture(Max 16
 uniform mat4 projInv;
 
 /**
+ * Algorithm Parameters
+ */
+uniform float rfarPercent;
+uniform float contrast; 
+
+/**
  * Projection Parameters
  */
 uniform float screenWidth;
@@ -223,7 +229,7 @@ void main()
   \*************************/
   float ao = 0.0;
   float s = 0.0;
-  float rfar = .05*far/2.0;
+  float rfar = rfarPercent*far/2.0;
   for(int i = 0; i < numSamplers; ++i)
   {
     vec3 sampler = getSampler(0, i, rfar*.99);
@@ -256,7 +262,7 @@ void main()
     
     
     
-   float d = length(sampler);
+  float d = length(sampler);
   float zi = sqrt(rfar*rfar - d*d) ;
   float zo = -zi;
   vec3 point = eyePosition + normal*rfar + sampler;
@@ -342,7 +348,7 @@ void main()
   if(s != 0.0)
     ao = ao/(s);
   //ao = ao*(3.0/(2.0*rfar*2.0*numSamplers));
-  ao = clamp(ao, 0.0, 1.0);
+  ao = clamp(ao*contrast, 0.0, 1.0);
 
   gl_FragData[0] = WHITE*(1.0 - ao);
 }

@@ -149,8 +149,9 @@ void main()
   // Do nothing if the depth value is negative
 	if(depth < 0.0)
 	{
-		gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
-		return;
+		//gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
+		//return;
+		discard;
 	}
 
   /**
