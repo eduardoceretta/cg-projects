@@ -38,7 +38,7 @@
 KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
                                                  GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
-: KernelBase(path, "ssao_vox_cone.vert", "ssao_vox_cone.frag", width, height)
+: KernelBase(path, "ssao_vox_cone_tracing.vert", "ssao_vox_cone_tracing.frag", width, height)
 ,m_width(width)
 ,m_height(height)
 ,m_coneDirSamplersWidth(0)

@@ -19,7 +19,7 @@
 KernelSSAO_Vox_TanSphereVolume::KernelSSAO_Vox_TanSphereVolume(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
                                                  GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
-: KernelBase(path, "ssao_vox_vol.vert", "ssao_vox_vol.frag", width, height)
+: KernelBase(path, "ssao_vox_tan_sphere_volume.vert", "ssao_vox_tan_sphere_volume.frag", width, height)
 ,m_width(width)
 ,m_height(height)
 ,m_numSamplers(16)
