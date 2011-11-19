@@ -18,8 +18,9 @@ void main()
   // Do nothing if any alpha value is negative
   if(ssao.a < 0.0 || color.a < 0.0)
 	{
-		gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
-		return;
+		//gl_FragData[0] = vec4(.8, .8, 1.0, -1.0);
+		//return;
+		discard;
 	}
   
   //Output
