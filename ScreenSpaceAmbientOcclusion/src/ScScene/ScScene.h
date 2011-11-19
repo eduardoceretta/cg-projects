@@ -38,6 +38,16 @@ protected:
    * OpenGL's Ambient Color
    */
   Color m_ambient;
+  
+  /**
+   * Screen Width
+   */
+  int m_screenWidth;
+
+  /**
+   * Screen Height
+   */
+  int m_screenHeight;
 
   /**
    * Materials Array
@@ -69,17 +79,29 @@ public:
   /**
    * Simple Constructor
    */
-  ScScene(){};
+  ScScene();
 
-  /**
-   * Read the given file name and import the objects
-   */
-  ScScene(string rt4FileName);
 
   /**
    * Delete created textures
    */
   ~ScScene();
+
+  
+  /**
+   * Read the given file name and import the objects
+   */
+  void readSceneObjects(string rt4FileName);
+  
+  /**
+   * Read the given file name and import the scene parameters(win size, clear color...)
+   */
+  void readSceneParameters(string rt4FileName);
+
+  /**
+   * Read the given file name and import parameters and objects
+   */
+  void readScene(string rt4FileName);
 
   /**
    * Update Scene Objects if needed
@@ -115,6 +137,12 @@ public:
    * Get the global ambient color of the scene
    */
   Color getAmbientColor() const;
+
+  /**
+   * Get Screen Size
+   */
+  int getScreenWidth() const;
+  int getScreenHeight() const;
 
   /**
    * Get the camera of the scene

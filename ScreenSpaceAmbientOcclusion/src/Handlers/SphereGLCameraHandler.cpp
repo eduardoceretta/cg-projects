@@ -32,6 +32,7 @@ SphereGLCameraHandler::SphereGLCameraHandler(float r /*= 100.0f*/, float a /*= 0
 ,m_minerLight(new GLPointLight())
 ,m_minerOn(false)
 {
+  m_minerLight->setRenderSphereEnabled(false);
 }
 
 void SphereGLCameraHandler::listenSpecialKeyboard(int key)

@@ -57,6 +57,7 @@ void KernelSSAO_HorizonSplit::step(float* projectionMatrix, float rfar, float pi
     addInputFloat("offsets_size", offsets_size);
     addInputFloat("intensity", intensity);
   m_shader->setActive(false);
+
   KernelBase::step();
 }
 

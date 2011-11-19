@@ -42,15 +42,6 @@ protected:
    */
   float m_far;
 
-  /**
-   * Screen Width
-   */
-  int m_screenWidth;
-
-  /**
-   * Screen Height
-   */
-  int m_screenHeight;
 
 
 public:
@@ -67,7 +58,7 @@ public:
   
   /**
    * Read the attributes from a space separated string.
-   *  String format: pos.x pos.y pos.z at.x at.y at.z up.x up.y up.z fovy near far screenWidth screenHeight
+   *  String format: pos.x pos.y pos.z at.x at.y at.z up.x up.y up.z fovy near far
    */
   void readFromStr(char buffer[]);
 
@@ -80,8 +71,6 @@ public:
   float getFovy() const;
   float getNear() const;
   float getFar() const;
-  int getScreenWidth() const;
-  int getScreenHeight() const;
 };
 
 

@@ -66,22 +66,24 @@ public:
   ~GLTextureObject();
 
   /**
-   * Create a 1D texture.
+   * Create\Set a 1D texture.
    *  InternalFormat: Specifies the number of color components in the texture. [GL_ALPHA, GL_RGB, GL_RGBA, GL_RGBA32F_ARB, GL_RGBA32UI_EXT...]
    *  Format: Specifies the format of the pixel data. [GL_ALPHA, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE, GL_LUMINANCE_ALPHA...]
    *  Type: Specifies the data type of the pixel data. [GL_UNSIGNED_BYTE, GL_BYTE, GL_UNSIGNED_INT, GL_INT, GL_FLOAT...]
    *  Data: Specifies a pointer to the image data in memory. 
    */
-  void createTexture1D(int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0);
+  GLuint createTexture1D(int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0);
+  void setTexture1D(GLuint textureId, int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0 );
 
   /**
-   * Create a 2D texture.
+   * Create\Set a 2D texture.
    *  InternalFormat: Specifies the number of color components in the texture. [GL_ALPHA, GL_RGB, GL_RGBA, GL_RGBA32F_ARB, GL_RGBA32UI_EXT...]
    *  Format: Specifies the format of the pixel data. [GL_ALPHA, GL_RGB, GL_BGR, GL_RGBA, GL_BGRA, GL_LUMINANCE, GL_LUMINANCE_ALPHA...]
    *  Type: Specifies the data type of the pixel data. [GL_UNSIGNED_BYTE, GL_BYTE, GL_UNSIGNED_INT, GL_INT, GL_FLOAT...]
    *  Data: Specifies a pointer to the image data in memory. 
    */
-  void createTexture2D(int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0);
+  GLuint createTexture2D(int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0);
+  void setTexture2D(GLuint textureId, int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data = 0);
 
   /**
    * Create a 2D texture that is used for FBO Data.
@@ -162,8 +164,9 @@ public:
    * Write the texture to a file.
    *  The image will be RGBA UNSIGNED CHAR 32 bits
    */
-  void write2DToFile(string fileName, ImageFileType fileType = PNG);
-  
+  void write2DToFile(string path, string fileName, ImageFileType fileType = PNG);
+ 
+
 };
 
 #endif

@@ -111,7 +111,7 @@ void KernelSSAO_Vox_TanSphereVolume::setActiveShaderOnly(bool op, GLProjectionMa
 }
 
 
-void KernelSSAO_Vox_TanSphereVolume::step( GLProjectionMatrix *projectionMatrix )
+void KernelSSAO_Vox_TanSphereVolume::step( GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast)
 {
   float znear = projectionMatrix->getNear();
   float zfar = projectionMatrix->getFar();
@@ -134,6 +134,9 @@ void KernelSSAO_Vox_TanSphereVolume::step( GLProjectionMatrix *projectionMatrix 
   if(m_shader)
   {
     m_shader->setActive(true);
+    addInputFloat("rfarPercent", rfarPercent);
+    addInputFloat("contrast", contrast);
+
     addInputFloat("near", znear);
     addInputFloat("far", zfar);
     addInputFloat("right", right);

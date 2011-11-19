@@ -39,6 +39,7 @@ void KernelBlur::step(float pixelmask_size, GLfloat offsets_size, GLfloat intens
     addInputFloat("offsets_size", offsets_size);
     addInputFloat("intensity", intensity);
   m_shader->setActive(false);
+ 
   KernelBase::step();
 }
 

@@ -20,16 +20,14 @@ ScCamera :: ScCamera(Vector3 pos, Vector3 at, Vector3 up, float fovy,
 ,m_fovy(fovy)
 ,m_near(near)
 ,m_far(far)
-,m_screenWidth(screenWidth)
-,m_screenHeight(screenHeight)
 {
 }
 
 void ScCamera :: readFromStr(char buffer[])
 {
-   int r = sscanf( buffer, "%f %f %f %f %f %f %f %f %f %f %f %f %d %d\n", &m_pos.x, &m_pos.y, &m_pos.z,
-      &m_at.x, &m_at.y, &m_at.z, &m_up.x, &m_up.y, &m_up.z, &m_fovy, &m_near, &m_far, &m_screenWidth, &m_screenHeight);
-   assert(r == 14);
+   int r = sscanf( buffer, "%f %f %f %f %f %f %f %f %f %f %f %f\n", &m_pos.x, &m_pos.y, &m_pos.z,
+      &m_at.x, &m_at.y, &m_at.z, &m_up.x, &m_up.y, &m_up.z, &m_fovy, &m_near, &m_far);
+   assert(r == 12);
 }
 
 Vector3 ScCamera::getPos() const
@@ -60,14 +58,4 @@ float ScCamera::getNear() const
 float ScCamera::getFar() const
 {
   return m_far;
-}
-
-int ScCamera::getScreenWidth() const
-{
-  return m_screenWidth;
-}
-
-int ScCamera::getScreenHeight() const
-{
-  return m_screenHeight;
 }

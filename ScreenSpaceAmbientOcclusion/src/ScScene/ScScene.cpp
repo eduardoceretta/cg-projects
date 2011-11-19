@@ -18,115 +18,24 @@
 
 using namespace std;
 
-ScScene :: ScScene(string rt4FileName)
+ScScene :: ScScene()
 :m_calculated(false)
 ,m_lightEnabled(true)
+,m_screenWidth(0)
+,m_screenHeight(0)
 {
-  readFromFile(rt4FileName);
-  configure();
+
 }
 
 ScScene :: ~ScScene()
 {
 }
 
-void ScScene :: readFromFile(string rt4FileName)
-{
-	FILE *file;
-	char buffer[1024];
-
-	file = fopen(rt4FileName.c_str(), "rt");
-  MyAssert("File Not Found: " + rt4FileName, file);
-  cout << "Reading Scene: " << rt4FileName << "...\n" << endl;
-
-	int numScene = 0;
-	int numCamera = 0;
-	int numMaterials = 0;
-	int numMeshes = 0;
-	int numLights = 0;
-
-	while(!feof(file))
-	{
-	   fscanf(file, "%s", buffer);
-     if(buffer[0] == '#' || (buffer[0] == '/' && buffer[1] == '/') ) 
-     {
-       /* Ignore Coment */
-       fscanf(file, "%*[^\n]s");
-     }
-     else if(!strcmp(buffer, "RT"))
-	   {
-			/* Ignore File Version Information */
-         fscanf(file, "%*[^\n]s");
-	   }else if(!strcmp(buffer, "CAMERA"))
-      {
-         numCamera++;
-         if(numCamera > 1)
-         {
-            fscanf(file, "%*[^\n]s");
-            cout << "Cameras Multiplas definidas!" <<endl;
-         }else
-         {
-            fscanf(file, "%[^\n]s", buffer);
-            m_camera.readFromStr(buffer);
-         }
-      }else if(!strcmp(buffer, "SCENE"))
-      {
-         numScene++;
-         if(numScene > 1)
-         {
-            fscanf(file, "%*[^\n]s");
-            cout << "Cenas Multiplas definidas!" <<endl;
-         }else
-         {
-            fscanf(file, "%[^\n]s", buffer);
-            readFromStr(buffer);
-         }
-		}else if(!strcmp(buffer, "MATERIAL"))
-		{
-         numMaterials++;
-         fscanf(file, "%[^\n]s", buffer);
-         ScMaterial m;
-         m.readFromStr(buffer);
-         m_materials.push_back(m);
-		}else if(!strcmp(buffer, "LIGHT"))
-		{
-         numLights++;
-         if(numScene > ScLight::Max_Lights)
-         {
-            fscanf(file, "%*[^\n]s");
-            cout << "Maximo de Luzes definidas!" <<endl;
-         }else
-         {
-            fscanf(file, "%[^\n]s", buffer);
-            ScLight l;
-            l.readFromStr(buffer);
-            m_lights.push_back(l);
-         }
-      }else if(!strcmp(buffer, "MESH"))
-		{
-      numMeshes++;
-      fscanf(file, "%[^\n]s", buffer);
-      ScMesh m;
-      m.readFromStr(buffer);
-      if(m.getVbo() || m.getP3bMesh())
-        m_meshes.push_back(m);
-		}else
-		{
-			printf( "Ignorando comando: %s\n", buffer );
-         fscanf(file, "%*[^\n]s");
-		}
-	}
-   fclose( file );
-
-	assert(numCamera == 1);
-	assert(numScene == 1);
-}
-
 void ScScene :: readFromStr(char buffer[])
 {
-   int r = sscanf( buffer, "%f %f %f %f %f %f %*s\n", &m_clear.r, &m_clear.g, &m_clear.b,
-      &m_ambient.r, &m_ambient.g, &m_ambient.b); 
-   assert(r == 7-1);
+   int r = sscanf( buffer, "%f %f %f %f %f %f %d %d %*s\n", &m_clear.r, &m_clear.g, &m_clear.b,
+      &m_ambient.r, &m_ambient.g, &m_ambient.b, &m_screenWidth, &m_screenHeight); 
+   assert(r == 9-1);
 }
 
 void ScScene :: configure()
@@ -262,6 +171,16 @@ Color ScScene::getAmbientColor() const
   return m_ambient;
 }
 
+int ScScene::getScreenWidth() const
+{
+  return m_screenWidth;
+}
+
+int ScScene::getScreenHeight() const
+{
+  return m_screenHeight;
+}
+
 ScCamera* ScScene::getCamera()
 {
   return &m_camera;
@@ -308,4 +227,138 @@ Vector3 ScScene::getSceneBoundingBoxMax() const
     bb_max.z = max(mesh.z, bb_max.z);
   }
   return bb_max;
+}
+
+void ScScene::readSceneParameters( string rt4FileName )
+{
+  FILE *file;
+  char buffer[1024];
+
+  file = fopen(rt4FileName.c_str(), "rt");
+  MyAssert("File Not Found: " + rt4FileName, file);
+  cout << "Reading Scene Parameters: " << rt4FileName << "...\n" << endl;
+
+  int numScene = 0;
+
+  while(!feof(file))
+  {
+    fscanf(file, "%s", buffer);
+    if(buffer[0] == '#' || (buffer[0] == '/' && buffer[1] == '/') ) 
+    {
+      /* Ignore Coment */
+      fscanf(file, "%*[^\n]s");
+    }
+    else if(!strcmp(buffer, "RT"))
+    {
+      /* Ignore File Version Information */
+      fscanf(file, "%*[^\n]s");
+    }else if(!strcmp(buffer, "SCENE"))
+    {
+      numScene++;
+      if(numScene > 1)
+      {
+        fscanf(file, "%*[^\n]s");
+        cout << "Cenas Multiplas definidas!" <<endl;
+      }else
+      {
+        fscanf(file, "%[^\n]s", buffer);
+        readFromStr(buffer);
+      }
+      break;
+    }else
+    {
+      printf( "Ignorando comando: %s\n", buffer );
+      fscanf(file, "%*[^\n]s");
+    }
+  }
+  fclose( file );
+
+  assert(numScene == 1);
+  configure();
+}
+
+void ScScene::readSceneObjects( string rt4FileName )
+{
+  FILE *file;
+  char buffer[1024];
+
+  file = fopen(rt4FileName.c_str(), "rt");
+  MyAssert("File Not Found: " + rt4FileName, file);
+  cout << "Reading Scene Objects: " << rt4FileName << "...\n" << endl;
+
+  int numCamera = 0;
+  int numMaterials = 0;
+  int numMeshes = 0;
+  int numLights = 0;
+
+  while(!feof(file))
+  {
+    fscanf(file, "%s", buffer);
+    if(buffer[0] == '#' || (buffer[0] == '/' && buffer[1] == '/') ) 
+    {
+      /* Ignore Coment */
+      fscanf(file, "%*[^\n]s");
+    }
+    else if(!strcmp(buffer, "RT"))
+    {
+      /* Ignore File Version Information */
+      fscanf(file, "%*[^\n]s");
+    }else if(!strcmp(buffer, "CAMERA"))
+    {
+      numCamera++;
+      if(numCamera > 1)
+      {
+        fscanf(file, "%*[^\n]s");
+        cout << "Cameras Multiplas definidas!" <<endl;
+      }else
+      {
+        fscanf(file, "%[^\n]s", buffer);
+        m_camera.readFromStr(buffer);
+      }
+    }else if(!strcmp(buffer, "MATERIAL"))
+    {
+      numMaterials++;
+      fscanf(file, "%[^\n]s", buffer);
+      ScMaterial m;
+      m.readFromStr(buffer);
+      m_materials.push_back(m);
+    }else if(!strcmp(buffer, "LIGHT"))
+    {
+      numLights++;
+      if(numLights > ScLight::Max_Lights)
+      {
+        fscanf(file, "%*[^\n]s");
+        cout << "Maximo de Luzes definidas!" <<endl;
+      }else
+      {
+        fscanf(file, "%[^\n]s", buffer);
+        ScLight l;
+        l.readFromStr(buffer);
+        m_lights.push_back(l);
+      }
+    }else if(!strcmp(buffer, "MESH"))
+    {
+      numMeshes++;
+      fscanf(file, "%[^\n]s", buffer);
+      ScMesh m;
+      m.readFromStr(buffer);
+      if(m.getVbo() || m.getP3bMesh())
+        m_meshes.push_back(m);
+    }else
+    {
+      printf( "Ignorando comando: %s\n", buffer );
+      fscanf(file, "%*[^\n]s");
+    }
+  }
+  fclose( file );
+
+  assert(numCamera == 1);
+  configure();
+}
+
+void ScScene::readScene( string rt4FileName )
+{
+  readSceneParameters(rt4FileName);
+  readSceneObjects(rt4FileName);
+  configure();
 }

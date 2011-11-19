@@ -13,10 +13,10 @@
 /**
  * Tests Defines
  */
-//#define TESTS
+#define TESTS
 #ifdef TESTS
-#  define LOG_TESTS
-#  define TIME_TEST
+//#  define LOG_TESTS
+//#  define TIME_TEST
 #  define SCREENSHOT_TEST
 #endif
 
@@ -137,6 +137,7 @@ public:
 #include "Handlers/SphereGLCameraHandler.h"
 #define SCREEN_TEST_INTERSCREEN_FRAMES 20
 #define SCREEN_TEST_CAM_ROT_ANGLE 90
+#define SCREEN_TEST_PATH "./resources/Tests/ScreenShots"
 
 class ScreenShotTest
 {
@@ -146,10 +147,13 @@ public:
   ScreenShotTest();
   ~ScreenShotTest();
 
-  void save(GLint texid, string type = "");
-  void configureCamera(SphereGLCameraHandler *cam);
-  bool isTestEnded();
   void update();
+  bool isOver();
+  void reset();
+ 
+  void save(GLint texid, string path = "",  string type = "");
+
+  void configureCamera(SphereGLCameraHandler *cam);
 };
 #endif
 
