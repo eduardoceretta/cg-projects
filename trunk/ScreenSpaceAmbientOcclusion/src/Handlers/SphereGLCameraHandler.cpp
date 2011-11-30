@@ -16,23 +16,17 @@
 using namespace std;
 
 SphereGLCameraHandler::SphereGLCameraHandler(float r /*= 100.0f*/, float a /*= 0.0f*/, float b /*= 0.0f*/, float inc /*=5.0*/)
-:m_pos(Vector3(0,0,0))
-,m_at(Vector3(0,0,0))
-,m_up(Vector3(0,0,0))
+:GLCameraHandler()
 ,m_r(r)
 ,m_alpha(a)
 ,m_beta(b)
 ,m_inc(inc)
 ,m_rinc(m_r*.3)
-,m_lastMousePosX(0.0f)
-,m_lastMousePosY(0.0f)
-,m_mouseState(GLUT_UP)
-,m_mouseButton(GLUT_RIGHT_BUTTON)
-,m_modifier(0)
-,m_minerLight(new GLPointLight())
-,m_minerOn(false)
 {
-  m_minerLight->setRenderSphereEnabled(false);
+}
+
+SphereGLCameraHandler::~SphereGLCameraHandler()
+{
 }
 
 void SphereGLCameraHandler::listenSpecialKeyboard(int key)
@@ -100,48 +94,6 @@ void SphereGLCameraHandler::render()
 }
 
 
-void SphereGLCameraHandler::renderMinerLight()
-{
-  if(m_minerOn)
-  {
-    m_minerLight->configure();
-    m_minerLight->render();
-  }
-}
-
-GLLight * SphereGLCameraHandler::getMinerLight() const
-{
-  return m_minerLight;
-}
-
-void SphereGLCameraHandler::setMinerLight(GLLight * val )
-{
-  if(m_minerLight)
-    delete m_minerLight;
-  m_minerLight = val;
-}
-
-void SphereGLCameraHandler::setMinerLightOn(bool val )
-{
-  m_minerOn = val;
-}
-
-void SphereGLCameraHandler::setSphereAlpha( float alpha )
-{
-  m_alpha = alpha;
-}
-
-void SphereGLCameraHandler::setSphereBeta( float beta )
-{
-  m_beta = beta;
-}
-
-void SphereGLCameraHandler::setSphereRadius( float radius )
-{
-  m_r = radius;
-  m_rinc = m_r*.3;
-}
-
 void SphereGLCameraHandler::setViewBoundingBox(Vector3 bb_min, Vector3 bb_max , float fovy)
 {
   Vector3 bb_center =  (bb_max + bb_min)*.5;
@@ -150,6 +102,11 @@ void SphereGLCameraHandler::setViewBoundingBox(Vector3 bb_min, Vector3 bb_max , 
   float size = max(max(bb_size.x, bb_size.y), bb_size.z)/2;
   m_r = (size/tan(DEG_TO_RAD(fovy/2)) + size)*1.2f;
   m_rinc = m_r*.3;
+}
+
+Vector3 SphereGLCameraHandler::getPos() const
+{
+  return m_pos + m_at;
 }
 
 float SphereGLCameraHandler::getSphereAlpha() const
@@ -167,33 +124,18 @@ float SphereGLCameraHandler::getSphereRadius() const
   return m_r;
 }
 
-Vector3 SphereGLCameraHandler::getPos() const
+void SphereGLCameraHandler::setSphereAlpha( float alpha )
 {
-  return m_pos + m_at;
+  m_alpha = alpha;
 }
 
-void SphereGLCameraHandler::setPos( Vector3 val )
+void SphereGLCameraHandler::setSphereBeta( float beta )
 {
-  m_pos = val;
+  m_beta = beta;
 }
 
-Vector3 SphereGLCameraHandler::getAt() const
+void SphereGLCameraHandler::setSphereRadius( float radius )
 {
-  return m_at;
+  m_r = radius;
+  m_rinc = m_r*.3;
 }
-
-void SphereGLCameraHandler::setAt( Vector3 val )
-{
-  m_at = val;
-}
-
-Vector3 SphereGLCameraHandler::getUp() const
-{
-  return m_up;
-}
-
-void SphereGLCameraHandler::setUp( Vector3 val )
-{
-  m_up = val;
-}
-

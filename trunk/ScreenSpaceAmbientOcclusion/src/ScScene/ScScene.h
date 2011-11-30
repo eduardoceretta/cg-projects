@@ -65,9 +65,9 @@ protected:
   vector<ScMesh> m_meshes;
 
   /**
-   * Scene's Initial Camera
+   * Scene's Multiple Cameras
    */
-  ScCamera m_camera;
+  vector<ScCamera> m_cameras;
   
   /**
    * Indicates if the scene lights are on
@@ -145,9 +145,19 @@ public:
   int getScreenHeight() const;
 
   /**
-   * Get the camera of the scene
+   * Get the first camera of the scene
    */
   ScCamera* getCamera();
+  
+  /**
+   * Get the number of imported cameras
+   */
+  int getNumCameras();
+
+  /**
+   * Get the ith camera imported
+   */
+  ScCamera* getCameraAt(int i);
 
   /**
    * Verify if scene's lights are on

@@ -35,7 +35,7 @@
 class ScScene;
 class P3bMeshFile;
 
-class SphereGLCameraHandler;
+class GLCameraHandler;
 class GLFont;
 class Frames;
 
@@ -83,8 +83,9 @@ class App
   /**
    * Render Objects
    */
-  SphereGLCameraHandler *m_camHandler;
-  vector<SphereGLCameraHandler*> m_kernelsCamHandleres;
+  GLCameraHandler *m_camHandler;
+  vector<GLCameraHandler*> m_kernelsCamHandleres;
+  int m_customCameraIndex;
 
   GLFont *m_fontRender;
   Frames *m_frames;
@@ -146,14 +147,15 @@ class App
   /**
    * Render Mode
    */
-  enum RenderMode{NoShader
+  enum RenderMode{NoShader = 0
                  ,SSAO_SphereApproximation
                  ,SSAO_HorizonSplit
                  ,SSAO_Vox_RayMarch
                  ,SSAO_Vox_TanSphereVolume
                  ,SSAO_Vox_ConeTracing
                  ,Voxelization
-                 ,Debug};
+                 ,Debug
+                 ,CustomCameras = 2*Debug};
 
   static string s_renderModeStr[];
 

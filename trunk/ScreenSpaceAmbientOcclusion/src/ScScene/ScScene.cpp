@@ -183,9 +183,18 @@ int ScScene::getScreenHeight() const
 
 ScCamera* ScScene::getCamera()
 {
-  return &m_camera;
+  return getCameraAt(0);
 }
 
+int ScScene::getNumCameras()
+{
+  return m_cameras.size();
+}
+
+ScCamera* ScScene::getCameraAt( int i )
+{
+  return &m_cameras.at(i);
+}
 
 Vector3 ScScene::getSceneBoundingBoxSize() const
 {
@@ -267,7 +276,6 @@ void ScScene::readSceneParameters( string rt4FileName )
       break;
     }else
     {
-      printf( "Ignorando comando: %s\n", buffer );
       fscanf(file, "%*[^\n]s");
     }
   }
@@ -286,7 +294,7 @@ void ScScene::readSceneObjects( string rt4FileName )
   MyAssert("File Not Found: " + rt4FileName, file);
   cout << "Reading Scene Objects: " << rt4FileName << "...\n" << endl;
 
-  int numCamera = 0;
+  int numCameras = 0;
   int numMaterials = 0;
   int numMeshes = 0;
   int numLights = 0;
@@ -305,20 +313,17 @@ void ScScene::readSceneObjects( string rt4FileName )
       fscanf(file, "%*[^\n]s");
     }else if(!strcmp(buffer, "CAMERA"))
     {
-      numCamera++;
-      if(numCamera > 1)
-      {
-        fscanf(file, "%*[^\n]s");
-        cout << "Cameras Multiplas definidas!" <<endl;
-      }else
-      {
-        fscanf(file, "%[^\n]s", buffer);
-        m_camera.readFromStr(buffer);
-      }
+      numCameras++;
+      fscanf(file, "%[^\n]s", buffer);
+
+      ScCamera c;
+      c.readFromStr(buffer);
+      m_cameras.push_back(c);
     }else if(!strcmp(buffer, "MATERIAL"))
     {
       numMaterials++;
       fscanf(file, "%[^\n]s", buffer);
+
       ScMaterial m;
       m.readFromStr(buffer);
       m_materials.push_back(m);
@@ -346,13 +351,11 @@ void ScScene::readSceneObjects( string rt4FileName )
         m_meshes.push_back(m);
     }else
     {
-      printf( "Ignorando comando: %s\n", buffer );
       fscanf(file, "%*[^\n]s");
     }
   }
   fclose( file );
 
-  assert(numCamera == 1);
   configure();
 }
 
@@ -362,3 +365,4 @@ void ScScene::readScene( string rt4FileName )
   readSceneObjects(rt4FileName);
   configure();
 }
+

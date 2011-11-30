@@ -24,6 +24,8 @@ ScMesh :: ScMesh()
 :m_calculated(false)
 ,m_vbo(NULL)
 ,m_p3bMesh(NULL)
+,m_fileName("")
+,m_fullFilePath("")
 {
   m_myMeshNum = s_meshNum++;
 }
@@ -48,14 +50,19 @@ void ScMesh :: readFromStr(char buffer[])
    string fileName(buffer);
 
    int index = fileName.find_last_of(".");
+   int indexSlash = fileName.find_last_of("/");
    MyAssert("Invalid FileName: " + fileName, index!=string::npos);
    string sub = fileName.substr(index, string::npos);
+
+   m_fileName = fileName.substr(indexSlash + 1, index - indexSlash - 1);
+   m_fullFilePath = fileName;
 
    MeshLoader m;
    if(m.isValidFileType(sub))
    {
      m.readFile(fileName, m_pos, m_scale);
      m_vbo = m.getVbo();
+
    }else
    {
      if(P3bMeshFile::isValidFileType(sub))
@@ -167,5 +174,15 @@ Vector3 ScMesh::getBoundingBoxMax() const
   }
 
   return Vector3(numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ), numeric_limits<float>::infinity( ));
+}
+
+string ScMesh::getFileName() const
+{
+  return m_fileName;
+}
+
+string ScMesh::getFullFilePath() const
+{
+  return m_fullFilePath;
 }
 
