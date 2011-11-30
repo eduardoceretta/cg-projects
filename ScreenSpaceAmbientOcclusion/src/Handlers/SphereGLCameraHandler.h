@@ -10,27 +10,13 @@
 
 #include <gl/glut.h>
 #include "MathUtils/Vector3.h"
+#include "Handlers/GLCameraHandler.h"
 
 class GLLight;
 
-class SphereGLCameraHandler
+class SphereGLCameraHandler : public GLCameraHandler
 {
 protected:
-  /**
-   * Camera World Position
-   */
-  Vector3 m_pos;
-
-  /**
-   * Camera LookAt Position
-   */
-  Vector3 m_at;
-
-  /**
-   * Camera Up Vector
-   */
-  Vector3 m_up;
-
   /**
    * Sphere Radius
    */
@@ -52,34 +38,12 @@ protected:
   float m_inc;
   float m_rinc;
 
-  /**
-   * Mouse control Attributes
-   */
-  float m_lastMousePosX;
-  float m_lastMousePosY;
-  int m_mouseState;
-  int m_mouseButton;
-  
-  /**
-   * Keyboard modifier key (GLUT_ACTIVE_SHIFT...)
-   */
-  int m_modifier;
-
-  /**
-   * Light always at the camera position
-   */
-  GLLight *m_minerLight;
-
-  /**
-   * Indicates if the Miner Light is On
-   */
-  bool m_minerOn;
-  
 public:
   /**
    * Construct the handler and initialize the sphere attributes
    */
   SphereGLCameraHandler(float sphereRadius = 100.0f, float sphereAlpha = 0.0f, float sphereBeta = 0.0f,  float inc = 5.0f);
+  ~SphereGLCameraHandler();
   
   /**
    *  FUTURE WORK
@@ -101,44 +65,17 @@ public:
   void setSphereAlpha(float alpha);
   void setSphereBeta(float beta);
   void setSphereRadius(float radius);
-  void setPos(Vector3 val);
-  void setAt(Vector3 val);
-  void setUp(Vector3 val);
 
   float getSphereAlpha() const;
   float getSphereBeta() const;
   float getSphereRadius() const;
   Vector3 getPos() const;
-  Vector3 getAt() const;
-  Vector3 getUp() const;
-
-
-  /**
-   * Get the Miner Light Pointer
-   */ 
-  GLLight* getMinerLight() const;
-
-  /**
-   * Set the Miner Light Pointer.
-   *  Deletes the previous allocated light
-   */
-  void setMinerLight(GLLight * val);
-
-  /**
-   * Turn on/off the miner light
-   */
-  void setMinerLightOn(bool val);
 
   /**
    * Render an OpenGL Camera
    *  Render the light if it is on
    */
   void render();
-
-  /**
-   * Render only the light if it is on
-   */
-  void renderMinerLight();
 
   /**
    * Make the sphere centered in the bounding box with the appropriated radius size

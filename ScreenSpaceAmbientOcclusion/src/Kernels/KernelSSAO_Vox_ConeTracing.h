@@ -16,6 +16,13 @@
 #include "GLLights/GLPointLight.h"
 #include <vector>
 
+
+#define SPHERECENTER_PARM 2.5 // 3
+#define SPHERERADIUS_PARM 0.5  // 1.5
+
+#define PROG_A0 4
+#define PROG_STEP 2
+
 using namespace std;
 
 class KernelSSAO_Vox_ConeTracing : public KernelBase {
@@ -95,8 +102,8 @@ private:
    */
   void setConeSamplerTexture();
   void setSphereSamplerTexture();
+  void setSphereInfoTexture();
   void setBitCount16Texture();
-
   /**
    * Grid Dimensions	
    */
@@ -121,6 +128,7 @@ private:
    */
   int m_coneDirSamplersWidth;
   GLuint m_texIdConeDirSamplers;
+  
 
 
   /**
@@ -133,6 +141,9 @@ private:
   /**
    * Sphere Samplers
    */
+  int m_sphereInfoWidth;
+  GLuint m_texIdSphereInfo;
+
   int m_sphereSamplersWidth;     
   GLuint m_texIdSphereSamplers;  
   GLfloat* m_sphereSamplers;
@@ -141,6 +152,7 @@ private:
    * Render Samplers Objects
    */
   GLPointLight m_pointLight;
+  
 };
 
 

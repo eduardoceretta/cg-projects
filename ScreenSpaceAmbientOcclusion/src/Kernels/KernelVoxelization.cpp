@@ -494,7 +494,7 @@ void KernelVoxelization::renderVoxelization()
             glTranslatef(pw.x, pw.y, pw.z);
 
             Vector3 size = getGridCellSize(x, y, z, zNear);
-            glScalef(size.x*m_stepX, size.y*m_stepY, size.z*m_stepZ);
+            glScalef(size.x*m_stepX, size.y*m_stepY*m_width/m_height, size.z*m_stepZ);
 
             if(Bit::isBitActiveLeftToRight(pp, z%UINT_BIT_SIZE))
             {

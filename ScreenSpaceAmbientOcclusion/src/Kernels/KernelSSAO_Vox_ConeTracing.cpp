@@ -17,22 +17,41 @@
 #include "GLUtils/GLProjectionMatrix.h"
 #include "MathUtils/UniformPoissonDiskSampler.h"
 
-#define PROG_A0 4
-#define PROG_STEP 2
+
+#define TEXTURE_SPHERE_SAMPLERS
+
+#define TEXTURE_SPHERE_INFO
+//#define CONE_REVOLUTION_ANGLE 1.04719755   //60
+//#define CONE_REVOLUTION_ANGLE 0.785398163    //45
+//#define CONE_REVOLUTION_ANGLE 0.523598776  //30
+#define CONE_REVOLUTION_ANGLE 0.261799388  //15
+
+
+#define getSphereCenterMultiplier(i, numSpheresByCone) \
+  (pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)), SPHERECENTER_PARM))//3
+
+#define getSphereRadiusMultiplier(i, numSpheresByCone, numCones) \
+  (pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)), SPHERERADIUS_PARM)*tan(CONE_REVOLUTION_ANGLE))//1.5
+  //(pow(((float(i) + 1.0)/(float(numSpheresByCone) + 1.0)), SPHERERADIUS_PARM)*sqrt(2.0/float(numCones)))//1.5
+    //(pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)), SPHERERADIUS_PARM)*sqrt(2.0/float(numCones)))//1.5
+
+#define getSphereCenter(eyePosition, coneDir, rfar, multiplier)  \
+  ((eyePosition) + (coneDir)*(rfar)*.8*(multiplier))
+
+#define getSphereRadius(rfar, multiplier) \
+  ((multiplier)*(rfar)*.8)
+
+
 #define ARITPROG_AN(a, d, n) int((a) + ((n-1.0)*(d)))
 #define ARITPROG_SUM(a, d, n) int(((n)*((a)+ARITPROG_AN(a,d,n))/2.0))
 
-#define func(i, numSpheresByCone) \
-  (pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)),3.0))
+#define getNumSphereSamplers(n) \
+  (3)
+  //ARITPROG_AN(PROG_A0, PROG_STEP, (n)+1)
 
-#define func2(i, numSpheresByCone) \
-  (pow(((float(i) + 1.0)/(float(numSpheresByCone) + 1.0)),1.5))
-
-#define getSphereCenter(eyePosition, coneDir, i, rfar, numSpheresByCone)  \
-  ((eyePosition) + (coneDir)*func(i, numSpheresByCone)*(rfar*.8))
-
-#define getSphereRadius(i, rfar, numSpheresByCone, numCones) \
-  func2(i, numSpheresByCone)*(rfar*.8)*sqrt(2.0/float(numCones)) 
+#define getNumSphereSamplersAccumulated(n) \
+  (getNumSphereSamplers(1)*(n))
+  //ARITPROG_SUM(PROG_A0, PROG_STEP, (n))
 
 
 KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, int height, 
@@ -44,18 +63,24 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
 ,m_coneDirSamplersWidth(0)
 ,m_bitCount16Height(0)
 ,m_bitCount16Width(0)
-,m_numSamplersDistributions(5)
+,m_sphereSamplersWidth(0)
+,m_sphereInfoWidth(0)
+,m_numSamplersDistributions(25)
 ,m_numCones(6) //HINT MIN 4
 ,m_numSpheresByCone(3)
 ,m_sphereSamplers(NULL)
 ,m_texIdConeDirSamplers(0)
 ,m_texIdSphereSamplers(0)
+,m_texIdSphereInfo(0)
 ,m_texIdBitCount16(0)
 {
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
   setConeSamplerTexture();
   setSphereSamplerTexture();
+#ifdef TEXTURE_SPHERE_INFO
+  setSphereInfoTexture();
+#endif // TEXTURE_SPHERE_INFO
   setBitCount16Texture();
 
   GLTextureObject t;
@@ -77,13 +102,22 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
     addInputInt("numSpheresByCone", m_numSpheresByCone);
     addInputInt("numSamplersDistributions", m_numSamplersDistributions);
     addInputInt("coneDirSamplersWidth", m_coneDirSamplersWidth);
-    addInputInt("sphereSamplersWidth", m_sphereSamplersWidth);
     addInputInt("bitCount16Width", m_bitCount16Width);
     addInputInt("bitCount16Height", m_bitCount16Height);
     
-    addInputVec3Array("sphereSamplersArray", m_sphereSamplers, m_sphereSamplersWidth);
+#ifdef TEXTURE_SPHERE_INFO
+    addInputInt("sphereInfoWidth", m_sphereInfoWidth);
+    addInputTexture(GL_TEXTURE_1D, "sphereInfo", m_texIdSphereInfo);
+#endif // TEXTURE_SPHERE_INFO
 
+#ifdef TEXTURE_SPHERE_SAMPLERS
+    addInputInt("sphereSamplersWidth", m_sphereSamplersWidth);
     addInputTexture(GL_TEXTURE_1D, "sphereSamplers", m_texIdSphereSamplers);
+#else
+    //addInputVec3Array("sphereSamplersArray", m_sphereSamplers, m_sphereSamplersWidth);
+    addInputVec3Array("sphereSamplersArray", m_sphereSamplers, getNumSphereSamplers(1)*3);
+#endif // TEXTURE_SPHERE_SAMPLERS
+
     addInputTexture(GL_TEXTURE_1D, "coneDirSamplers", m_texIdConeDirSamplers);
     addInputTexture(GL_TEXTURE_1D, "gridInvFunc", texIdGridInvFunction);
     addInputTexture(GL_TEXTURE_2D, "bitCount16", m_texIdBitCount16);
@@ -232,13 +266,13 @@ void KernelSSAO_Vox_ConeTracing::setConeSamplerTexture()
         float r = 1.0f;
 
         if(k > 0)
-          r = (1.0f + float(rand()%10)/100 - .15f);
+          r = (1.0f + float(rand()%10)/100 - .05f);
 
         float coneAngle = atan(sqrt(2.0f/(m_numCones)));
         float angleBeta = (((PI/2 - coneAngle)*(numSamplersAlpha-i-1)/(numSamplersAlpha-1)))*r; //Latitude
 
         if(k > 0)
-          r = (1.0f + float(rand()%30)/100 - .15f);
+          r = (1.0f + float(rand()%10)/100 - .05f);
 
         float  angleAlpha = ((j)*(2*PI)/(betaSize) + ((i%2))*(2*PI)/(2*betaSize))*r ;
 
@@ -273,6 +307,12 @@ void KernelSSAO_Vox_ConeTracing::renderSamplerDistribution(int distribution)
 
   GLTextureObject t(m_texIdConeDirSamplers, GL_TEXTURE_1D);
   GLfloat *texData =  &t.read1DTextureFloatData(GL_RGB)[distribution*numSamplersAlpha*numSamplersBeta*3];
+
+#ifdef TEXTURE_SPHERE_INFO
+  GLTextureObject t2(m_texIdSphereInfo, GL_TEXTURE_1D);
+  GLfloat *texDataInfo =  &t2.read1DTextureFloatData(GL_LUMINANCE_ALPHA)[distribution*m_numSpheresByCone *2];
+#endif // TEXTURE_SPHERE_INFO
+
   glPushMatrix();
     glScalef(2.0f,1.0f,2.0f);
     glTranslatef(0.0f, .5f, 0.0f);
@@ -324,8 +364,15 @@ void KernelSSAO_Vox_ConeTracing::renderSamplerDistribution(int distribution)
         for(int i = 0; i < m_numSpheresByCone; ++i)
         {
           glPushMatrix();
-          float radius = getSphereRadius(i, 1, m_numSpheresByCone,  m_numCones) ;
-          Vector3 center = getSphereCenter(Vector3(0,0,0), Vector3(0,1,0), i, 1, m_numSpheresByCone);
+
+#ifdef TEXTURE_SPHERE_INFO
+          Vector3 center = getSphereCenter(Vector3(0,0,0), Vector3(0,1,0), 1, texDataInfo[i*2 + 0]);
+          float radius = getSphereRadius(1, texDataInfo[i*2 + 1]);
+#else
+          Vector3 center = getSphereCenter(Vector3(0,0,0), Vector3(0,1,0), 1, getSphereCenterMultiplier(i, m_numSpheresByCone));
+          float radius = getSphereRadius(1, getSphereRadiusMultiplier(i, m_numSpheresByCone,  m_numCones));
+#endif // TEXTURE_SPHERE_INFO
+
           glTranslatef(center.x, center.y, center.z);
           glutSolidSphere(radius, 30, 30);
           glPopMatrix();
@@ -337,7 +384,11 @@ void KernelSSAO_Vox_ConeTracing::renderSamplerDistribution(int distribution)
         glRotated(90,1,0,0);
         glTranslatef(0,0,-1);
         float coneHeight = 1.0f;
+#ifdef CONE_REVOLUTION_ANGLE
+        float coneAngle = CONE_REVOLUTION_ANGLE;
+#else
         float coneAngle = atan(sqrt(2.0f/(m_numCones)));
+#endif
         float coneRadius = coneHeight*tan(coneAngle);
 
         GLfloat color[4] = {1,1,0,1};
@@ -350,36 +401,6 @@ void KernelSSAO_Vox_ConeTracing::renderSamplerDistribution(int distribution)
 
     }
   }
-
-
-
- /* 
- glPushMatrix();
-    float coneHeight = 1.0f;
-    float coneAngle = atan(sqrt(2.0f/(m_numCones)));
-    float coneRadius = coneHeight*tan(coneAngle);
-    glRotated(90,1,0,0);
-    glTranslatef(0,0,-1);
-    glutWireCone(coneRadius, coneHeight, 50, 50);
-  glPopMatrix();
-
-  glPushAttrib(GL_LIGHTING_BIT);
-  GLfloat color2[4] = {0,1,1,1};
-  glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT,  color2);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,  color2);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color2);
-
-  for(int i = 0; i < m_numSpheresByCone; ++i)
-  {
-    glPushMatrix();
-    float radius = getSphereRadius(i, 1, m_numSpheresByCone,  m_numCones) ;
-    Vector3 center = getSphereCenter(Vector3(0,0,0), Vector3(0,1,0), i, 1, m_numSpheresByCone);
-    glTranslatef(center.x, center.y, center.z);
-    glutSolidSphere(radius, 30, 30);
-    glPopMatrix();
-  }
-  glPopAttrib();
-  /**/
   glPopMatrix();
   glPopAttrib();
 }
@@ -416,20 +437,27 @@ void KernelSSAO_Vox_ConeTracing::setBitCount16Texture()
 void KernelSSAO_Vox_ConeTracing::setSphereSamplerTexture()
 {
   UniformPoissonDiskSampler u;
-  int totalAritProgSum = ARITPROG_SUM(PROG_A0, PROG_STEP, m_numSpheresByCone);
+  int totalAritProgSum = getNumSphereSamplersAccumulated(m_numSpheresByCone);
  
   m_sphereSamplersWidth = m_numSamplersDistributions*totalAritProgSum;
-  //GLfloat* texData = new GLfloat[m_sphereSamplersWidth*3];
+  
+#ifdef TEXTURE_SPHERE_SAMPLERS
+  GLfloat* texData = new GLfloat[m_sphereSamplersWidth*3];
+#else
   if(m_sphereSamplers)
     delete[] m_sphereSamplers;
   m_sphereSamplers = new GLfloat[m_sphereSamplersWidth*3];
+  GLfloat* texData = m_sphereSamplers;
+#endif // TEXTURE_SPHERE_SAMPLERS
 
   for(int l = 0; l < m_numSamplersDistributions; ++l)
     for(int k = 0; k < m_numSpheresByCone; ++k)
     {
-      int numSphereSamplers = ARITPROG_AN(PROG_A0, PROG_STEP, k+1);
+      int numSphereSamplers = getNumSphereSamplers(k);
 
-      vector<Vector3> v = u.sampleCircle(Vector3(0,0,0), 1.0f, sqrt(1.0f/numSphereSamplers)*1.35f);
+      vector<Vector3> v;
+      for(int l = 0; l < 10 && v.size() < numSphereSamplers; ++l)
+        v = u.sampleCircle(Vector3(0,0,0), 1.0f, (1+l*0.1f)*sqrt(1.0f/numSphereSamplers)*1.35f);
       while(v.size() > numSphereSamplers)
       {
         int k = rand()%v.size();
@@ -437,9 +465,9 @@ void KernelSSAO_Vox_ConeTracing::setSphereSamplerTexture()
       }
       assert(v.size() == numSphereSamplers);
 
-      int aritProgSum = ARITPROG_SUM(PROG_A0, PROG_STEP, k);
+      int aritProgSum = getNumSphereSamplersAccumulated(k);
 
-      GLfloat *d = &m_sphereSamplers[l*totalAritProgSum*3 + aritProgSum*3];
+      GLfloat *d = &texData[l*totalAritProgSum*3 + aritProgSum*3];
 
       for(int i = 0; i < numSphereSamplers; ++i)
       {
@@ -449,28 +477,65 @@ void KernelSSAO_Vox_ConeTracing::setSphereSamplerTexture()
       }
     }
 
+#ifdef TEXTURE_SPHERE_SAMPLERS
   GLTextureObject t;
   if(!m_texIdSphereSamplers)
-    m_texIdSphereSamplers = t.createTexture1D(m_sphereSamplersWidth, GL_RGB32F_ARB, GL_RGB, GL_FLOAT, m_sphereSamplers);
+    m_texIdSphereSamplers = t.createTexture1D(m_sphereSamplersWidth, GL_RGB32F_ARB, GL_RGB, GL_FLOAT, texData);
   else 
-    t.setTexture1D(m_texIdSphereSamplers, m_sphereSamplersWidth, GL_RGB32F_ARB, GL_RGB, GL_FLOAT, m_sphereSamplers);
+    t.setTexture1D(m_texIdSphereSamplers, m_sphereSamplersWidth, GL_RGB32F_ARB, GL_RGB, GL_FLOAT, texData);
 
   t.setFilters(GL_NEAREST, GL_NEAREST);
   t.setWraps(GL_CLAMP_TO_EDGE);
-  //delete [] texData;
+
+  delete [] texData;
+#endif // TEXTURE_SPHERE_SAMPLERS
+}
+
+void KernelSSAO_Vox_ConeTracing::setSphereInfoTexture()
+{
+  m_sphereInfoWidth = m_numSamplersDistributions*m_numSpheresByCone;
+  GLfloat* texData = new GLfloat[m_sphereInfoWidth*2];
+
+  for(int l = 0; l < m_numSamplersDistributions; ++l)
+  {
+    GLfloat *d = &texData[l*m_numSpheresByCone*2];
+    for(int k = 0; k < m_numSpheresByCone; ++k)
+    {
+      float r = 1.0;
+      if(l > 0)
+        r = (1.0f + float(rand()%10)/100 - .05f);
+
+      d[k*2 + 0] = getSphereCenterMultiplier(k, m_numSpheresByCone)*r;
+      d[k*2 + 1] = getSphereRadiusMultiplier(k, m_numSpheresByCone, m_numCones)*r;
+    }
+  }
+
+  GLTextureObject t;
+  if(!m_texIdSphereInfo)
+    m_texIdSphereInfo = t.createTexture1D(m_sphereInfoWidth, GL_LUMINANCE_ALPHA32F_ARB, GL_LUMINANCE_ALPHA, GL_FLOAT, texData);
+  else 
+    t.setTexture1D(m_texIdSphereInfo, m_sphereInfoWidth, GL_LUMINANCE_ALPHA32F_ARB, GL_LUMINANCE_ALPHA, GL_FLOAT, texData);
+
+  t.setFilters(GL_NEAREST, GL_NEAREST);
+  t.setWraps(GL_CLAMP_TO_EDGE);
+  delete [] texData;
 }
 
 void KernelSSAO_Vox_ConeTracing::renderSphereSamplerDistribution(int distribution, int sphereIndex)
 {
-  int numSphereSamplers = ARITPROG_AN(PROG_A0, PROG_STEP, sphereIndex+1);
-  int aritProgSum = ARITPROG_SUM(PROG_A0, PROG_STEP, sphereIndex);
+  int numSphereSamplers = getNumSphereSamplers(sphereIndex);
+  int aritProgSum = getNumSphereSamplersAccumulated(sphereIndex);
 
-  int totalAritProgSum = ARITPROG_SUM(PROG_A0, PROG_STEP, m_numSpheresByCone);
+  int totalAritProgSum = getNumSphereSamplersAccumulated(m_numSpheresByCone);
 
   glPushMatrix();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
+#ifdef TEXTURE_SPHERE_SAMPLERS
   GLTextureObject t(m_texIdSphereSamplers, GL_TEXTURE_1D);
   GLfloat *texData =  &t.read1DTextureFloatData(GL_RGB)[distribution*totalAritProgSum*3 + aritProgSum*3];
+#else
+  GLfloat *texData =  &m_sphereSamplers[distribution*totalAritProgSum*3 + aritProgSum*3];
+#endif
   glPushMatrix();
   glScalef(2.0f,2.0f, 0.000000001f);
   //glTranslatef(0.0f, .5f, 0.0f);
@@ -496,7 +561,10 @@ void KernelSSAO_Vox_ConeTracing::renderSphereSamplerDistribution(int distributio
 void KernelSSAO_Vox_ConeTracing::reloadShaderInput()
 {
   setConeSamplerTexture();
-  setSphereSamplerTexture();
+  //setSphereSamplerTexture();
+#ifdef TEXTURE_SPHERE_INFO
+  setSphereInfoTexture();
+#endif // TEXTURE_SPHERE_INFO
 
   //Input
   m_shader->setActive(true);
@@ -506,9 +574,19 @@ void KernelSSAO_Vox_ConeTracing::reloadShaderInput()
     addInputInt("coneDirSamplersWidth", m_coneDirSamplersWidth);
     addInputTexture(GL_TEXTURE_1D, "coneDirSamplers", m_texIdConeDirSamplers);
 
+#ifdef TEXTURE_SPHERE_SAMPLERS
     addInputInt("sphereSamplersWidth", m_sphereSamplersWidth);
     addInputTexture(GL_TEXTURE_1D, "sphereSamplers", m_texIdSphereSamplers);
-    addInputVec3Array("sphereSamplersArray", m_sphereSamplers, m_sphereSamplersWidth);
+#else
+    //addInputVec3Array("sphereSamplersArray", m_sphereSamplers, m_sphereSamplersWidth);
+    addInputVec3Array("sphereSamplersArray", m_sphereSamplers, getNumSphereSamplers(1)*3);
+#endif // TEXTURE_SPHERE_SAMPLERS
+
+#ifdef TEXTURE_SPHERE_INFO
+    addInputInt("sphereInfoWidth", m_sphereInfoWidth);
+    addInputTexture(GL_TEXTURE_1D, "sphereInfo", m_texIdSphereInfo);
+#endif // TEXTURE_SPHERE_INFO
+    
   m_shader->setActive(false);
 }
 
@@ -544,3 +622,5 @@ void KernelSSAO_Vox_ConeTracing::setNumSamplersDistributions( int val )
   m_numSamplersDistributions = val;
   reloadShaderInput();
 }
+
+

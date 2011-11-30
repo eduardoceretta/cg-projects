@@ -95,9 +95,10 @@ GLuint GLTextureObject::readTextureNumColors()
   glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_RED_SIZE, &rs);
   glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_GREEN_SIZE, &gs);
   glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_BLUE_SIZE, &bs);
+  glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_LUMINANCE_SIZE, &ls);
   glGetTexLevelParameteriv(m_target, 0, GL_TEXTURE_ALPHA_SIZE, &as);
   glPopAttrib();
-  return int(rs!=0) + int(gs!=0) + int(gs!=0) + int(as!=0);
+  return int(rs!=0) + int(gs!=0) + int(bs!=0) + int(as!=0) + int(ls!=0);
 }
 GLfloat* GLTextureObject::read1DTextureFloatData(GLenum format /*= GL_RGBA*/)
 {

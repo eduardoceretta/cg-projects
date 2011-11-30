@@ -56,10 +56,16 @@ protected:
    */
   Vector3 m_scale;
 
-   /**
+  /**
+   * Mesh File Name and Path
+   */
+  string m_fileName;
+  string m_fullFilePath;
+  /**
    * This instance mesh number
    */
   int m_myMeshNum;
+
 
 public:
    /**
@@ -91,6 +97,9 @@ public:
   int getMaterialIndex();
   GLVertexBufferObject* getVbo() const;
   P3bMeshFile * getP3bMesh() const;
+  string getFileName() const;
+  string getFullFilePath() const;
+
 
   /**
    * Get Bounding Box info

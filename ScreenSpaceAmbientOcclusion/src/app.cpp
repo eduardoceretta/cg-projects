@@ -23,6 +23,7 @@
 
 #include "Objects/Frames.h"
 
+#include "Handlers/GLCameraHandler.h"
 #include "Handlers/SphereGLCameraHandler.h"
 
 #include "ScScene/ScScene.h"
@@ -70,12 +71,10 @@ TimeTest timeTest;
 
 #ifdef SCREENSHOT_TEST
 ScreenShotTest screenShotTest;
-enum TestCamView{back = 0, botton, front, left, right, top};
-string testCamViewName[] = {STR(back), STR(botton), STR(front), STR(left), STR(right),STR(top)};
 
 int screenShotTestCounter = 0;
+int screenShotTestCamIndex = 0;
 bool screenShotTestEnabled = false;
-TestCamView screenShotTestEnum = TestCamView::back;
 #endif
 
 
@@ -91,6 +90,7 @@ App::App()
 ,m_farPlane(APP_DEFAULT_FAR)
 ,m_fov(APP_DEFAULT_FOV)
 ,m_camHandler(NULL)
+,m_customCameraIndex(0)
 ,m_fontRender(new GLFont())
 ,m_frames(new Frames())
 ,m_fps(0.0f)
@@ -272,29 +272,9 @@ void App::render()
   if(screenShotTestEnabled)
   {
     screenShotTest.update();
-    glLoadIdentity();
 
-    switch(screenShotTestEnum)
-    {
-    case TestCamView::front:
-      gluLookAt(-28.1103, 5.09934, -2.07215, -6.61092e-008, 4.96995, -4.15856e-009,   0.00135533, 0.999031, 0.043997);
-      break;
-    case TestCamView::back:
-      gluLookAt(27.7427, 1.57225, -3.64703,  3.3931e-007, 4.96995, 7.40699e-007,      0.110213, 0.990331, -0.084241);
-      break;
-    case TestCamView::right:
-      gluLookAt(0.699758, 6.52407, 28.1354,  8.94602e-007, 4.96995, 8.67915e-007,     0.00236674, 0.998472, -0.0552121);
-      break;
-    case TestCamView::left:
-      gluLookAt(0.514386, 2.11135, -28.0369, 8.53611e-007, 4.96995, 8.28582e-007,     0.00899126,0.994819, -0.101265);
-      break;
-    case TestCamView::top:   
-      gluLookAt(0.434503, 32.6008, -5.55447, 8.12403e-007, 4.96995, 7.57458e-007,     -0.0748029,0.197659, 0.977413);
-      break;
-    case TestCamView::botton:
-      gluLookAt(3.24169, -23.0011, 1.27389,  8.93577e-007, 4.96995, 1.06895e-006,     0.0368047, -0.041208, -0.998473);
-      break;
-    }
+    m_kernelsCamHandleres[CustomCameras + screenShotTestCamIndex]->setMinerLightOn(false);
+    m_kernelsCamHandleres[CustomCameras + screenShotTestCamIndex]->render();
   }
 #endif
 
@@ -322,7 +302,7 @@ void App::render()
       m_kernelSSAO_Vox_TanSphereVolume->renderSamplerDistribution(((++ccounter)/100)%5);
       break;
     case SSAO_Vox_ConeTracing:
-      m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(((++ccounter)/200)%5);
+      m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(((ccounter)/200)%5);
       //m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(0);
       //m_kernelSSAO_Vox_ConeTracing->renderSphereSamplerDistribution(((++ccounter)/200)%5, ((ccounter)/1000)%3);
       break;
@@ -369,7 +349,7 @@ void App::render()
     //if(screenShotTest.isTestEnded())
     //  exit(42);
 
-    char a[500] = "";
+    char renderModeStr[500] = "";
 
 
     GLuint texId = 0;
@@ -382,33 +362,42 @@ void App::render()
     case SSAO_SphereApproximation:
     case SSAO_HorizonSplit:
        texId = m_kernelCombine->getOutputTexture(0);
-       sprintf(a,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
+       sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
       break;
     case SSAO_Vox_RayMarch:
       texId = m_kernelSSAO_Vox_RayMarch->getOutputTexture(KernelSSAO_Vox_RayMarch::SSAO);
-      sprintf(a,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
+      sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
       break;
     case SSAO_Vox_TanSphereVolume:
       texId = m_kernelSSAO_Vox_TanSphereVolume->getOutputTexture(KernelSSAO_Vox_RayMarch::SSAO);
-      sprintf(a,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
+      sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
       break;
     case SSAO_Vox_ConeTracing:
       texId = m_kernelSSAO_Vox_ConeTracing->getOutputTexture(KernelSSAO_Vox_ConeTracing::SSAO);
-      sprintf(a,"-Rfar=%.2f_Contrast=%.2f_NumCones=%d_NumSpheres=%d", 
+      sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f_NumCones=%d_NumSpheres=%d_SCntr=%.2f_SRad=%.2f_PaA0=%d_PaStp=%d", 
         m_SSAO_rfarPercent, m_SSAO_contrast, 
         m_kernelSSAO_Vox_ConeTracing->getNumCones(), 
-        m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
+        m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone(),
+        SPHERECENTER_PARM,
+        SPHERERADIUS_PARM,
+        PROG_A0,
+        PROG_STEP
+        );
       break;
     }
     
+    char camStr[100] = "";
+    sprintf(camStr,"-Cam%02d", screenShotTestCamIndex);
+
     screenShotTest.save(texId, 
       SCREEN_TEST_PATH,
-      s_renderModeStr[m_renderMode] + string("-") + testCamViewName[screenShotTestEnum] + a);    
+      s_renderModeStr[m_renderMode] + string(camStr) + renderModeStr);    
 
     screenShotTestCounter++;
-    screenShotTestEnum = (TestCamView) (screenShotTestCounter/SCREEN_TEST_INTERSCREEN_FRAMES);
+    
+    screenShotTestCamIndex = (screenShotTestCounter/SCREEN_TEST_INTERSCREEN_FRAMES);
 
-    if(screenShotTestEnum > TestCamView::top)
+    if(screenShotTestCamIndex >= m_rtScene->getNumCameras() - 1)
       screenShotTestEnabled = false;
   }
 #endif
@@ -435,6 +424,15 @@ void App::listenKeyboard( int key )
   {
   case 27://ESC
     exit(42);
+    break;
+
+  case 'C':
+    m_customCameraIndex = (m_customCameraIndex - 1 >= 0 ? m_customCameraIndex : m_rtScene->getNumCameras() - 1) - 1;
+    m_camHandler = m_kernelsCamHandleres[CustomCameras + m_customCameraIndex];
+    break;
+  case 'c':
+    m_customCameraIndex = (m_customCameraIndex + 1) % (m_rtScene->getNumCameras() - 1);
+    m_camHandler = m_kernelsCamHandleres[CustomCameras + m_customCameraIndex];
     break;
 
   case 'D':
@@ -472,8 +470,14 @@ void App::listenKeyboard( int key )
     m_SSAO_numPeelings = max(m_SSAO_numPeelings - 1, 1);
     break;
   case '*':
-    m_camHandler->setSphereAlpha(0.0);
-    m_camHandler->setSphereBeta(90.0);
+    {
+      SphereGLCameraHandler* p = dynamic_cast<SphereGLCameraHandler*>(m_camHandler);
+      if(p)
+      {
+        p->setSphereAlpha(0.0);
+        p->setSphereBeta(90.0);
+      }
+    }
     break;
 
 #ifdef SCREENSHOT_TEST
@@ -482,7 +486,7 @@ void App::listenKeyboard( int key )
     screenShotTest.reset();
     screenShotTestEnabled = true;
     screenShotTestCounter = 0;
-    screenShotTestEnum = back;
+    screenShotTestCamIndex = 0;
     break;
 #endif // SCREENSHOT_TEST
 
@@ -685,6 +689,7 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 3: //F3
+    m_renderMode =  SSAO_SphereApproximation;
     if(modifier == GLUT_ACTIVE_SHIFT)
     {
       m_SSAO_rfarPercent = 30.0f;
@@ -692,10 +697,8 @@ void App::listenKeyboardSpecial( int key )
 
       m_SSAO_pixelmaskSize = .8;
       m_SSAO_offsetSize = 5.0;
-    }
-    
-    m_renderMode =  SSAO_SphereApproximation;
-    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
+    }else 
+      m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 4: //F4
@@ -710,36 +713,38 @@ void App::listenKeyboardSpecial( int key )
     break;
 
   case 6: //F6
+    m_renderMode = SSAO_Vox_RayMarch;
+
     if(modifier == GLUT_ACTIVE_SHIFT)
     {
-      m_SSAO_rfarPercent = .5f;
-      m_SSAO_contrast = 1.0;
-    }
-
-    m_renderMode = SSAO_Vox_RayMarch;
-    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
+      m_SSAO_rfarPercent = .06f;//.5f;
+      m_SSAO_contrast = 2.14f;//1.0;
+    }else 
+      m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 7: //F7
+    m_renderMode = SSAO_Vox_TanSphereVolume;
+    
     if(modifier == GLUT_ACTIVE_SHIFT)
     {
       m_SSAO_rfarPercent = .03f;
       m_SSAO_contrast = 1.0;
-    }
-    m_renderMode = SSAO_Vox_TanSphereVolume;
-    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
+    }else 
+      m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 8: //F8
+    m_renderMode = SSAO_Vox_ConeTracing;
+
     if(modifier == GLUT_ACTIVE_SHIFT)
     {
       m_SSAO_rfarPercent = .1f;
-      m_SSAO_contrast = 8.86;
+      m_SSAO_contrast = 1.28;
       m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(6);
-    }
-    m_renderMode = SSAO_Vox_ConeTracing;
-    m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
+    }else
+      m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
   case 10: //F10
@@ -754,7 +759,6 @@ void App::listenKeyboardSpecial( int key )
   case 11: //F11
     m_renderMode = NoShader;
     m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
-
     break;
 
   case GLUT_KEY_PAGE_UP: //PgUp
@@ -766,9 +770,9 @@ void App::listenKeyboardSpecial( int key )
 
   case GLUT_KEY_PAGE_DOWN: //PgDown
     if(modifier == GLUT_ACTIVE_SHIFT)
-      m_SSAO_rfarPercent = max(m_SSAO_rfarPercent*.9f, .01f);
+      m_SSAO_rfarPercent = max(m_SSAO_rfarPercent*.9f, .000001f);
     else 
-      m_SSAO_rfarPercent = max(m_SSAO_rfarPercent - .01f, .01f);
+      m_SSAO_rfarPercent = max(m_SSAO_rfarPercent - .01f, .0000001f);
     break;
 
   case GLUT_KEY_HOME: //Home
@@ -970,6 +974,7 @@ void App::loadCameras()
   m_fov = m_rtScene->getCamera()->getFovy();
 
   SphereGLCameraHandler *cam3D = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
+
   SphereGLCameraHandler *voxDebug = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
   SphereGLCameraHandler *samplersDebug = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
 
@@ -993,24 +998,38 @@ void App::loadCameras()
   m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_ConeTracing
   m_kernelsCamHandleres.push_back(voxDebug); //Voxelization
 
+  for(int i = 1; i < m_rtScene->getNumCameras(); ++i)
+  {
+    ScCamera* scCam = m_rtScene->getCameraAt(i);
+    GLCameraHandler *custom = new GLCameraHandler(scCam->getPos(), scCam->getAt(), scCam->getUp());
+    m_kernelsCamHandleres.push_back(custom);
+  }
 
   m_camHandler = cam3D;
 
-  m_nearPlane = m_camHandler->getSphereRadius()*.05f; 
-  m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize * 1.5f;
+  SphereGLCameraHandler* p = dynamic_cast<SphereGLCameraHandler*>(m_camHandler);
+  if(p)
+  {
+    m_nearPlane = p->getSphereRadius()*.05f; 
+    m_farPlane = p->getSphereRadius() + bbMaxSize * 1.5f;
 
-  //m_nearPlane = m_camHandler->getSphereRadius()*.85; 
-  //m_farPlane =  m_camHandler->getSphereRadius()*1.15; 
+    //m_nearPlane = p->getSphereRadius()*.85; 
+    //m_farPlane =  p->getSphereRadius()*1.15; 
 
-  //m_nearPlane = m_camHandler->getSphereRadius()*1.0; 
-  //m_farPlane =  m_camHandler->getSphereRadius()*1.1; 
+    //m_nearPlane = p->getSphereRadius()*1.0; 
+    //m_farPlane =  p->getSphereRadius()*1.1; 
 
+    //m_nearPlane = p->getSphereRadius()*1.0f; //.1
+    //m_farPlane = p->getSphereRadius()*.8 + bbMaxSize * .01f; //1.5
 
-  //m_nearPlane = m_camHandler->getSphereRadius()*1.0f; //.1
-  //m_farPlane = m_camHandler->getSphereRadius()*.8 + bbMaxSize * .01f; //1.5
+    //m_nearPlane = p->getSphereRadius();
+    //m_farPlane = p->getSphereRadius() + bbMaxSize;
+  }else
+  {
+    m_nearPlane = .5;
+    m_farPlane  = 10000;
+  }
 
-  //m_nearPlane = m_camHandler->getSphereRadius();
-  //m_farPlane = m_camHandler->getSphereRadius() + bbMaxSize;
 
   GLLight *minerLight = m_camHandler->getMinerLight();
   minerLight->setAmbientColor(Color(0.0, 0.0, 0.0));
@@ -1050,12 +1069,14 @@ void App::voxelize()
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); //GL_POLYGON_BIT
   m_kernelVoxDepth->setActive(true);
   glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+  glEnable(GL_CULL_FACE);
   drawScene();
   m_kernelVoxDepth->setActive(false);
 
   m_voxProjectionMatrix->readGLProjection();
 
   m_kernelVoxelization->setActive(true);
+  glDisable(GL_CULL_FACE);
   drawScene();
   m_kernelVoxelization->setActive(false);
 
@@ -1104,7 +1125,7 @@ void App::renderGUI()
     sprintf(a,"(O) Proj: %s", m_orthographicProjection_on? "Orthographic":"Perspective");
     m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
-    sprintf(a,"(PgUp/PgDn) Rfar: %.2f ", m_SSAO_rfarPercent);
+    sprintf(a,"(PgUp/PgDn) Rfar: %.5f ", m_SSAO_rfarPercent);
     m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
     sprintf(a,"(Home/End) Contrast: %.2f ", m_SSAO_contrast);
@@ -1462,7 +1483,16 @@ void App::renderSSAOVoxConeTracing()
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_contrast);
-  m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
+
+
+  //BLURR PASS
+  if(m_blurr_on)
+  {
+    m_kernelBlur->setInputTexId(m_kernelSSAO_Vox_ConeTracing->getTexIdSSAO());
+    m_kernelBlur->step(1);
+    m_kernelBlur->renderOutput(0);
+  }else
+    m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
 
   //GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
   //GLuint* i = texObj.read2DTextureUIntData();
