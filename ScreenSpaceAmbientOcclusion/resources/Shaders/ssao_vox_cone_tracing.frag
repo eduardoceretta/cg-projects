@@ -15,7 +15,10 @@
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
 #define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
-#define NORMAL_OFFSET 0.03   /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
+#define NORMAL_OFFSET .1   /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
+//#define JITTER               /**< Enable pixel sampler Jitter*/
+
+#define TEXTURE_SPHERE_SAMPLERS  /**< Uses texture to access the sphere samplers*/
 
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
@@ -29,19 +32,20 @@ uniform sampler2D voxelGridDEBUG;     /**< Non Uniform Voxel Grid of the Scene D
 
 uniform int numCones;                 /**< Number of sampler cones*/
 uniform int numSpheresByCone;         /**< Number of spheres used in each cones tracing*/
+uniform int numSphereSamplers;        /**< Number of samplers in each sphere*/
 uniform int numSamplersDistributions; /**< Number of samplers distributions*/
+
 uniform int coneDirSamplersWidth;     /**< Sampler Textures Width*/
 uniform sampler1D coneDirSamplers;    /**< Cone directions Samplers Texture*/
 
-uniform sampler1D sphereSamplers;     /**< Sphere Sampler Texture*/
-uniform int sphereSamplersWidth;      /**< Sphere Sampler Texture Width*/
-uniform vec3 sphereSamplersArray[19];     /**< Uniform Sphere samplers*/
+uniform sampler1D sphereInfo;          /**< Sphere Info Texture*/
+uniform int sphereInfoWidth;           /**< Sphere Info Texture Width*/
 
 uniform int bitCount16Height;         /**< BitCount Texture Height*/
 uniform int bitCount16Width;          /**< BitCount Texture Width*/
 uniform sampler2D bitCount16;         /**< Number of bits counter Texture(Max 16 bits)*/
 
-uniform mat4 projInv;
+//uniform mat4 projInv;
 
 
 /**
@@ -49,6 +53,8 @@ uniform mat4 projInv;
  */
 uniform float rfarPercent;
 uniform float contrast; 
+uniform int jitterEnabled;            /**< Enables texture sampler jittering*/
+
  
  
 /**
@@ -62,25 +68,81 @@ uniform float right;
 uniform float top;
 uniform int perspective;
 
-#define PROG_A0 4
-#define PROG_STEP 2
+
+
+#define PROG_A0 4.0
+#define PROG_STEP 2.0
 #define ARITPROG_AN(a, d, n) int((a) + ((n-1.0)*(d)))
 #define ARITPROG_SUM(a, d, n) int(((n)*((a)+ARITPROG_AN(a,d,n))/2.0))
 
-#define func(i, numSpheresByCone) \
-  (pow(((float(i) + 2.0)/(float(numSpheresByCone) + 1.0)),3.0))
+#define getNumSphereSamplers(n) \
+  (numSphereSamplers)
+  //ARITPROG_AN(PROG_A0, PROG_STEP, (n)+1)
 
-#define func2(i, numSpheresByCone) \
-  (pow(((float(i) + 1.0)/(float(numSpheresByCone) + 1.0)),1.5))
+#define getNumSphereSamplersAccumulated(n) \
+  (getNumSphereSamplers(1)*(n))
+  //ARITPROG_SUM(PROG_A0, PROG_STEP, (n))
+  
+  
+  
+#ifdef TEXTURE_SPHERE_SAMPLERS 
+  uniform sampler1D sphereSamplers;     /**< Sphere Sampler Texture*/
+  uniform int sphereSamplersWidth;      /**< Sphere Sampler Texture Width*/
+#else
+  uniform vec3 sphereSamplersArray[getNumSphereSamplers(1)*3]; /**< Uniform Sphere samplers*/
+#endif //TEXTURE_SPHERE_SAMPLERS 
 
-#define getSphereCenter(eyePosition, coneDir, i, rfar, numSpheresByCone)  \
-  ((eyePosition) + (coneDir)*func(i, numSpheresByCone)*(rfar*.8))
 
-#define getSphereRadius(i, rfar, numSpheresByCone, numCones) \
-  func2(i, numSpheresByCone)*(rfar*.8)*sqrt(2.0/float(numCones)) 
+#define getSphereCenter(eyePosition, coneDir, rfar, multiplier)  \
+  ((eyePosition) + (coneDir)*(rfar)*(multiplier))
 
+#define getSphereRadius(rfar, multiplier) \
+  ((multiplier)*(rfar))
 
 #define PI 3.14159265
+
+#define ONE(x) \
+  (1.0)
+
+#define LINEAR(x) \
+  (-(x)+1.0)
+  
+#define POLY(x) \
+  (-(x)*(x) + 1.0)
+
+#define SQRT(x) \
+  (.3*(sqrt(2.0/((x) + .05)) - 1.0))
+
+#define COS(x) \
+  (cos((x)*PI/2.0))
+  
+#define LOG(x) \
+  (.6*log(1.0/(x)))
+
+#define EXP(x) \
+  (pow(16.0, -(x)))
+  
+#define SIGMOID(x) \
+  ((-1.0/(.5+pow(30.0, -((x)/.5 - .7)))+2.1)/2.0)
+  
+#define SQRT2(x) \
+  (-pow((x),.05) + 1)
+  
+
+
+#define DIST_ATT(x) \
+ SQRT(x)
+ //SQRT2(x)
+  //ONE(x)
+ //LOG(x)
+ //SIGMOID(x)
+ //COS(x)
+ //POLY(x)
+ //LINEAR(x)
+ //EXP(x)
+
+
+
 #define RED vec4(.8,0,0,1)
 #define GREEN vec4(0,.8,0,1)
 #define BLUE vec4(0,0,.8,1)
@@ -192,7 +254,6 @@ mat3 getHemisphereRotationMatrix(vec3 normal);
 vec3 getConeDir(int coneDirSamplerDistributionIndex, int i, mat3 rotMat);
 float calcSphereOcclusion(int coneDirSamplerDistributionIndex, vec3 sphereCenter, float sphereRadius, int index);
 float normalizeConeAo(float coneAo, int numSpheresByCone);
-int getNumSphereSamplers(int i);
 vec3 getSphereSampler(int samplerDistIndex, int sphereIndex, int samplerIndex, float radius);
 float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, out float secant);
 
@@ -212,6 +273,12 @@ float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, ou
 
 void main()
 {
+//if(gl_FragCoord.x == 320.5 && gl_FragCoord.y == 240.5)
+//{
+  //OUT = BLACK;
+  //return;
+//}
+
   vec3 normal; vec3 eyePosition; float depth;
   readInputData(normal, eyePosition, depth);
   
@@ -220,13 +287,16 @@ void main()
   
   vec3 fragGridIndex = getGridIndex(vec3(0,0,0), eyePosition);
   
-  int randNum = int(floor(rand(fragGridIndex.xy) * float(numSamplersDistributions)));
+  int coneDirSamplerDistributionIndex = 0;
+  int sphereSamplerDistributionIndex = 0;
   
-  int coneDirSamplerDistributionIndex = randNum * numCones;
-  //int coneDirSamplerDistributionIndex = 0;
-  int sphereSamplerDistributionIndex = randNum * ARITPROG_SUM(PROG_A0, PROG_STEP, numSpheresByCone);
-  //int sphereSamplerDistributionIndex = 0;
-     
+  if(jitterEnabled == 1)
+  {
+    int randNum = int(floor(rand(fragGridIndex.xy) * float(numSamplersDistributions)));
+    coneDirSamplerDistributionIndex = randNum * numCones;
+    sphereSamplerDistributionIndex = randNum;//* getNumSphereSamplersAccumulated(numSpheresByCone);
+  }  
+  
   /**
 	 * TEST NORMAL
 	 *  Print the Normal's Color.
@@ -238,7 +308,7 @@ void main()
     return;
   /**/
   
-  /*
+  /**/
   float rfar = rfarPercent*far;
   float ao = 0.0;
   
@@ -250,13 +320,22 @@ void main()
     float coneAo = 0.0;
     for(int j = 0; j < numSpheresByCone; ++j)
     {
-      vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, j, rfar, numSpheresByCone);
-      float sphereRadius = getSphereRadius(j, rfar, numSpheresByCone, numCones);
-      float sphereAo = calcSphereOcclusion(sphereSamplerDistributionIndex, sphereCenter, sphereRadius, j);
+      float sphereInfoIndex = (float(j) + .5)/sphereInfoWidth;
+      vec2 sphereInfoData = texture1D(sphereInfo, sphereInfoIndex).ra;
       
-      coneAo += sphereAo*(1.0 - coneAo);
+      float normalizedDist = sphereInfoData.x;
+      vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, rfar, sphereInfoData.x);
+      
+      float sphereRadius = getSphereRadius(rfar, sphereInfoData.y);
+
+      float sphereAo = calcSphereOcclusion(sphereSamplerDistributionIndex, sphereCenter, sphereRadius, j);
+      float distAtt = DIST_ATT(normalizedDist);
+      
+      coneAo += sphereAo*distAtt*(1.0 - coneAo);
+      if(coneAo>=1.0)
+        break;
     }
-    coneAo = normalizeConeAo(coneAo, numSpheresByCone);
+    /////////coneAo = normalizeConeAo(coneAo, numSpheresByCone);
 
     ao += coneAo;
   }
@@ -265,39 +344,12 @@ void main()
   ao = clamp(ao*contrast, 0.0, 1.0);
 
   gl_FragData[0] = WHITE*(1.0 - ao);
-  /**/
-
 
   /*************************\
          Debug Area 
-  \*************************/
-  
-  float rfar = rfarPercent*far;
-  float ao = 0.0;
-  
-  mat3 rotMat = getHemisphereRotationMatrix(normal);
-  
-  for(int i = 0; i < numCones; ++i)
-  {
-    vec3 coneDir = getConeDir(coneDirSamplerDistributionIndex, i, rotMat);
-    float coneAo = 0.0;
-    for(int j = 0; j < numSpheresByCone; ++j)
-    {
-      vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, j, rfar, numSpheresByCone);
-      float sphereRadius = getSphereRadius(j, rfar, numSpheresByCone, numCones);
-      float sphereAo = calcSphereOcclusion(sphereSamplerDistributionIndex, sphereCenter, sphereRadius, j);
-      
-      coneAo += sphereAo*(1.0 - coneAo);
-    }
-    coneAo = normalizeConeAo(coneAo, numSpheresByCone);
+  \*************************
 
-    ao += coneAo;
-  }
-   
-  ao = normalizeAo(ao, numCones);
-  ao = clamp(ao*contrast, 0.0, 1.0);
-
-  gl_FragData[0] = WHITE*(1.0 - ao);
+  /**/
 }
 
 /****************************************************************************/
@@ -375,12 +427,14 @@ float calcSphereOcclusion(int sphereSamplerDistributionIndex, vec3 sphereCenter,
   float s = 0.0;
 
   int numSphereSamplers = getNumSphereSamplers(index);
-  int sphereIndex = ARITPROG_SUM(PROG_A0, PROG_STEP, float(index));
+  //int sphereIndex = getNumSphereSamplersAccumulated(float(index));
   
   for(int i = 0; i < numSphereSamplers; ++i)
+  //for(int i = 0; i < 3; ++i)
   {
-    vec3 sphereSampler = getSphereSampler(sphereSamplerDistributionIndex, sphereIndex, i, sphereRadius*.99);
-
+    //vec3 sphereSampler = getSphereSampler(sphereSamplerDistributionIndex, sphereIndex, i, sphereRadius*.99);
+    vec3 sphereSampler = getSphereSampler(((sphereSamplerDistributionIndex))*getNumSphereSamplers(index), 0, i, sphereRadius*.99);
+    
     float secant;
     ao += calcSphereAo(sphereSampler, sphereCenter, sphereRadius, secant);
 
@@ -392,18 +446,14 @@ float calcSphereOcclusion(int sphereSamplerDistributionIndex, vec3 sphereCenter,
   return ao;
 }
 
-int getNumSphereSamplers(int i)
-{
-  return ARITPROG_AN(PROG_A0, PROG_STEP, float(i + 1));
-} 
-
 vec3 getSphereSampler(int samplerDistIndex, int sphereIndex, int samplerIndex, float radius)
 {
+#ifdef TEXTURE_SPHERE_SAMPLERS
   float sphereSamplerIndex = (float(samplerDistIndex + sphereIndex + samplerIndex) + .5)/float(sphereSamplersWidth);
   vec3 sphereSampler = texture1D(sphereSamplers, sphereSamplerIndex).rgb;
-  
-  //vec3 sphereSampler = sphereSamplersArray[samplerDistIndex + sphereIndex + samplerIndex];
-  
+#else  
+  vec3 sphereSampler = sphereSamplersArray[samplerDistIndex + sphereIndex + samplerIndex];
+#endif  //TEXTURE_SPHERE_SAMPLERS
   return sphereSampler*radius;
 }
 
@@ -499,8 +549,7 @@ unsigned int countFullVoxelsVolSphere(vec3 gridIndex, unsigned int gridIndexBott
     }else if(i == topContentColor)
     {
       numFullVoxels += countFullVoxelsInRange(cellContent[i], gridIndexTopN%32u, 31u);
-    }
-    else if(i == bottonContentColor)
+    }else if(i == bottonContentColor)
     {
       numFullVoxels += countFullVoxelsInRange(cellContent[i], 0u, gridIndexBottonN%32u);
     }else
@@ -652,7 +701,4 @@ vec3 eye2window(vec3 eye, bool perspective =  true)
     return ndc2window(eye2ndc(eye));
   return ndc2window(eye2ndcByOrtho(eye));
 }
-
-
-
 
