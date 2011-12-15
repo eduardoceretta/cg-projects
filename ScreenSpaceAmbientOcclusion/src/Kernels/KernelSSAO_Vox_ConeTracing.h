@@ -25,6 +25,65 @@
 
 using namespace std;
 
+
+//SPHERE INFO//////////////////////////////////////////
+//SPHERE INFO//////////////////////////////////////////
+//SPHERE INFO//////////////////////////////////////////
+#define SPHERE_MAX_NUM 10
+class SphereInfo
+{
+  float m_coneRevolutionAngle;
+  int m_numSpheresByCone;
+  int m_numCones;
+
+public:
+  enum CalcMethods{RadiusProgression = 0, RadiusInitDistance, EndEnum};
+  CalcMethods currCalcMethod;
+
+  struct RadDistParms{
+    int numMaxSpheres;
+    float xo;
+    float sphereOverlap;
+    RadDistParms()
+      :numMaxSpheres(SPHERE_MAX_NUM)
+      ,sphereOverlap(0.0f){}
+  }radDistParms;
+
+  struct RadProgParms
+  {
+    float sphereCenterParm; //SPHERECENTER_PARM 2.5 // 3
+    float sphereRadiusParm;//SPHERERADIUS_PARM 0.5  // 1.5
+    RadProgParms()
+      :sphereCenterParm(3)
+      ,sphereRadiusParm(1.5f){}
+  }radProgParms;
+
+
+  SphereInfo()
+    :currCalcMethod(RadiusInitDistance)
+  {}
+
+  void setParameters(float coneRevolutionAngle, int numSpheresByCone, int numCones);
+
+  void nextCalcMethod();
+
+  void getSphereInfo(int k, float* center, float* radius);
+
+
+private:
+  float RadDist_GetRadius(float initDist, float coneRevolutionAngle);
+  float RadDist_GetInitDist(float xo, int i, float coneRevolutionAngle);
+  float RadDist_GetConeInitialDist(int numSpheresByCone, float coneRevolutionAngle);
+
+  float RadProg_GetSphereCenterMultiplier(int i, int numSpheresByCone);
+  float RadProg_GetSphereRadiusMultiplier(int i, int numSpheresByCone, int numCones, float coneRevolutionAngle);
+};
+
+
+//////KERNEL//////////////////////////////////////////////////////////////
+//////KERNEL//////////////////////////////////////////////////////////////
+//////KERNEL//////////////////////////////////////////////////////////////
+//////KERNEL//////////////////////////////////////////////////////////////
 class KernelSSAO_Vox_ConeTracing : public KernelBase {
 
 public:
@@ -58,7 +117,23 @@ public:
 
   int getNumSamplersDistributions() const;
   void setNumSamplersDistributions(int val);
-  
+
+  float getConeRevolutionAngle() const;
+  void setConeRevolutionAngle(float val);
+
+  int getNumSphereSamplers() const;
+  void setNumSphereSamplers(int val);
+
+  bool isJitterEnabled() const;
+  void setJitterEnabled(bool val);
+
+
+  SphereInfo* getSphereInfo();
+
+  /**
+   * Reload Shader Input
+   */
+  void reloadShaderInput();
   
   /**
    * Activate/Deactivate the Kernel's FBO and shader
@@ -88,22 +163,21 @@ public:
   /**
    * Render the specific sampler distribution directions.
    */
-  void renderSamplerDistribution(int distribution);
+  void renderConeDistribution(int distribution);
   void renderSphereSamplerDistribution(int distribution, int sphereIndex);
+  void renderSphereInfoDistribution(int distribution);
 private:
 
-  /**
-   * Reload Shader Input
-   */
-  void reloadShaderInput();
+
   
   /**
    * Create Data Textures 
    */
-  void setConeSamplerTexture();
-  void setSphereSamplerTexture();
-  void setSphereInfoTexture();
-  void setBitCount16Texture();
+  void generateConeSamplerTexture();
+  void generateSphereSamplerTexture();
+  void generateSphereInfoTexture();
+  void generateBitCount16Texture();
+ 
   /**
    * Grid Dimensions	
    */
@@ -122,14 +196,15 @@ private:
   int m_numCones;
   int m_numSpheresByCone;
   int m_numSamplersDistributions;
-
+  float m_coneRevolutionAngle;
+  int m_numSphereSamplers;
+  bool m_jitterEnabled;
   /**
    * Cone Dir Samplers
    */
   int m_coneDirSamplersWidth;
   GLuint m_texIdConeDirSamplers;
   
-
 
   /**
    * BitCount 16
@@ -147,6 +222,8 @@ private:
   int m_sphereSamplersWidth;     
   GLuint m_texIdSphereSamplers;  
   GLfloat* m_sphereSamplers;
+
+  SphereInfo *m_sphereInfo;
 
   /**
    * Render Samplers Objects
