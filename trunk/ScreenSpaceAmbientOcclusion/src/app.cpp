@@ -84,6 +84,7 @@ bool screenShotTestEnabled = false;
 App::App()
 :m_scenePath(APP_DEFAULT_SCENE_PATH)
 ,m_shaderPath(APP_DEFAULT_SHADER_PATH)
+,m_logFileName("")
 ,m_appWidth(APP_DEFAULT_WIDTH)
 ,m_appHeight(APP_DEFAULT_HEIGHT)
 ,m_nearPlane(APP_DEFAULT_NEAR)
@@ -119,7 +120,17 @@ App::App()
 ,m_SSAO_pixelmaskSize(.8f)
 ,m_SSAO_offsetSize(5.0f)
 ,m_SSAO_contrast(20.0f)
+,m_SSAO_jitter(true)
 ,m_SSAO_numPeelings(3)
+,m_SSAO_cone_angle(DEG_TO_RAD(15.0f))
+,m_SSAO_cone_numCones(6)
+,m_SSAO_cone_numSpheres(6)
+,m_SSAO_cone_numSpamplers(3)
+,m_SSAO_cone_infoMethod("InitDist")
+,m_SSAO_cone_infoSphereOverlap(0.0f)
+,m_SSAO_cone_infoCenterParm(2.5f)
+,m_SSAO_cone_infoRadiusParm(0.5f)
+,m_benchmark(false)
 ,m_voxProjectionMatrix(new GLProjectionMatrix())
 ,m_updateVoxelgrid(true)
 ,m_renderMode(SSAO_Vox_ConeTracing)
@@ -137,10 +148,25 @@ App::App()
   //Initializes Arguments
   m_acceptedArgsString["-scenepath"] = &m_scenePath;
   m_acceptedArgsString["-shaderpath"] = &m_shaderPath;
+  m_acceptedArgsString["-logFile"] = &m_logFileName;
 
   m_acceptedArgsFloat["-rfar"] = &m_SSAO_rfarPercent;
   m_acceptedArgsFloat["-offset"] = &m_SSAO_offsetSize;
   m_acceptedArgsFloat["-contrast"] = &m_SSAO_contrast;
+  m_acceptedArgsBool["-jitter"] = &m_SSAO_jitter;
+  m_acceptedArgsBool["-benchmark"] = &m_benchmark;
+
+  m_acceptedArgsFloat["-Cone_angle"] = &m_SSAO_cone_angle;
+  m_acceptedArgsInt["-Cone_numCones"] = &m_SSAO_cone_numCones;
+  m_acceptedArgsInt["-Cone_numSpheres"] = &m_SSAO_cone_numSpheres;
+  m_acceptedArgsInt["-Cone_numSamplers"] = &m_SSAO_cone_numSpamplers;
+  
+  m_acceptedArgsString["-Cone_infoMethod"] = &m_SSAO_cone_infoMethod;
+  m_acceptedArgsFloat["-Cone_infoSphereOverlap"] = &m_SSAO_cone_infoSphereOverlap;
+  m_acceptedArgsFloat["-Cone_infoSphereCenterParm"] = &m_SSAO_cone_infoCenterParm;
+  m_acceptedArgsFloat["-Cone_infoSphereRadiusParm"] = &m_SSAO_cone_infoRadiusParm;
+
+  //-rfar .1 -contrast 1.28 -jitter False -Cone_angle  0.523598776  -Cone_numCones 9 -Cone_numSpheres 9 -Cone_numSamplers 5 -Cone_infoMethod InitDist -Cone_infoSphereOverlap .5 -Cone_infoSphereCenterParm 2.5 - Cone_infoSphereRadiusParm .5
 }
 
 App::~App()
@@ -200,6 +226,9 @@ App::~App()
 #ifdef TIME_TEST
   timeTest.logResults();
 #endif
+#ifdef LOG_TESTS
+  TestLogger::inst()->closeLog();
+#endif // LOG_TESTS
 }
 
 
@@ -302,8 +331,9 @@ void App::render()
       m_kernelSSAO_Vox_TanSphereVolume->renderSamplerDistribution(((++ccounter)/100)%5);
       break;
     case SSAO_Vox_ConeTracing:
-      m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(((ccounter)/200)%5);
-      //m_kernelSSAO_Vox_ConeTracing->renderSamplerDistribution(0);
+      //m_kernelSSAO_Vox_ConeTracing->renderSphereInfoDistribution(((ccounter)/200)%5);
+      //m_kernelSSAO_Vox_ConeTracing->renderSphereInfoDistribution(0);
+      m_kernelSSAO_Vox_ConeTracing->renderConeDistribution(0);
       //m_kernelSSAO_Vox_ConeTracing->renderSphereSamplerDistribution(((++ccounter)/200)%5, ((ccounter)/1000)%3);
       break;
     case Voxelization:
@@ -343,6 +373,10 @@ void App::render()
     }
   }
   renderGUI();
+#ifdef TIME_TEST
+  timeTest.totalTime += timeTest.totalTimer.getTime();
+  //timeTest.printPartialResults();
+#endif
 #ifdef SCREENSHOT_TEST
   if(screenShotTestEnabled)
   {
@@ -350,7 +384,6 @@ void App::render()
     //  exit(42);
 
     char renderModeStr[500] = "";
-
 
     GLuint texId = 0;
     switch(m_renderMode)
@@ -374,15 +407,19 @@ void App::render()
       break;
     case SSAO_Vox_ConeTracing:
       texId = m_kernelSSAO_Vox_ConeTracing->getOutputTexture(KernelSSAO_Vox_ConeTracing::SSAO);
-      sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f_NumCones=%d_NumSpheres=%d_SCntr=%.2f_SRad=%.2f_PaA0=%d_PaStp=%d", 
-        m_SSAO_rfarPercent, m_SSAO_contrast, 
-        m_kernelSSAO_Vox_ConeTracing->getNumCones(), 
-        m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone(),
-        SPHERECENTER_PARM,
-        SPHERERADIUS_PARM,
-        PROG_A0,
-        PROG_STEP
-        );
+      
+      //sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f_NumCones=%d_NumSpheres=%d_SCntr=%.2f_SRad=%.2f_PaA0=%d_PaStp=%d", 
+      //sprintf(renderModeStr,"Rfar=%.2f; Contrast=%.2f; Jitter=%s; NumCones=%d; NumSpheres=%d; NumSamplers=%d; CurrentInfoMethod=%",
+      //  m_SSAO_rfarPercent, m_SSAO_contrast, m_SSAO_jitter?"On":"Off",
+      //  m_kernelSSAO_Vox_ConeTracing->getNumCones(), 
+      //  m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone(),
+      //  m_kernelSSAO_Vox_ConeTracing->getNumSphereSamplers(),
+      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->currCalcMethod,
+      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.numMaxSpheres
+      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap
+      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm
+      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm
+      //  );
       break;
     }
     
@@ -398,7 +435,12 @@ void App::render()
     screenShotTestCamIndex = (screenShotTestCounter/SCREEN_TEST_INTERSCREEN_FRAMES);
 
     if(screenShotTestCamIndex >= m_rtScene->getNumCameras() - 1)
+    {
       screenShotTestEnabled = false;
+      TestLogger::inst()->logLine("},");
+      if(m_benchmark)
+        exit(42);
+    }
   }
 #endif
 }
@@ -444,6 +486,12 @@ void App::listenKeyboard( int key )
   case 'M':
   case 'm':
     m_minerLight_on = !m_minerLight_on;
+    break;
+
+  case 'N':
+  case 'n':
+    m_SSAO_jitter = !m_SSAO_jitter;
+    m_kernelSSAO_Vox_ConeTracing->setJitterEnabled(m_SSAO_jitter);
     break;
 
   case 'L':
@@ -632,6 +680,156 @@ void App::listenKeyboard( int key )
       break;
     }
     break;
+
+
+  case 'H':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumSphereSamplers();
+      numSphereSamplers = ceil(numSphereSamplers * 1.1);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      break;
+    }
+
+    break;
+
+  case 'h':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumSphereSamplers();
+      numSphereSamplers += 1;
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      break;
+    }
+    break;
+
+
+  case 'G':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumSphereSamplers();
+      numSphereSamplers = max(int(floor(numSphereSamplers*.5)), 1);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      break;
+    }
+    break;
+  case 'g':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumSphereSamplers();
+      numSphereSamplers = max(numSphereSamplers - 2, 1);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      break;
+    }
+    break;
+
+
+  case '8':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      float coneAngle = m_kernelSSAO_Vox_ConeTracing->getConeRevolutionAngle();
+      coneAngle = DEG_TO_RAD(min((RAD_TO_DEG(coneAngle) + 15.0f),60.0f));
+      m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(coneAngle);
+      break;
+    }
+    break;
+
+
+  case '7':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      float coneAngle = m_kernelSSAO_Vox_ConeTracing->getConeRevolutionAngle();
+      coneAngle = DEG_TO_RAD(max((RAD_TO_DEG(coneAngle) - 15.0f), 15.0f));
+      m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(coneAngle);
+      break;
+    }
+    break;
+
+  case '(':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+      overlap = max((overlap*.75f),0.0f);
+      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      break;
+    }
+    break;
+  case '9':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+      overlap = max((overlap - .01f),0.0f);
+      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      break;
+    }
+    break;
+
+
+  case ')':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+      overlap = min((overlap*1.25f),1.0f);
+      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      break;
+    }
+    break;
+  case '0':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+      overlap = min((overlap + .01f),1.0f);
+      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      break;
+    }
+    break;
+
+  case 'P':
+  case 'p':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->nextCalcMethod();
+      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      break;
+    }
+    break;
   
   
   case '1':
@@ -743,6 +941,8 @@ void App::listenKeyboardSpecial( int key )
       m_SSAO_contrast = 1.28;
       m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(6);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(3);
+      m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(DEG_TO_RAD(15));
     }else
       m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
@@ -806,6 +1006,7 @@ void App::loadArgs(int argc, char *argv[])
   map<string, string*> :: iterator strIt;
   map<string, int*> :: iterator intIt;
   map<string, float*> :: iterator floatIt;
+  map<string, bool*> :: iterator boolIt;
 
   for(int i = 1; i < argc; ++i)
   {
@@ -837,20 +1038,31 @@ void App::loadArgs(int argc, char *argv[])
         *(intIt->second) = atoi(argv[i + 1]);
       else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
     }
+
+    boolIt = m_acceptedArgsBool.find(arg);
+    if(boolIt != m_acceptedArgsBool.end())
+    {
+      if(argc > i + 1 && argv[i + 1][0] != '-') 
+        *(boolIt->second) = !strcmp(argv[i + 1], "True") || !strcmp(argv[i + 1], "true");
+      else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
+    }
   }
 #ifdef LOG_TESTS
-  TestLogger::inst()->logLine("Program and argument list:");
-  TestLogger::inst()->logLine(string("  ") + argv[0]);
+  TestLogger::setFileName(m_logFileName);
+  TestLogger::inst()->logLine("-- Program and argument list:");
+  //TestLogger::inst()->logLine(string("  ") + argv[0]);
+  //for(int i = 1; i < argc; ++i)
+    //TestLogger::inst()->log(string("  ") + argv[i]);
+  //TestLogger::inst()->logLine("\n");
+
+  TestLogger::inst()->logLine(string("[\"argument_list\"] = {"));
+  TestLogger::inst()->logLine(string("  [\"program_path\"] = [[") + string(argv[0]) + string("]],"));
   for(int i = 1; i < argc; ++i)
-    TestLogger::inst()->log(string("  ") + argv[i]);
-  TestLogger::inst()->logLine("\nActiveDebugs:");
-#ifdef TIME_TEST
-  TestLogger::inst()->logLine("  TIME_TEST");
-#endif // TIME_TEST
-#ifdef SCREENSHOT_TEST
-  TestLogger::inst()->logLine("  SCREENSHOT_TEST");
-#endif // SCREENSHOT_TEST
-  TestLogger::inst()->logLine("\n\n");
+  {
+    TestLogger::inst()->log(string("  [[") + string(argv[i++]) + string("]],"));
+    TestLogger::inst()->logLine(string("  [[") + string(argv[i]) + string("]],"));
+  }
+  TestLogger::inst()->logLine(string("},"));
 #endif // LOG_TESTS
 }
 void App::loadSceneParameters()
@@ -906,7 +1118,7 @@ void App::loadKernels()
 
   GLTextureObject dummyTex;
   dummyTex.createTexture2D(m_appWidth, m_appHeight, GL_RGBA32F_ARB, GL_RGBA, GL_FLOAT, pixels);
-  
+
   delete[] pixels;
 
   m_kernelDeferred_Peeling = new KernelDeferred_Peeling((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
@@ -946,7 +1158,7 @@ void App::loadKernels()
     ,m_kernelVoxelization->getTexIdGrid0()
     ,m_kernelVoxelization->getTexIdGridInvFunc()
     );
-  
+
   m_kernelSSAO_Vox_TanSphereVolume = new KernelSSAO_Vox_TanSphereVolume((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelVoxDepth->getTexIdEyePos()
     ,m_kernelVoxDepth->getTexIdNormalDepth()
@@ -961,9 +1173,64 @@ void App::loadKernels()
     ,m_kernelVoxelization->getTexIdGridInvFunc()
     );
 
+  m_kernelSSAO_Vox_ConeTracing->setJitterEnabled(m_SSAO_jitter);
+  if(m_SSAO_cone_infoMethod != "InitDist")
+  {
+    m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->nextCalcMethod();
+    m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm = m_SSAO_cone_infoCenterParm;
+    m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm = m_SSAO_cone_infoRadiusParm;
+  }else m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = m_SSAO_cone_infoSphereOverlap;
+  m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(m_SSAO_cone_angle);
+  m_kernelSSAO_Vox_ConeTracing->setNumCones(m_SSAO_cone_numCones);
+  m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(m_SSAO_cone_numSpheres);
+  m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(m_SSAO_cone_numSpamplers);
+
+
   m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelSSAO_SphereApproximation->getColorTexId()
     );
+
+  if(m_benchmark)
+  {
+    screenShotTest.reset();
+    screenShotTestEnabled = true;
+    screenShotTestCounter = 0;
+    screenShotTestCamIndex = 0;
+  }
+
+#ifdef LOG_TESTS
+  char str[500];
+  TestLogger::inst()->logLine("-- Algorithm Parameters");
+  TestLogger::inst()->logLine("[\"algorithm_parameters\"] = {");
+  sprintf(str, "%.3f,", m_SSAO_rfarPercent);
+  TestLogger::inst()->logLine(string("  [\"Rfar\"] = ") + string(str));
+  sprintf(str, "%.3f,", m_SSAO_contrast);
+  TestLogger::inst()->logLine(string("  [\"Contrast\"] = ") + string(str));
+  sprintf(str, "%s,", m_SSAO_jitter?"true":"false");
+  TestLogger::inst()->logLine(string("  [\"Jitter\"] = ") + string(str));
+  sprintf(str, "%.5f,", m_kernelSSAO_Vox_ConeTracing->getConeRevolutionAngle());
+  TestLogger::inst()->logLine(string("  [\"ConeAngle\"] = ") + string(str));
+  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getNumCones());
+  TestLogger::inst()->logLine(string("  [\"NumCones\"] = ") + string(str));
+  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
+  TestLogger::inst()->logLine(string("  [\"NumSpheres\"] = ") + string(str));
+  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getNumSphereSamplers());
+  TestLogger::inst()->logLine(string("  [\"NumSamplers\"] = ") + string(str));
+  sprintf(str, "\"%s\",", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->currCalcMethod == 0 ? "Progression" : "InitDist");
+  TestLogger::inst()->logLine(string("  [\"CurrentInfoMethod\"] = ") + string(str));
+  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.numMaxSpheres);
+  TestLogger::inst()->logLine(string("  [\"RadDistNumSpheres\"] = ") + string(str));
+  sprintf(str, "%.3f,", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap);
+  TestLogger::inst()->logLine(string("  [\"RadDistSphereOverlap\"] = ") + string(str));
+  sprintf(str, "%.3f,", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm);
+  TestLogger::inst()->logLine(string("  [\"RadProgSphereCenterParm\"] = ") + string(str));
+  sprintf(str, "%.3f,",m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm);
+  TestLogger::inst()->logLine(string("  [\"RadProgSphereRadiusParm\"] = ") + string(str));
+  TestLogger::inst()->logLine("},");
+
+  TestLogger::inst()->logLine("[\"screenshots\"] = {");
+  TestLogger::inst()->logLine(string("  [\"path\"] = [[") + string(SCREEN_TEST_PATH) + string("]],"));
+#endif // LOG_TESTS
 }
 
 void App::loadCameras()
@@ -1179,11 +1446,27 @@ void App::renderGUI()
     case SSAO_Vox_ConeTracing:
       if(m_menu_on)
       {
+        sprintf(a,"(N) Jitter: %s", m_SSAO_jitter? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
         sprintf(a,"(I/U) N Cones: %d ", m_kernelSSAO_Vox_ConeTracing->getNumCones());
         m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
         sprintf(a,"(J/K) N Spheres: %d ", m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
         m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(G/H) N Spheres Samplers: %d ", m_kernelSSAO_Vox_ConeTracing->getNumSphereSamplers());
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(7/8) Cone Angle: %.2f ", RAD_TO_DEG(m_kernelSSAO_Vox_ConeTracing->getConeRevolutionAngle()));
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(P) SphereInfo Method: %d ", (int)m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->currCalcMethod);
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(9/0) SphereOverlap: %.2f ", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap);
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
       }
       break;
   }
@@ -1478,12 +1761,24 @@ void App::renderSSAOVoxTanSphereVolume()
 
 void App::renderSSAOVoxConeTracing()
 {
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif  
   voxelize();
+#ifdef TIME_TEST
+  timeTest.kVoxelizationTime += timeTest.getTime();
+#endif
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-  m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_contrast);
 
+#ifdef TIME_TEST
+  timeTest.resetTimer();
+#endif  
+  m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_contrast);
+#ifdef TIME_TEST
+  timeTest.kConeTracingTime += timeTest.getTime();
+#endif
 
   //BLURR PASS
   if(m_blurr_on)

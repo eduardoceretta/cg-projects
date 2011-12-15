@@ -62,12 +62,14 @@ class App
   map<string, string*> m_acceptedArgsString;
   map<string, int*> m_acceptedArgsInt;
   map<string, float*> m_acceptedArgsFloat;
+  map<string, bool*> m_acceptedArgsBool;
 
   /**
    * App Resources Paths
    */
   string m_scenePath;
   string m_shaderPath;  
+  string m_logFileName;  
 
   /**
    * Application Parameters
@@ -130,6 +132,7 @@ class App
    */
   float m_SSAO_rfarPercent;
   float m_SSAO_contrast;
+  bool m_SSAO_jitter;
 
   /**
    * Sphere ALgorithm Parameters
@@ -143,6 +146,23 @@ class App
    */
   bool m_updateVoxelgrid;
   GLProjectionMatrix *m_voxProjectionMatrix;
+
+
+  /**
+   * Cone Algorithm Parameters
+   */
+
+  float m_SSAO_cone_angle;
+  int m_SSAO_cone_numCones;
+  int m_SSAO_cone_numSpheres;
+  int m_SSAO_cone_numSpamplers;
+
+  string m_SSAO_cone_infoMethod;
+  float m_SSAO_cone_infoSphereOverlap;
+  float m_SSAO_cone_infoCenterParm;
+  float m_SSAO_cone_infoRadiusParm;
+
+  bool m_benchmark;
 
   /**
    * Render Mode

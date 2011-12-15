@@ -15,10 +15,12 @@
  */
 #define TESTS
 #ifdef TESTS
-//#  define LOG_TESTS
-//#  define TIME_TEST
+#  define LOG_TESTS
+#  define TIME_TEST
 #  define SCREENSHOT_TEST
 #endif
+
+#define LOG_TEST_PATH "./resources/Tests/ScreenShots/"
 
 using namespace std;
 
@@ -32,10 +34,23 @@ public:
    * Get Singleton
    */
   static TestLogger* inst();
+
+  /**
+   * Define FileName Before first get of singleton.
+   *  If not defined a unique name will be generated based on the date.
+   */
+  static void setFileName(string fileName);
+
   /**
    * Closes the file
    */
   ~TestLogger();
+
+  /**
+   * Closes the file and frees memory.
+   *  Next call of inst will create a new log.
+   */
+  void closeLog();
 
   /**
    * Logs the string
@@ -44,8 +59,9 @@ public:
   void logLine(string str);
 
 private:
-  static TestLogger * m_inst; /**< Singleton Instance */
-  FILE *m_fp;/**< Output File */
+  static TestLogger * s_inst; /**< Singleton Instance */
+  static string s_fileName;   /**< Log File Name */
+  FILE *m_fp;                 /**< Output File */
 
   /**
    * Singleton Constructor
@@ -91,6 +107,10 @@ public:
   double kSSAOTime;
   double kCombineTime;
   double kBlurTime;
+
+
+  double kVoxelizationTime;
+  double kConeTracingTime;
 
   double totalTime; /**< Total time Accumulator */
 
@@ -138,6 +158,7 @@ public:
 #define SCREEN_TEST_INTERSCREEN_FRAMES 20
 #define SCREEN_TEST_CAM_ROT_ANGLE 90
 #define SCREEN_TEST_PATH "./resources/Tests/ScreenShots"
+
 
 class ScreenShotTest
 {
