@@ -8,12 +8,16 @@
  */
 #include <GL/glew.h>
 #include <iostream>
+#include "defines.h"
 #include "GLTextureObject.h"
 
 #include "FreeImage/FreeImage.h"
 
 
 using namespace std;
+
+GLint GLTextureObject :: s_max_tex_size = 0;
+GLint GLTextureObject :: s_max_tex_image_units = 0;
 
 GLTextureObject::GLTextureObject()
 :m_fbuffer(NULL)
@@ -272,6 +276,8 @@ GLuint GLTextureObject::createTexture1D(int width, GLenum internalFormat, GLenum
 
 void GLTextureObject::setTexture1D(GLuint textureId, int width, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
 {
+  MyAssert("TEXTURE SIZE NOT SUPPORTED\n", (width <= getMaxTextureSize()) );
+
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   setId(textureId, GL_TEXTURE_1D);
   glEnable(GL_TEXTURE_1D);
@@ -292,6 +298,10 @@ GLuint GLTextureObject::createTexture2D( int width, int height, GLenum internalF
 
 void GLTextureObject::setTexture2D(GLuint textureId, int width, int height, GLenum internalFormat, GLenum format, GLenum type, const GLvoid * data /*= 0*/ )
 {
+
+  
+  MyAssert("TEXTURE SIZE NOT SUPPORTED\n", (width <= getMaxTextureSize() && height <= getMaxTextureSize()) );
+
   glPushAttrib(GL_ENABLE_BIT|GL_TEXTURE_BIT);
   setId(textureId, GL_TEXTURE_2D);
   glEnable(GL_TEXTURE_2D);
@@ -332,6 +342,19 @@ void GLTextureObject::createFBODataTexture(int width, int height)
   setWraps(GL_CLAMP_TO_EDGE,GL_CLAMP_TO_EDGE);
 }
 
+GLint GLTextureObject::getMaxTextureImageUnits()
+{
+  if(!s_max_tex_image_units)
+    glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &s_max_tex_image_units);
+  return s_max_tex_image_units;
 
+}
+
+GLint GLTextureObject::getMaxTextureSize()
+{
+  if(!s_max_tex_size)
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &s_max_tex_size);
+  return s_max_tex_size;
+}
 
 

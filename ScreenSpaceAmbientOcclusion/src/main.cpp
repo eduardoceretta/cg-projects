@@ -62,6 +62,13 @@ void display()
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   ssaoApp.render();
+
+#ifndef NDEBUG  
+  GLenum e = glGetError();
+  if(e)
+    printf("GL_ERROR\n");
+#endif  
+
   glutSwapBuffers();
 }
 

@@ -18,7 +18,7 @@
 #include "GLUtils/GLProjectionMatrix.h"
 
 
-#define VOXELIZATION_BITMAP_FULLONE 
+//#define VOXELIZATION_BITMAP_FULLONE 
 #define EYE_NEAREST
 //#define FULL_GRID 1
 #ifdef FULL_GRID
@@ -167,6 +167,7 @@ void KernelVoxelization::setActive(bool op)
     m_voxData = NULL;
     m_eyeNearestData = NULL;
     glGetFloatv(GL_MODELVIEW_MATRIX, m_modelviewMatrix);
+
     m_projectionMatrix.readGLProjection();
     m_near = m_projectionMatrix.getNear();
     m_far = m_projectionMatrix.getFar();
@@ -179,8 +180,7 @@ void KernelVoxelization::setActive(bool op)
     addInputFloat("right", m_right);
     addInputFloat("top", m_top);
     m_shader->setActive(false);
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    
+
   }else
   {
     glPopAttrib();
@@ -190,6 +190,7 @@ void KernelVoxelization::setActive(bool op)
 
   if(op)
   {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
     glClearColor(0,0,0,0);
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
     //glEnableIndexedEXT(GL_BLEND, 0);
@@ -219,7 +220,6 @@ void KernelVoxelization::setActiveShaderOnly( bool op)
     addInputFloat("right", m_right);
     addInputFloat("top", m_top);
     m_shader->setActive(false);
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
   }else
   {
     glPopAttrib();
@@ -229,6 +229,7 @@ void KernelVoxelization::setActiveShaderOnly( bool op)
 
   if(op)
   {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
     glClearColor(0,0,0,0);
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
     //glEnableIndexedEXT(GL_BLEND, 0);
@@ -430,6 +431,10 @@ void KernelVoxelization::renderVoxelization()
 
   glPushMatrix();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glEnable(GL_CULL_FACE);
+  glEnable(GL_DEPTH_TEST);
+  glDisable(GL_DEPTH_CLAMP_NV);
+  
   
   //renderFrustum();
   
@@ -489,8 +494,10 @@ void KernelVoxelization::renderVoxelization()
           {
             Vector3 pw = getGridCellCenter(x, y, z, zNear);
             glPushMatrix();
+            //glDisable(GL_POLYGON_OFFSET_FILL);
             glEnable(GL_POLYGON_OFFSET_FILL);
-            glPolygonOffset(1.1,.0);
+            glPolygonOffset(0.0,.0);
+            //glPolygonOffset(1.1,.0);
             glTranslatef(pw.x, pw.y, pw.z);
 
             Vector3 size = getGridCellSize(x, y, z, zNear);
@@ -501,9 +508,9 @@ void KernelVoxelization::renderVoxelization()
               numZ++;
               maxZ = max(maxZ, numZ);
               glEnable(GL_NORMALIZE);
-              glEnable(GL_COLOR_MATERIAL);
-              glColorMaterial(GL_FRONT, GL_DIFFUSE);
-              glColor3f(.5,.2,.2);
+              //glEnable(GL_COLOR_MATERIAL);
+              //glColorMaterial(GL_FRONT, GL_DIFFUSE);
+              //glColor3f(.5,.2,.2);
               glutSolidCube(1.0);
               glDisable(GL_COLOR_MATERIAL);
             }

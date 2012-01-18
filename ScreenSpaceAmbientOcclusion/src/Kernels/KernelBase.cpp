@@ -7,9 +7,11 @@
  *  A kernel is composed by a FBO, a shader and input and output textures.
  */
 
+#include "defines.h"
 #include "Kernels/KernelBase.h"
 #include "GLUtils/GLFrameBufferObject.h"
 #include "GLUtils/GLShader.h"
+#include "GLUtils/GLTextureObject.h"
 
 KernelBase::KernelBase(){
 
@@ -155,10 +157,10 @@ GLuint KernelBase::getOutputTexture(int index){
 }
 
 void KernelBase::activateTextures(){
-
   for(int i=0; i<m_inputTextures.size(); i++){
     glActiveTextureARB(GL_TEXTURE0 + i);
     glBindTexture(m_inputTextures.at(i).first, m_inputTextures.at(i).second);
+
   }
 }
 
@@ -172,7 +174,6 @@ void KernelBase::renderScreenQuad(){
   glPushMatrix();
   glLoadIdentity();
 
-
   glEnable(GL_TEXTURE_1D);
   glEnable(GL_TEXTURE_2D);
 
@@ -185,7 +186,6 @@ void KernelBase::renderScreenQuad(){
   glTexCoord2f(0,1); glVertex3f(0,1,0);
   glEnd();
 
-
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
   glMatrixMode(GL_MODELVIEW);
@@ -194,6 +194,9 @@ void KernelBase::renderScreenQuad(){
 }
 
 void KernelBase::addInputTexture(GLenum textureDimension, char* name, GLuint id){
+  MyAssert("MAX NUMBER OF ACTIVE TEXTURES REACHED\n", 
+    m_inputTextures.size() < GLTextureObject::getMaxTextureImageUnits());
+
   m_shader->setUniformTexture(name, m_inputTextures.size());
   m_inputTextures.push_back(std::pair<GLenum, GLuint>(textureDimension, id));
 }
