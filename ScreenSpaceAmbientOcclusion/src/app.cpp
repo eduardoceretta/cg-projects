@@ -1723,20 +1723,34 @@ void App::renderVoxelization()
     glMatrixMode (GL_MODELVIEW);
     glPushMatrix();
 
+    GLint a = -1;
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
 
     m_camHandler->setMinerLightOn(m_minerLight_on);
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_camHandler->renderMinerLight();
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setSceneLightEnabled(m_lights_on);
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setMaterialActive(true, 2);
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setLightActive(true);
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
 
     m_kernelVoxelization->renderVoxelization();
-
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setLightActive(false);
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setMaterialActive(false, 2);
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
 
     glPopAttrib();
+    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
+    GLenum e = glGetError();
+    if(e)
+      printf("GL_ERROR\n");
 
     glPopMatrix();
     glMatrixMode (GL_PROJECTION);

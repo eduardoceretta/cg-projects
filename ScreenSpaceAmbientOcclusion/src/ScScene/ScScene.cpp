@@ -113,7 +113,7 @@ int ScScene::getNumLights()
 
 void ScScene::setLightActive( bool op )
 {
-  if(op)
+  if(op && m_lightEnabled)
   {
     if(m_lightEnabled)
     {
@@ -128,7 +128,8 @@ void ScScene::setLightActive( bool op )
 
     }
   }else {
-    glPopAttrib();
+    if(m_lightEnabled)
+      glPopAttrib();
   }
 }
 
