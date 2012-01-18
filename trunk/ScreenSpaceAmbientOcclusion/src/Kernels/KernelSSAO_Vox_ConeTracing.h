@@ -60,7 +60,7 @@ public:
 
 
   SphereInfo()
-    :currCalcMethod(RadiusInitDistance)
+    :currCalcMethod(RadiusProgression)
   {}
 
   void setParameters(float coneRevolutionAngle, int numSpheresByCone, int numCones);
@@ -113,7 +113,7 @@ public:
   void setNumCones(int val);
 
   int getNumSpheresByCone() const;
-  void setNumSpheresByCone(int val);
+  //void setNumSpheresByCone(int val);
 
   int getNumSamplersDistributions() const;
   void setNumSamplersDistributions(int val);
@@ -121,11 +121,17 @@ public:
   float getConeRevolutionAngle() const;
   void setConeRevolutionAngle(float val);
 
-  int getNumSphereSamplers() const;
+  int getNumberSphereSamplers() const;
   void setNumSphereSamplers(int val);
 
   bool isJitterEnabled() const;
   void setJitterEnabled(bool val);
+
+  float getRfarPercent() const;
+  void setRfarPercent(float val);
+
+  float getContrast() const;
+  void setContrast(float val);
 
 
   SphereInfo* getSphereInfo();
@@ -139,13 +145,13 @@ public:
    * Activate/Deactivate the Kernel's FBO and shader
    *  Calculate the projection parameters needed by the shader
    */
-  void setActive(bool op, GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast);
+  void setActive(bool op, GLProjectionMatrix *projectionMatrix);
 
   /**
    * Activate/Deactivate the Kernel's shader
    *  Calculate the projection parameters needed by the shader
    */
-  void setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast);
+  void setActiveShaderOnly(bool op, GLProjectionMatrix *projectionMatrix);
 
   /**
    * Does a kernel pass cycle.
@@ -153,7 +159,7 @@ public:
    *  and deactivate the shader and the FBO.
    *  Calculate the projection parameters needed by the shader
    */
-  void step(GLProjectionMatrix *projectionMatrix, float rfarPercent, float contrast);
+  void step(GLProjectionMatrix *projectionMatrix);
 
   /**
    * Get output SSAO texture Id.
@@ -190,15 +196,19 @@ private:
   GLuint m_texIdSSAO;
   GLuint m_texIdDebug;
   
+  
   /**
    * Parameters
    */
+  float m_rfarPercent;
+  float m_contrast;
   int m_numCones;
   int m_numSpheresByCone;
   int m_numSamplersDistributions;
   float m_coneRevolutionAngle;
   int m_numSphereSamplers;
   bool m_jitterEnabled;
+  
   /**
    * Cone Dir Samplers
    */

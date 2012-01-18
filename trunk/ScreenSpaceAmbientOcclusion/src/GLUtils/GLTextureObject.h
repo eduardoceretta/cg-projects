@@ -42,6 +42,15 @@ class GLTextureObject
    */
   GLenum m_target;
 
+  /**
+   * Largest texture that the GL can handle
+   */
+  static GLint s_max_tex_size;
+  /**
+   * Largest number of active texture that the GL can handle
+   */
+  static GLint s_max_tex_image_units;
+
 public:
   /**
    * Output Image Supported File Type.
@@ -64,6 +73,12 @@ public:
    * Frees memory.
    */
   ~GLTextureObject();
+
+  /**
+   * Static Auxiliary Texture Attributes Getters
+   */
+  static GLint getMaxTextureImageUnits();
+  static GLint getMaxTextureSize();
 
   /**
    * Create\Set a 1D texture.
