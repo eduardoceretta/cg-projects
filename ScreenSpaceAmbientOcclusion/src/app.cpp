@@ -116,15 +116,15 @@ App::App()
 ,m_debugrender_on(false)
 ,m_blurr_on(false)
 ,m_orthographicProjection_on(false)
-,m_SSAO_rfarPercent(30.0f)
+,m_SSAO_rfarPercent(.1f)
 ,m_SSAO_pixelmaskSize(.8f)
 ,m_SSAO_offsetSize(5.0f)
-,m_SSAO_contrast(20.0f)
+,m_SSAO_contrast(1.28f)
 ,m_SSAO_jitter(true)
 ,m_SSAO_numPeelings(3)
-,m_SSAO_cone_angle(DEG_TO_RAD(15.0f))
+,m_SSAO_cone_angle(DEG_TO_RAD(30.0f))
 ,m_SSAO_cone_numCones(6)
-,m_SSAO_cone_numSpheres(6)
+,m_SSAO_cone_numSpheres(3)
 ,m_SSAO_cone_numSpamplers(3)
 ,m_SSAO_cone_infoMethod("InitDist")
 ,m_SSAO_cone_infoSphereOverlap(0.0f)
@@ -538,7 +538,7 @@ void App::listenKeyboard( int key )
     break;
 #endif // SCREENSHOT_TEST
 
- /* case 'K':
+  case 'K':
     switch(m_renderMode)
     {
     default:
@@ -599,7 +599,7 @@ void App::listenKeyboard( int key )
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
       break;
     }
-    break;*/
+    break;
 
   case 'R':
   case 'r':
@@ -941,9 +941,9 @@ void App::listenKeyboardSpecial( int key )
       m_SSAO_contrast = 1.28;
 
       m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
-      //m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(6);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(3);
       m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(3);
-      m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(DEG_TO_RAD(15));
+      m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(DEG_TO_RAD(30));
     }else
       m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
 
@@ -1197,14 +1197,13 @@ void App::loadKernels()
     m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm = m_SSAO_cone_infoCenterParm;
     m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm = m_SSAO_cone_infoRadiusParm;
   }else m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = m_SSAO_cone_infoSphereOverlap;
+  
   m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(m_SSAO_cone_angle);
   m_kernelSSAO_Vox_ConeTracing->setNumCones(m_SSAO_cone_numCones);
-  //m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(m_SSAO_cone_numSpheres);
+  m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(m_SSAO_cone_numSpheres);
   m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(m_SSAO_cone_numSpamplers);
   m_kernelSSAO_Vox_ConeTracing->setRfarPercent(m_SSAO_rfarPercent);
   m_kernelSSAO_Vox_ConeTracing->setContrast(m_SSAO_contrast);
-
-
 
   m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelSSAO_SphereApproximation->getColorTexId()
@@ -1472,7 +1471,7 @@ void App::renderGUI()
         sprintf(a,"(I/U) N Cones: %d ", m_kernelSSAO_Vox_ConeTracing->getNumCones());
         m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
-        sprintf(a,"N Spheres: %d ", m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
+        sprintf(a,"(K/J)N Spheres: %d ", m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
         m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
         sprintf(a,"(G/H) N Spheres Samplers: %d ", m_kernelSSAO_Vox_ConeTracing->getNumberSphereSamplers());
@@ -1716,41 +1715,29 @@ void App::renderVoxelization()
     m_camHandler = m_kernelsCamHandleres[Debug + Voxelization];
   }else
   {
+    Vector3 bb_size = m_kernelVoxelization->getVoxBBMax() - m_kernelVoxelization->getVoxBBMin();
+    float maxsize = max(max(bb_size.x, bb_size.y), bb_size.z);
+
     glMatrixMode (GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity ();
-    gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, 1, 1000.);
+    gluPerspective(m_fov, (GLfloat)m_appWidth/(GLfloat)m_appHeight, maxsize*.1f, maxsize*10.0f);
     glMatrixMode (GL_MODELVIEW);
     glPushMatrix();
 
-    GLint a = -1;
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     glPushAttrib(GL_CURRENT_BIT|GL_LIGHTING_BIT);
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
 
     m_camHandler->setMinerLightOn(m_minerLight_on);
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_camHandler->renderMinerLight();
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setSceneLightEnabled(m_lights_on);
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setMaterialActive(true, 2);
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setLightActive(true);
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
 
     m_kernelVoxelization->renderVoxelization();
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setLightActive(false);
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
     m_rtScene->setMaterialActive(false, 2);
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
 
     glPopAttrib();
-    a = -1; glGetIntegerv(GL_ATTRIB_STACK_DEPTH, &a);
-    GLenum e = glGetError();
-    if(e)
-      printf("GL_ERROR\n");
 
     glPopMatrix();
     glMatrixMode (GL_PROJECTION);
@@ -1824,8 +1811,8 @@ void App::renderSSAOVoxConeTracing()
 
   //GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
   //GLuint* i = texObj.read2DTextureUIntData();
-  GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
-  GLfloat* f = t2.read2DTextureFloatData();
+  //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
+  //GLfloat* f = t2.read2DTextureFloatData();
 
   glPopAttrib();
 }
