@@ -14,6 +14,7 @@
 
 #include "tests.h"
 #include "app.h"
+#include "defines.h"
 /*******************************************/
 /* TestLogger                              */
 /*******************************************/
@@ -89,6 +90,7 @@ void TestLogger::init()
   }else fileName = s_fileName;
 
   m_fp = fopen(fileName.c_str(), "w");
+  MyAssert("Log File Name Not Found: "+fileName, m_fp);
   
   //log(string("SSAO LogFile. - Created: ") + string(asctime(ttm)) + string("\n\n"));
   logLine("return {");
