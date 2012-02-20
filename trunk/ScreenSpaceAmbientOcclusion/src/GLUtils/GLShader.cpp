@@ -73,7 +73,7 @@ void GLShader::setUniformTexture(char* name, GLuint value )
 {
   GLint loc = glGetUniformLocation(m_shaderProg, name);
   if(m_successfulLoad && loc == -1)
-    ;//printf("Variable %s do not exist or is not used!\n", name);
+    printf("Variable %s do not exist or is not used!\n", name);
   else
   {
     m_uniformIntVec[string(name)] = value;
@@ -85,7 +85,7 @@ void GLShader::setUniformVec3( char* name, Vector3 value )
 {
   GLint loc = glGetUniformLocation(m_shaderProg, name);
   if(m_successfulLoad && loc == -1)
-    ;//printf("Variable %s do not exist or is not used!\n", name);
+    printf("Variable %s do not exist or is not used!\n", name);
   else
   {
     m_uniformVector3Vec[string(name)] = value;
@@ -97,7 +97,7 @@ void GLShader::setUniformVec3Array(char* name, GLfloat *value, int n)
 {
   GLint loc = glGetUniformLocation(m_shaderProg, name);
   if(m_successfulLoad && loc == -1)
-    ;//printf("Variable %s do not exist or is not used!\n", name);
+    printf("Variable %s do not exist or is not used!\n", name);
   else
   {
     m_uniformVector3ArrayVec[string(name)] = pair<GLfloat*, int> (value, n);
@@ -109,7 +109,7 @@ void GLShader::setUniformInt( char* name, GLint value )
 {
   GLint loc = glGetUniformLocation(m_shaderProg, name);
   if(m_successfulLoad && loc == -1)
-    ;//printf("Variable %s do not exist or is not used!\n", name);
+    printf("Variable %s do not exist or is not used!\n", name);
   else
   {
     m_uniformIntVec[string(name)] = value;
@@ -121,7 +121,7 @@ void GLShader::setUniformFloat( char* name, GLfloat value )
 {
   GLint loc = glGetUniformLocation(m_shaderProg, name);
   if(m_successfulLoad && loc == -1)
-    ;//printf("Variable %s do not exist or is not used!\n", name);
+    printf("Variable %s do not exist or is not used!\n", name);
   else
   {
     m_uniformFloatVec[string(name)] = value;
@@ -133,7 +133,7 @@ void GLShader::setUniformMatrix4( char* name, const GLfloat* value )
 {
   GLint loc = glGetUniformLocation(m_shaderProg, name);
   if(m_successfulLoad && loc == -1)
-    ;//printf("Variable %s do not exist or is not used!\n", name);
+    printf("Variable %s do not exist or is not used!\n", name);
   else
   {
     m_uniformMatrixVec[string(name)] = value;
