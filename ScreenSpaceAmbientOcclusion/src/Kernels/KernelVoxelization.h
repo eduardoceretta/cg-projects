@@ -39,8 +39,8 @@ public:
   /**
    * Get the id of the respective render target
    */
-  GLuint getTexIdNormal() const;
-  GLuint getTexIdColor() const;
+  //GLuint getTexIdNormal() const;
+  //GLuint getTexIdColor() const;
   GLuint getTexIdGrid0() const;
 
   /**

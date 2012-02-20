@@ -113,7 +113,7 @@ public:
   void setNumCones(int val);
 
   int getNumSpheresByCone() const;
-  //void setNumSpheresByCone(int val);
+  void setNumSpheresByCone(int val);
 
   int getNumSamplersDistributions() const;
   void setNumSamplersDistributions(int val);

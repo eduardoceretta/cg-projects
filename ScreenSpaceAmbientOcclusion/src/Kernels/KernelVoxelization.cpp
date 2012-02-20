@@ -18,7 +18,7 @@
 #include "GLUtils/GLProjectionMatrix.h"
 
 
-//#define VOXELIZATION_BITMAP_FULLONE 
+#define VOXELIZATION_BITMAP_FULLONE 
 #define EYE_NEAREST
 //#define FULL_GRID 1
 #ifdef FULL_GRID
@@ -103,25 +103,25 @@ KernelVoxelization::KernelVoxelization(char* path, int width, int height, int si
   createGridBitMapTexture();
   createGridFuncTextures(4.0f);
 
-  GLTextureObject t;
-  t.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
-  t.setFilters(GL_NEAREST, GL_NEAREST);
-  t.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+  //GLTextureObject t;
+  //t.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
+  //t.setFilters(GL_NEAREST, GL_NEAREST);
+  //t.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
   
   GLTextureObject t1;
   t1.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
   t1.setFilters(GL_NEAREST, GL_NEAREST);
   t1.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
   
-  GLTextureObject t2;
-  t2.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
-  t2.setFilters(GL_NEAREST, GL_NEAREST);
-  t2.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+  //GLTextureObject t2;
+  //t2.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
+  //t2.setFilters(GL_NEAREST, GL_NEAREST);
+  //t2.setWraps(GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
   
   //Output
-  m_texIdNormal = addOutput(0, t.getId());
-  m_texIdGrid0 = addOutput(1, t1.getId());
-  m_texIdColor = addOutput(2);//, t2.getId());
+  m_texIdGrid0 = addOutput(0, t1.getId());
+  //m_texIdNormal = addOutput(1, t.getId());
+  //m_texIdColor = addOutput(2);//, t2.getId());
 	
 	//Input
 	m_shader->setActive(true);
@@ -144,15 +144,15 @@ KernelVoxelization::~KernelVoxelization(){
 
 
 
-GLuint KernelVoxelization::getTexIdNormal() const
-{
-  return m_texIdNormal;
-}
+//GLuint KernelVoxelization::getTexIdNormal() const
+//{
+//  return m_texIdNormal;
+//}
 
-GLuint KernelVoxelization::getTexIdColor() const
-{
-  return m_texIdColor;
-}
+//GLuint KernelVoxelization::getTexIdColor() const
+//{
+//  return m_texIdColor;
+//}
 
 GLuint KernelVoxelization::getTexIdGrid0() const
 {
@@ -175,10 +175,12 @@ void KernelVoxelization::setActive(bool op)
     m_top = m_projectionMatrix.getTop();
 
     m_shader->setActive(true);
+#ifndef EYE_NEAREST
     addInputFloat("near", m_near);
+#endif // EYE_NEAREST
     addInputFloat("far", m_far);
-    addInputFloat("right", m_right);
-    addInputFloat("top", m_top);
+    //addInputFloat("right", m_right);
+    //addInputFloat("top", m_top);
     m_shader->setActive(false);
 
   }else
@@ -215,10 +217,12 @@ void KernelVoxelization::setActiveShaderOnly( bool op)
     m_top = m_projectionMatrix.getTop();
 
     m_shader->setActive(true);
+#ifndef EYE_NEAREST
     addInputFloat("near", m_near);
+#endif // EYE_NEAREST
     addInputFloat("far", m_far);
-    addInputFloat("right", m_right);
-    addInputFloat("top", m_top);
+    //addInputFloat("right", m_right);
+    //addInputFloat("top", m_top);
     m_shader->setActive(false);
   }else
   {
@@ -246,10 +250,12 @@ void KernelVoxelization::createGridBitMapTexture()
 {
   int texsize = m_depth*4*4;
   GLfloat* texData = new GLfloat[texsize];
-
+  //Normal   FULLONE
+  //100       100
+  //010   OR  110
+  //001       111
   for(unsigned int i = 0; i < (unsigned int)m_depth; ++i)
   {
-    
 #ifdef VOXELIZATION_BITMAP_FULLONE
     unsigned int v = ~0 << (m_depth%UINT_BIT_SIZE - 1 - i);
 #else
@@ -693,7 +699,7 @@ void KernelVoxelization::updateData()
 {
   if(!m_voxData)
   {
-    m_texObj.setId(getOutputTexture(1));
+    m_texObj.setId(m_texIdGrid0);
     m_voxData = m_texObj.read2DTextureUIntData();
   }
   if(!m_eyeNearestData)
