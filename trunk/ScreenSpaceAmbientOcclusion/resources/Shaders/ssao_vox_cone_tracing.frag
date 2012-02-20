@@ -136,14 +136,14 @@ uniform int perspective;
 
 #define DIST_ATT(x) \
   ONE(x)
- //SIGMOID(x) 
- //EXP(x)
- //LINEAR(x)
- //POLY(x)
- //COS(x)
- //LOG(x)
  //SQRT2(x)
+ //SIGMOID(x) 
  //SQRT(x)
+ //LOG(x)
+ //COS(x)
+ //POLY(x)
+ //LINEAR(x)
+ //EXP(x)
 
 
 
@@ -282,27 +282,18 @@ void main()
   //OUT = BLACK;
   //return;
 //}
-
-  //
-  //float sphereSamplerIndex = (float(0) + .5)/float(sphereSamplersWidth);
-  //vec3 sphereSampler = texture1D(sphereSamplers, sphereSamplerIndex).rgb;      
-  //OUT = vec4(texture1D(sphereSamplers, sphereSamplerIndex).rgb, sphereSamplersWidth);     
-  //return;
-
-
   vec3 normal; vec3 eyePosition; float depth;
   readInputData(normal, eyePosition, depth);
   
   if(depth < 0.0)
     discard;
 
-  vec3 fragGridIndex = getGridIndex(vec3(0,0,0), eyePosition);
-  
   int coneDirSamplerDistributionIndex = 0;
   int sphereSamplerDistributionIndex = 0;
   
   if(jitterEnabled == 1)
   {
+    vec3 fragGridIndex = getGridIndex(vec3(0,0,0), eyePosition);
     int randNum = int(floor(rand(fragGridIndex.xy) * float(numSamplersDistributions)));
     coneDirSamplerDistributionIndex = randNum * numCones;
     sphereSamplerDistributionIndex = randNum * getTotalNumSphereSamplersAccumulated(numSpheresByCone);
@@ -338,7 +329,7 @@ void main()
       vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, rfar, sphereInfoData.x);
       
       float sphereRadius = getSphereRadius(rfar, sphereInfoData.y);
-//
+
       float sphereAo = calcSphereOcclusion(sphereSamplerDistributionIndex, sphereCenter, sphereRadius, j);
       
       float distAtt = DIST_ATT(normalizedDist);
@@ -346,7 +337,6 @@ void main()
       coneAo += sphereAo*distAtt*(1.0 - coneAo);
       if(coneAo>=1.0)
         break;
-//
     }
     //coneAo = normalizeConeAo(coneAo, numSpheresByCone);
 
@@ -503,8 +493,7 @@ float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, ou
     return 0.0;
 
   unsigned int numFullVoxels = countFullVoxelsVolSphere(samplerGridIndex, gridIndexBottonN, gridIndexTopN);
-  float zznear = getZnear(samplerGridIndex.xy*vec2(screenWidth, screenHeight));
-  float height = min(float(numFullVoxels)*(far - zznear)/128.0, secant);
+  float height = min(float(numFullVoxels)*(far - zzNear)/128.0, secant);
   return height;
 }
 

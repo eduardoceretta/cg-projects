@@ -19,13 +19,17 @@ LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
 //MESH materialIndex (pos)x y z (scale)x y z  path
 
 ////////////////////////UM UM UM UM//////////////////////////
- //MESH 1  0.324326 -0.267604 0.406447  0.00689655172 0.00689655172 0.00689655172 resources/Models/cavalo.um
+////////////////////////UM UM UM UM//////////////////////////
+////////////////////////UM UM UM UM//////////////////////////
+//MESH 1  0.324326 -0.267604 0.406447  0.00689655172 0.00689655172 0.00689655172 resources/Models/cavalo.um
  //MESH 3  0 0 0  .086 .086 .086 resources/Models/beethoven.um
  //MESH 1  0 0 0  1 1 1 resources/Models/cow.um
  //MESH 1  0 0 0  1 1 1 resources/Models/heptoroid.um
  //MESH 1  0 0 0  1 1 1 resources/Models/venus.um
  //MESH 1  0 0 0  1 1 1 resources/Models/birdie.um
 
+////////////////////////MSH MSH MSH MSH//////////////////////////
+////////////////////////MSH MSH MSH MSH//////////////////////////
 ////////////////////////MSH MSH MSH MSH//////////////////////////
 //MESH 1  4 8 6     10 10 3  resources/Models/cube.msh
 //MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_C.msh
@@ -34,9 +38,10 @@ LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
 //MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/box.msh
 
 
-
 ////////////////////////PLY PLY PLY PLY//////////////////////////
- //MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/bun_zipper_res2.msb
+////////////////////////PLY PLY PLY PLY//////////////////////////
+////////////////////////PLY PLY PLY PLY//////////////////////////
+//MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/bun_zipper_res2.msb
  //MESH 1  .18 -.25 0.     3. 3. 3. resources/Models/Stanford/dragon_vrip.msb
  //MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/dragon_vrip.ply
  //MESH 1 0.027468 -0.751269 0.0337839  5.049918 5.049918 5.049918  resources/Models/Stanford/happy_vrip.msb
@@ -52,7 +57,9 @@ LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
  //MESH 1  0 -35 350     .5 .5 .5  resources/Models/Stanford/sappho.ply
 
 ////////////////////////3DS 3DS 3DS 3DS//////////////////////////
- //MESH 1  -4.5 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statue.3ds
+////////////////////////3DS 3DS 3DS 3DS//////////////////////////
+////////////////////////3DS 3DS 3DS 3DS//////////////////////////
+//MESH 1  -4.5 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statue.3ds
  //MESH 1  -4.5 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statuHigh.3ds
  //MESH 1  0 10 0     .01 .01 .01  resources/Models/3DS/TableSinger.msb
  //MESH 1  0 -1 0     8.16846e-6 -8.16846e-6 8.16846e-6  resources/Models/3DS/CarToyotaCrown.msb
@@ -66,67 +73,83 @@ LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
 //MESH 1 0 0 0 1 1 1 resources/Models/3DS/alien-queen.msb
 
 ///////////////////////////OBJ OBJ OBJ ///////////////////////////////////
- //MESH 1 0 0 0 1 1 1 resources/Models/obj/sponza.msb
- //MESH 1 0 0 0 1 1 1 resources/Models/obj/museumhallRD.msb
- //MESH 1 0 0 0 1 1 1 resources/Models/obj/city.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/dragon.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/DW-Ormesh-02.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/ak47.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/cassini.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/House_1st_03_(obj).msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/cutter.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/WoodenBox02.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/WoodenBoxOpen02.msb
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/free_arena.msb
-
-////////////////////////TEC TEC TEC TEC//////////////////////////
- //MESH 1  0. 0. 0.     .1 .1 .1  resources/Models/TecGraf/16metros_30graus.p3b
-
-
-////////////////////////////OPTIX COMPARE////////////////////////////////
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/ak47.msb                                                               
+///////////////////////////OBJ OBJ OBJ ///////////////////////////////////
+///////////////////////////OBJ OBJ OBJ ///////////////////////////////////
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/sponza.msb //NON-WATERTIGHT
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/museumhallRD.msb
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/donk.msb                    //NON-WATERTIGHT 206k V   102k T
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/M60.msb                     //NON-WATERTIGHT   688k V    344k T
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/column_01_obj.msb           //NON-WATERTIGHT 42k V   15k T
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/City1Block1.msb             //NON-WATERTIGHT   30k  V 15k T
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/medeival_castle_20.msb      //NON-WATERTIGHT   3k V    2k T
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/mini_obj.msb                //NON-WATERTIGHT   813k V    300k T
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/MTS-Amsterdam.msb           //NON-WATERTIGHT   
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/MTS_Apartaments.msb         //NON-WATERTIGHT
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/pitcher.msb                 //NON-WATERTIGHT   
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/poly_hay_obj.msb            //NON-WATERTIGHT  
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Pretty_House.msb            //NON-WATERTIGHT   
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/toyplane.msb                //NON-WATERTIGHT  
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/wateringcan.msb             //NON-WATERTIGHT  
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/ak47.msb    //284k Vertex  112k Triangles                                                            
 //CAMERA    -13.5074 4.4051 28.7633        0.000577153 -2.86696 -6.66222        0.0441255 0.981801 -0.184716    30       5      1000
 //CAMERA    -77.4268 7.27157 -20.6568      0.000579942 -2.86696 -6.66223        0.151554 0.980064 -0.128479     30       5      1000
 //CAMERA    17.3225 -0.40348 42.9144       0.000582064 -2.86697 -6.66224        0.186761 0.975799 -0.113742     30       5      1000
-
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/cassini.obj
+//
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/cassini.msb      //26k Vertex   9k Triangles
 //CAMERA    -10.0234 7.36925 0.639995      0.17643 0.239373 0.417659            -0.10283 -0.116301 -0.987877    30       5      1000
 //CAMERA    -2.17856 2.65169 -7.30782      0.301267 3.08095 1.54119             -0.150206 0.988637 -0.00586455  30       5      1000
 //
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/city.msb                                                                     
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/free_arena.msb          //11k Vertex  7k Triangles                                                       
+//CAMERA    68.6449 25.3397 -37.1589       -0.032329 5.61509 0.0600249          -0.194124 0.968632 0.155137     30       5      1000
+//CAMERA    29.693 69.6207 38.9261         -0.0323295 5.61509 0.0600258         -0.0182799 0.525134 -0.850823   30       5      1000
+//
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/House_1st_03_(obj).msb        //NON-WATERTIGHT 16k  Vertex     8k  Triangles                                                 
+//CAMERA    -3.31026 -23.966 4.98576       3.5006e-007 5.38556e-007 3.02788     0.0307488 0.0771638 0.996544    30       5      1000
+//CAMERA    -10.7773 -9.14167 3.61598      1.04939 -1.41022 2.29848             0.138116 -0.0426573 0.989497    30       5      1000
+//CAMERA    -1.11996 -7.96204 2.72803      1.92288 2.15914 -1.21694             0.0616184 0.346336 0.936085     30       5      1000
+//
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/WoodenBox02.msb              //NON-WATERTIGHT >1k Vertex  >.5k Triangles                                                  
+//CAMERA    -2.57786 0.297691 2.21676      0 0 0                                0.0827998 0.995862 -0.0374477   30       5      1000
+//CAMERA    -1.90527 2.50986 1.31095       0 0 0                                0.60799 0.677631 -0.413721      30       5      1000
+//
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/WoodenBoxOpen02.msb          //NON-WATERTIGHT >1k Vertex  >.5k Triangles                                                       
+//CAMERA    -2.32358 1.47325 2.28152       0 0 0                                0.170789 0.897849 -0.405831     30       5      1000
+//CAMERA    0.00649932 3.57372 0.058205    0 0 0                                -0.490939 0.0150798 -0.871063   30       5      1000
+
+////////////////////////TEC TEC TEC TEC//////////////////////////
+////////////////////////TEC TEC TEC TEC//////////////////////////
+////////////////////////TEC TEC TEC TEC//////////////////////////
+//MESH 1  0. 0. 0.     .1 .1 .1  resources/Models/TecGraf/16metros_30graus.p3b
+//MESH 1  0. 0. 0.     .1 .1 .1  resources/Models/TecGraf/roda.p3b
+
+////////////////////////////OPTIX COMPARE////////////////////////////////
+////////////////////////////OPTIX COMPARE////////////////////////////////
+////////////////////////////OPTIX COMPARE////////////////////////////////
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/city.msb          //WATERTIGHT 15k Vertex     7k Triangles                                                                
 //CAMERA    0.615725 0.236336 2.21997      0.615725 0.236336 -0.579334          0 1 0                           30       5      1000
 //CAMERA    -2.41815 1.60309 0.720007      0.615725 0.236336 -0.579334          0.351855 0.923911 -0.150287     30       5      1000
 //CAMERA    1.27591 0.72413 -2.41955       0.615725 0.236336 -0.579334          0.0543153 0.960192 0.274009     30       5      1000
 //
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/cutter.msb                                                                    
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/cutter.msb              //WATERTIGHT 130k Vertex        65k Triangles                                                        
 //CAMERA    4.1874 7.09915 151.792         4.1874 7.09915 -0.7609               0 1 0                           30       5      1000
 //CAMERA    -99.3127 -14.3746 -33.4869     2.77799 8.8365 -1.57661              -0.127869 0.950722 -0.28245     30       5      1000
 //CAMERA    105.553 23.2566 -36.3459       2.77799 8.8365 -1.57661              -0.212298 0.948763 -0.234048    30       5      1000
 //
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/DW-Ormesh-02.msb                                                              
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/DW-Ormesh-02.msb        //WATERTIGHT 143k Vertex  71k Triangles                                                    
 //CAMERA    26.4077 180.487 1009.17        26.4077 180.487 -178.905             0 1 0                           30       5      1000
-////
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/free_arena.msb                                                                
-//CAMERA    68.6449 25.3397 -37.1589       -0.032329 5.61509 0.0600249          -0.194124 0.968632 0.155137     30       5      1000
-//CAMERA    29.693 69.6207 38.9261         -0.0323295 5.61509 0.0600258         -0.0182799 0.525134 -0.850823   30       5      1000
 //
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/House_1st_03_(obj).msb                                                        
-//CAMERA    -3.31026 -23.966 4.98576       3.5006e-007 5.38556e-007 3.02788     0.0307488 0.0771638 0.996544    30       5      1000
-//CAMERA    -10.7773 -9.14167 3.61598      1.04939 -1.41022 2.29848             0.138116 -0.0426573 0.989497    30       5      1000
-//CAMERA    -1.11996 -7.96204 2.72803      1.92288 2.15914 -1.21694             0.0616184 0.346336 0.936085     30       5      1000
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/dragon.msb          //WATERTIGHT 300k Vertex    100k Triangles
+//CAMERA   -28.1103  5.09934  -2.07215      -6.61092e-008  4.96995  -4.15856e-009    0.00135533  0.999031  0.043997     30    5     1000
+//CAMERA   27.7427  1.57225  -3.64703       3.3931e-007  4.96995  7.40699e-007       0.110213  0.990331  -0.084241      30    5     1000
+//CAMERA   0.699758  6.52407  28.1354       8.94602e-007  4.96995  8.67915e-007      0.00236674  0.998472  -0.0552121   30    5     1000
+//CAMERA   0.514386  2.11135  -28.0369      8.53611e-007  4.96995  8.28582e-007      0.00899126 0.994819  -0.101265     30    5     1000
+//CAMERA   0.434503  32.6008  -5.55447      8.12403e-007  4.96995  7.57458e-007      -0.0748029 0.197659  0.977413      30    5     1000
+//CAMERA   3.24169  -23.0011  1.27389       8.93577e-007  4.96995  1.06895e-006      0.0368047  -0.041208  -0.998473    30    5     1000
 
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/WoodenBox02.msb                                                               
-//CAMERA    -2.57786 0.297691 2.21676      0 0 0                                0.0827998 0.995862 -0.0374477   30       5      1000
-//CAMERA    -1.90527 2.50986 1.31095       0 0 0                                0.60799 0.677631 -0.413721      30       5      1000
-//
-//MESH 1 0 0 0 1 1 1 resources/Models/obj/WoodenBoxOpen02.msb                                                           
-//CAMERA    -2.32358 1.47325 2.28152       0 0 0                                0.170789 0.897849 -0.405831     30       5      1000
-//CAMERA    0.00649932 3.57372 0.058205    0 0 0                                -0.490939 0.0150798 -0.871063   30       5      1000
-
-MESH 1 0 0 0 1 1 1 resources/Models/obj/dragon.msb
-CAMERA   -28.1103  5.09934  -2.07215      -6.61092e-008  4.96995  -4.15856e-009    0.00135533  0.999031  0.043997     30    5     1000
-CAMERA   27.7427  1.57225  -3.64703       3.3931e-007  4.96995  7.40699e-007       0.110213  0.990331  -0.084241      30    5     1000
-CAMERA   0.699758  6.52407  28.1354       8.94602e-007  4.96995  8.67915e-007      0.00236674  0.998472  -0.0552121   30    5     1000
-CAMERA   0.514386  2.11135  -28.0369      8.53611e-007  4.96995  8.28582e-007      0.00899126 0.994819  -0.101265     30    5     1000
-CAMERA   0.434503  32.6008  -5.55447      8.12403e-007  4.96995  7.57458e-007      -0.0748029 0.197659  0.977413      30    5     1000
-CAMERA   3.24169  -23.0011  1.27389       8.93577e-007  4.96995  1.06895e-006      0.0368047  -0.041208  -0.998473    30    5     1000
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/ateneam.msb                 //WATERTIGHT   45k V    15k T       OPTIX
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/ducky.msb                   //WATERTIGHT  28k V    14k T        OPTIX
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/venusm.msb                  //WATERTIGHT   130k V    43k T      OPTIX
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/DW-BigHouse1.msb            //WATERTIGHT   6k V    3k T         OPTIX
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/elepham.msb                 //+-WATERTIGHT   117k V    39k T    OPTIX
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/ladybird.msb                //+-WATERTIGHT   93k V    46k T     OPTIX
+//MESH 1 0 0 0 1 1 1 resources/Models/obj/Watertight/mba1.msb                    //+-WATERTIGHT   251k V    84k T    OPTIX

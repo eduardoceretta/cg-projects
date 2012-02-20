@@ -32,15 +32,13 @@ uniform sampler2D eyePosTex;          /**< EyePosition Nearest Eye Fragment Text
  */
 uniform float screenWidth;
 uniform float screenHeight;
-uniform float near;
 uniform float far;
-uniform float right;
-uniform float top;
+#ifndef EYE_NEAREST
+  uniform float near;
+#endif
 
-varying vec4 color;
 varying vec3 eyePos;
-varying vec4 worldPos;
-varying vec3 normal;
+//varying vec3 normal;
 
 #define PI 3.14159265
 
@@ -74,9 +72,9 @@ void main()
   vec4 bitMask = texture2D(gridBitMap, vec2(gridIndex, .5));
   
   //OutPut
-  gl_FragData[0] = vec4(0,pow(4.,.5),1,0);
-  gl_FragData[1] = vec4(bitMask);
-  gl_FragData[2] = vec4(texture2D(eyePosTex, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).xyz, gl_FragCoord.z);
+  gl_FragData[0] = vec4(bitMask);
+  //gl_FragData[1] = vec4(0,pow(4.,.5),1,0);
+  //gl_FragData[2] = vec4(texture2D(eyePosTex, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).xyz, gl_FragCoord.z);
 }
 
 
