@@ -1346,7 +1346,7 @@ void App::voxelize()
 
     Vector3 size = m_rtScene->getSceneBoundingBoxSize();
     float orthoSize = max(max(size.x, size.y), size.z);
-    glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
+    glOrtho(-orthoSize, orthoSize, -orthoSize*m_appHeight/m_appWidth, orthoSize*m_appHeight/m_appWidth, m_nearPlane, m_farPlane);
     glMatrixMode (GL_MODELVIEW);
     glPushMatrix();
   }
@@ -1366,6 +1366,8 @@ void App::voxelize()
   glDisable(GL_CULL_FACE);
   drawScene();
   m_kernelVoxelization->setActive(false);
+
+
 
   glPopAttrib();
   if(m_orthographicProjection_on)
@@ -1526,7 +1528,7 @@ void App::renderNoShader()
     glLoadIdentity ();
     Vector3 size = m_rtScene->getSceneBoundingBoxSize();
     float orthoSize = max(max(size.x, size.y), size.z);
-    glOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, m_nearPlane, m_farPlane);
+    glOrtho(-orthoSize, orthoSize, -orthoSize*m_appHeight/m_appWidth, orthoSize*m_appHeight/m_appWidth, m_nearPlane, m_farPlane);
 
     glMatrixMode (GL_MODELVIEW);
     glPushMatrix();
@@ -1811,8 +1813,8 @@ void App::renderSSAOVoxConeTracing()
 
   //GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
   //GLuint* i = texObj.read2DTextureUIntData();
-  //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
-  //GLfloat* f = t2.read2DTextureFloatData();
+  GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
+  GLfloat* f = t2.read2DTextureFloatData();
 
   glPopAttrib();
 }

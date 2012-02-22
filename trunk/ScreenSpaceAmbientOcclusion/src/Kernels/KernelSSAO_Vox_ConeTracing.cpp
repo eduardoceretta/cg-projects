@@ -36,13 +36,14 @@
   //(3)
 
 #define getNumSphereSamplersAccumulated(n) \
-  (0)
+  (m_numSphereSamplers*(n))
+  //(0)
   //ARITPROG_SUM(PROG_A0, PROG_STEP, (n))
-  //(m_numSphereSamplers*(n))
 
 #define getTotalNumSphereSamplersAccumulated(numSpheresByCone) \
-(getNumSphereSamplers(1))
-  //getNumSphereSamplersAccumulated(numSpheresByCone)
+((getNumSphereSamplers(1))*numSpheresByCone)
+//(getNumSphereSamplers(1))
+//getNumSphereSamplersAccumulated(numSpheresByCone)
 //(m_numSphereSamplers*numSpheresByCone)
 
 
@@ -617,24 +618,27 @@ void KernelSSAO_Vox_ConeTracing::generateSphereSamplerTexture()
 
 void KernelSSAO_Vox_ConeTracing::generateSphereInfoTexture()
 {
-  m_sphereInfoWidth = m_numSamplersDistributions*m_numSpheresByCone;
+  m_sphereInfoWidth = m_numSamplersDistributions*m_numSpheresByCone*m_numCones;
   GLfloat* texData = new GLfloat[m_sphereInfoWidth*2];
 
   for(int l = 0; l < m_numSamplersDistributions; ++l)
   {
-    GLfloat *d = &texData[l*m_numSpheresByCone*2];
-    
-    m_sphereInfo->setParameters(m_coneRevolutionAngle, m_numSpheresByCone, m_numCones);
-    for(int k = 0; k < m_numSpheresByCone; ++k)
+    for(int j = 0; j < m_numCones; ++j)
     {
-      float r = 1.0;
-      if(l > 0)
-        r = (1.0f + float(rand()%10)/100 - .05f);
+      GLfloat *d = &texData[l*m_numSpheresByCone*m_numCones*2 + j*m_numSpheresByCone*2];
+      
+      m_sphereInfo->setParameters(m_coneRevolutionAngle, m_numSpheresByCone, m_numCones);
+      for(int k = 0; k < m_numSpheresByCone; ++k)
+      {
+        float r = 1.0;
+        if(l > 0 || j > 0)
+          r = (1.0f + float(rand()%10)/100 - .05f);
 
-      float center, radius;
-      m_sphereInfo->getSphereInfo(k, &center, &radius);
-      d[k*2 + 0] = center*r;
-      d[k*2 + 1] = radius*r;
+        float center, radius;
+        m_sphereInfo->getSphereInfo(k, &center, &radius);
+        d[k*2 + 0] = center*r;
+        d[k*2 + 1] = radius*r;
+      }
     }
   }
 
