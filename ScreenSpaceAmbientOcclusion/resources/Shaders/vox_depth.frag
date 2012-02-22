@@ -32,6 +32,6 @@ void main()
  
   
   //OutPut
-  gl_FragData[0] = vec4(normal, gl_FragCoord.z);
+  gl_FragData[0] = vec4(normalize(normal), gl_FragCoord.z);
   gl_FragData[1] = vec4(eyePos, dist);
 }
