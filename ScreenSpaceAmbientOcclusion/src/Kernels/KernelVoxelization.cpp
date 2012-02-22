@@ -553,12 +553,14 @@ Vector3 KernelVoxelization::getGridCellCenter(int x, int y, int z, float zNear)
 
   if(m_projectionMatrix.isOrthographic())
   {
-    xm = (2.0f*m_top)/m_width; 
-    ym = (2.0f*m_right)/m_height;
+    xm = (2.0f*m_right)/m_width; 
+    ym = (2.0f*m_top)/m_height;
   }else
   {
-    xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
-    ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
+    //xm = (2.0f*m_right*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
+    //ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
+    xm = (m_right*(m_far - m_near)/(2.0f*m_near))/m_width; //Half Frustum Width
+    ym = (m_top*(m_far - m_near)/(2.0f*m_near))/m_height;//Half Frustum Height 
   }
 
   float xe = xm*float(x + .5);
@@ -582,12 +584,12 @@ Vector3 KernelVoxelization::getGridCellSize(int x, int y, int z, float zNear)
 
   if(m_projectionMatrix.isOrthographic())
   {
-    xm = (2.0f*m_top)/m_width; 
-    ym = (2.0f*m_right)/m_height;
+    xm = (2.0f*m_right)/m_width; 
+    ym = (2.0f*m_top)/m_height;
   }else
   {
-    xm = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_width; //Half Frustum Width
-    ym = (2.0f*m_top*(m_near+(m_far - m_near)/2)/m_near)/m_height;//Half Frustum Height 
+    xm = (m_right*(m_far - m_near)/(2.0f*m_near))/m_width; //Half Frustum Width
+    ym = (m_top*(m_far - m_near)/(2.0f*m_near))/m_height;//Half Frustum Height 
   }
 
 #ifdef EYE_NEAREST
@@ -600,6 +602,7 @@ Vector3 KernelVoxelization::getGridCellSize(int x, int y, int z, float zNear)
     m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
     m_funcData[(int)floor((float(z + 0.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]
   ));
+
 }
 
 Vector3 KernelVoxelization::getVoxBBMax() 
