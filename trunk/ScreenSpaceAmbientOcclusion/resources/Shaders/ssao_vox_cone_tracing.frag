@@ -504,7 +504,7 @@ float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, ou
   
   if(zzNear < 0.0)
     return 0.0;
- 
+
   float zGridIndex = getZGridIndex(point.z, zzNear);
   vec3 samplerGridIndex = vec3(win.x/screenWidth, win.y/screenHeight, zGridIndex);
 
