@@ -39,6 +39,11 @@ public:
    *  Return the Time since last call in seconds.
    */
   inline double getTime();
+  
+  /**
+   *  Return the Time since last call in milliseconds.
+   */
+  inline double getTimeInMilliseconds();
 };
 
 
@@ -48,6 +53,14 @@ double Timer::getTime()
   m_timeSinceLastCall = (double)(t - m_currT)/CLOCKS_PER_SEC;
   m_currT = t;
   return m_timeSinceLastCall;
+}
+
+double Timer::getTimeInMilliseconds()
+{
+  clock_t t = clock();
+  m_timeSinceLastCall = (double)(t - m_currT)/CLOCKS_PER_SEC;
+  m_currT = t;
+  return m_timeSinceLastCall*1e3;
 }
 
 #endif

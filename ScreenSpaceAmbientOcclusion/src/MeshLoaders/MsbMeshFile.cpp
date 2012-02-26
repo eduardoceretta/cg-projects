@@ -37,6 +37,8 @@ void MsbMeshFile::calcVBO()
 
   fclose(file);
   cout << "File " << m_fileName << " read successfully! " <<endl;
+  cout << "  Num Vertices: " << m_vbo->getNumVertexes() << endl;
+  cout << "  Num Triagnles: " << m_vbo->getNumElements() << endl;
 
   m_vbo->calcVBO();
 }

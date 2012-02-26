@@ -23,6 +23,8 @@ ScScene :: ScScene()
 ,m_lightEnabled(true)
 ,m_screenWidth(0)
 ,m_screenHeight(0)
+,m_numVertices(0)
+,m_numElements(0)
 {
 
 }
@@ -42,8 +44,15 @@ void ScScene :: configure()
 {
   if(!m_calculated) 
   {
+    vector<ScMesh> :: iterator meshIt;
+    for( meshIt = m_meshes.begin(); meshIt!=m_meshes.end(); ++meshIt)
+    {
+      m_numVertices += meshIt->getNumVertices();
+      m_numElements += meshIt->getNumElements();
+    }
     m_calculated = true;
   }
+
   if(m_lightEnabled)
   {
     vector<ScLight> :: iterator lightIt;
@@ -356,7 +365,8 @@ void ScScene::readSceneObjects( string rt4FileName )
     }
   }
   fclose( file );
-
+  
+  m_calculated = false;
   configure();
 }
 
@@ -365,5 +375,15 @@ void ScScene::readScene( string rt4FileName )
   readSceneParameters(rt4FileName);
   readSceneObjects(rt4FileName);
   configure();
+}
+
+unsigned int ScScene::getNumVertices() const
+{
+  return m_numVertices;
+}
+
+unsigned int ScScene::getNumElements() const
+{
+  return m_numElements;
 }
 

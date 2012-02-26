@@ -21,9 +21,10 @@ int ScMesh :: s_meshNum = 0;
 
 
 ScMesh :: ScMesh()
-:m_calculated(false)
-,m_vbo(NULL)
+:m_vbo(NULL)
 ,m_p3bMesh(NULL)
+,m_numVertices(0u)
+,m_numElements(0u)
 ,m_fileName("")
 ,m_fullFilePath("")
 {
@@ -62,6 +63,9 @@ void ScMesh :: readFromStr(char buffer[])
    {
      m.readFile(fileName, m_pos, m_scale);
      m_vbo = m.getVbo();
+     
+     m_numVertices = m_vbo->getNumVertexes();
+     m_numElements = m_vbo->getNumElements();
 
    }else
    {
@@ -71,6 +75,9 @@ void ScMesh :: readFromStr(char buffer[])
          delete m_p3bMesh;
        m_p3bMesh = new P3bMeshFile();
        m_p3bMesh->readFile(fileName, m_pos, m_scale);
+      
+       m_numVertices = 0;
+       m_numElements = 0;
      }
    }
 }
@@ -184,5 +191,15 @@ string ScMesh::getFileName() const
 string ScMesh::getFullFilePath() const
 {
   return m_fullFilePath;
+}
+
+unsigned int ScMesh::getNumVertices() const
+{
+  return m_numVertices;
+}
+
+unsigned int ScMesh::getNumElements() const
+{
+  return m_numElements;
 }
 

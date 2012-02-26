@@ -1,25 +1,25 @@
 /**
  *	Eduardo Ceretta Dalla Favera
  *  eduardo.ceretta@gmail.com
- *  May 2011
+ *  Feb 2012
  *
- *  Receive a Scene description file renders the scene with ambient occlusion.
+ *  Receives a Scene description file and realizes a series of testes based on arguments
  *
  *  Initializes the scene, process the geometry via different kernel
- *  passes and combine results to produce the final scene with the
- *  ambient occlusion.
+ *  passes, do time tests and screenshots and log results.
  */
-#ifndef _APP_H_
-#define _APP_H_
+#ifndef _TEST_APP_H_
+#define _TEST_APP_H_
 
 #include <string>
 #include <vector>
 #include <map>
 
+
 /**
  * Application Initial Definitions
  */
-#define APP_NAME "ScreenSpaceAmbientOcclusion"
+#define APP_NAME "AmbientOcclusionTest"
 
 #define APP_DEFAULT_WIDTH 512
 #define APP_DEFAULT_HEIGHT 512
@@ -29,35 +29,37 @@
 #define APP_DEFAULT_SCENE_PATH "./resources/Scenes/scene.rt4"
 #define APP_DEFAULT_SHADER_PATH "./resources/Shaders/"
 
+#define APP_DEFAULT_SCREEN_TEST_PATH "./resources/Tests/ScreenShots/2/"
+#define APP_DEFAULT_LOG_PATH "./resources/Tests/ScreenShots/2/"
+
 /**
  * Forward Class Declaration
  */
 class ScScene;
 class P3bMeshFile;
+class GLFont;
 
 class GLCameraHandler;
-class GLFont;
-class Frames;
 
 class GLProjectionMatrix;
 
 class KernelColor;
 class KernelDeferred_Peeling;
-
 class KernelBlur;
 class KernelCombine;
 class KernelVoxDepth;
 class KernelVoxelization;
 class KernelSSAO_SphereApproximation;
-class KernelSSAO_HorizonSplit;
 class KernelSSAO_Vox_RayMarch;
-class KernelSSAO_Vox_TanSphereVolume;
 class KernelSSAO_Vox_ConeTracing;
+
+class TimeTest;
+class ScreenShotTest;
 
 using namespace std;
 
 
-class App 
+class TestApp 
 {
   map<string, string*> m_acceptedArgsString;
   map<string, int*> m_acceptedArgsInt;
@@ -84,13 +86,8 @@ class App
   /**
    * Render Objects
    */
-  GLCameraHandler *m_camHandler;
-  vector<GLCameraHandler*> m_kernelsCamHandleres;
-  int m_customCameraIndex;
-
+  vector<GLCameraHandler*> m_customCamHandleres;
   GLFont *m_fontRender;
-  Frames *m_frames;
-  float m_fps;
 
   /**
    * Scene Objects
@@ -109,68 +106,61 @@ class App
   KernelVoxelization* m_kernelVoxelization;
 
   KernelSSAO_SphereApproximation* m_kernelSSAO_SphereApproximation;
-  KernelSSAO_HorizonSplit* m_kernelSSAO_HorizonSplit;
   KernelSSAO_Vox_RayMarch* m_kernelSSAO_Vox_RayMarch;
-  KernelSSAO_Vox_TanSphereVolume * m_kernelSSAO_Vox_TanSphereVolume;
   KernelSSAO_Vox_ConeTracing * m_kernelSSAO_Vox_ConeTracing;
-
-  /**
-   * Interface control
-   */
-  bool m_menu_on;
-  bool m_lights_on;
-  bool m_minerLight_on;
-  bool m_wireframe_on;
-  bool m_updateCamHandler;
-  bool m_orthographicProjection_on;
-  bool m_blurr_on;
-  bool m_debugrender_on;
-  
-  /**
-   * Global Algorithm Parameters
-   */
-  float m_SSAO_rfarPercent;
-  float m_SSAO_contrast;
-  bool m_SSAO_jitter;
-
-  /**
-   * Sphere ALgorithm Parameters
-   */
-  float m_SSAO_pixelmaskSize;
-  float m_SSAO_offsetSize;
-  int m_SSAO_numPeelings;
 
   /**
    * Voxelization Algorithm Parameters
    */
-  bool m_updateVoxelgrid;
   GLProjectionMatrix *m_voxProjectionMatrix;
+
+  /**
+   * Test Parameters
+   */
+  string m_logPath;
+  string m_logFileName;
+
+  TimeTest* m_timeTest;
+  bool m_timeTestEnabled;
+
+  ScreenShotTest* m_screenShotTest;
+  string m_screenShotsPath;
+  bool m_screenShotTestEnabled;
+  int m_testCamIndex;
 
 
   /**
-   * Cone Algorithm Parameters
+   * Algorithms Parameters
    */
+  bool m_Sphere_enabled;
+  float m_Sphere_pixelmaskSize;
+  float m_Sphere_offsetSize;
+  int m_Sphere_numPeelings;
+  float m_Sphere_rfarPercent;
+  float m_Sphere_contrast;
 
-  float m_SSAO_cone_angle;
-  int m_SSAO_cone_numCones;
-  int m_SSAO_cone_numSpheres;
-  int m_SSAO_cone_numSpamplers;
+  bool m_RayMarch_enabled;
+  float m_RayMarch_rfarPercent;
+  float m_RayMarch_contrast;
 
-  string m_SSAO_cone_infoMethod;
-  float m_SSAO_cone_infoSphereOverlap;
-  float m_SSAO_cone_infoCenterParm;
-  float m_SSAO_cone_infoRadiusParm;
+  bool m_ConeTracing_enabled;
+  bool m_ConeTracing_jitter;
+  float m_ConeTracing_rfarPercent;
+  float m_ConeTracing_contrast;
+  float m_ConeTracing_coneAngle;
+  int m_ConeTracing_numCones;
+  int m_ConeTracing_numSpheres;
+  int m_ConeTracing_numSpamplers;
+  string m_ConeTracing_sphereInfoMethod;
+  float m_ConeTracing_sphereInfoSphereOverlap;
 
   /**
    * Render Mode
    */
   enum RenderMode{NoShader = 0
-                 ,SSAO_SphereApproximation
-                 ,SSAO_HorizonSplit
-                 ,SSAO_Vox_RayMarch
-                 ,SSAO_Vox_TanSphereVolume
-                 ,SSAO_Vox_ConeTracing
-                 ,Voxelization
+                 ,Sphere
+                 ,RayMarch
+                 ,ConeTracing
                  ,Debug
                  ,CustomCameras = 2*Debug};
 
@@ -178,14 +168,16 @@ class App
 
   RenderMode m_renderMode;
 
+  vector<RenderMode> m_algorithms;
+
   /**
    * Debug
    */
   GLenum e;
 
 public:
-  App();
-  ~App();
+  TestApp();
+  ~TestApp();
   
   void initGL(int *argc, char *argv[]);
   
@@ -210,26 +202,6 @@ public:
    */
   void listenReshape(int w, int h);
 
-  /**
-   * Manages a simple keyboard event
-   */
-  void listenKeyboard(int key);
-
-  /**
-   * Manages a special keyboard event
-   */
-  void listenKeyboardSpecial( int key );
-
-  /**
-   * Manages a mouse movement event
-   */
-  void listenMouseMove(int x, int y);
-
-  /**
-   * Manages a mouse button press event
-   */
-  void listenMouseClick(int button, int state, int x, int y);
-
 private:
   /**
    * Process the application arguments
@@ -240,6 +212,11 @@ private:
    * Load and Initializes the Scene objects to be rendered
    */
   void loadScene();
+
+  /**
+   * Load and Initializes the testes to be executed
+   */
+  void loadTests();
   
   /**
    * Load and Initializes the Scene parameters (win size, clear color...)
@@ -261,26 +238,27 @@ private:
    */
   void drawScene();
  
+  /************************************************************************/
+  /* Static Functions called by the testers                               */
+  /************************************************************************/
+
   /**
-   * Draw the Graphical User Interface
+   * Create geometry buffers of the Scene
    */
-  void renderGUI();
+  static void deferredShading(TestApp* );
 
   /**
    * Voxelize the Scene
    */
-  void voxelize();
-  
+  static void voxelize(TestApp* );
+
   /**
-   * Draw Kernels
+   * Kernels
    */
-  void renderNoShader();
-  void renderSSAOSphereAproximation();
-  void renderSSAOHorizonSplit();
-  void renderSSAOVoxRayMarch();
-  void renderSSAOVoxTanSphereVolume();
-  void renderSSAOVoxConeTracing();
-  void renderVoxelization();
+  static void sphere(TestApp* );
+  static void rayMarch(TestApp* );
+  static void coneTracing(TestApp* );
+  
 };
 
 #endif

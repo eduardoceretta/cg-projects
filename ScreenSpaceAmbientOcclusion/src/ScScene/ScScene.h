@@ -50,6 +50,13 @@ protected:
   int m_screenHeight;
 
   /**
+   *	Scene's Meshes Total Attributes
+   */
+  unsigned int m_numVertices;
+  unsigned int m_numElements;
+
+
+  /**
    * Materials Array
    */
   vector<ScMaterial> m_materials;
@@ -127,6 +134,12 @@ public:
    * Get the ith mesh imported
    */
   ScMesh* getMeshAt(int i);
+
+  /**
+   *	Get Total Meshes Attributes 
+   */
+  unsigned int getNumVertices() const;
+  unsigned int getNumElements() const;
 
   /**
    * Get the clear color of the scene

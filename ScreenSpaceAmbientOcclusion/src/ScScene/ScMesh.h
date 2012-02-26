@@ -36,10 +36,12 @@ protected:
    */
   P3bMeshFile * m_p3bMesh;
 
+
   /**
-   * Indicate if the light needs to be updated
+   *	Number of Primitives
    */
-  bool m_calculated;
+  unsigned int m_numVertices;
+  unsigned int m_numElements;
 
   /**
    * Material associated with the mesh
@@ -99,6 +101,8 @@ public:
   P3bMeshFile * getP3bMesh() const;
   string getFileName() const;
   string getFullFilePath() const;
+  unsigned int getNumVertices() const;
+  unsigned int getNumElements() const;
 
 
   /**
