@@ -60,31 +60,12 @@ string App::s_renderModeStr[] = {
 };
 
 
-/**
- * Tests
- */
-#include "tests.h"
-
-#ifdef TIME_TEST
-TimeTest timeTest;
-#endif
-
-#ifdef SCREENSHOT_TEST
-ScreenShotTest screenShotTest;
-
-int screenShotTestCounter = 0;
-int screenShotTestCamIndex = 0;
-bool screenShotTestEnabled = false;
-#endif
-
-
 /*******************************************/
 /* App                                     */
 /*******************************************/
 App::App()
 :m_scenePath(APP_DEFAULT_SCENE_PATH)
 ,m_shaderPath(APP_DEFAULT_SHADER_PATH)
-,m_logFileName("")
 ,m_appWidth(APP_DEFAULT_WIDTH)
 ,m_appHeight(APP_DEFAULT_HEIGHT)
 ,m_nearPlane(APP_DEFAULT_NEAR)
@@ -130,7 +111,6 @@ App::App()
 ,m_SSAO_cone_infoSphereOverlap(0.0f)
 ,m_SSAO_cone_infoCenterParm(2.5f)
 ,m_SSAO_cone_infoRadiusParm(0.5f)
-,m_benchmark(false)
 ,m_voxProjectionMatrix(new GLProjectionMatrix())
 ,m_updateVoxelgrid(true)
 ,m_renderMode(SSAO_Vox_ConeTracing)
@@ -148,13 +128,11 @@ App::App()
   //Initializes Arguments
   m_acceptedArgsString["-scenepath"] = &m_scenePath;
   m_acceptedArgsString["-shaderpath"] = &m_shaderPath;
-  m_acceptedArgsString["-logFile"] = &m_logFileName;
 
   m_acceptedArgsFloat["-rfar"] = &m_SSAO_rfarPercent;
   m_acceptedArgsFloat["-offset"] = &m_SSAO_offsetSize;
   m_acceptedArgsFloat["-contrast"] = &m_SSAO_contrast;
   m_acceptedArgsBool["-jitter"] = &m_SSAO_jitter;
-  m_acceptedArgsBool["-benchmark"] = &m_benchmark;
 
   m_acceptedArgsFloat["-Cone_angle"] = &m_SSAO_cone_angle;
   m_acceptedArgsInt["-Cone_numCones"] = &m_SSAO_cone_numCones;
@@ -222,13 +200,6 @@ App::~App()
 
   if(m_voxProjectionMatrix)
     delete m_voxProjectionMatrix;
-
-#ifdef TIME_TEST
-  timeTest.logResults();
-#endif
-#ifdef LOG_TESTS
-  TestLogger::inst()->closeLog();
-#endif // LOG_TESTS
 }
 
 
@@ -282,30 +253,9 @@ void App::loadResources()
 
 void App::render()
 {
-#ifdef TIME_TEST
-  timeTest.update();
-  timeTest.totalTimer.reset();
-#endif
-
-//#ifdef SCREENSHOT_TEST
-//  screenShotTest.update();
-//  screenShotTest.configureCamera(m_camHandler);
-//#endif
-
   m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
-
-
-#ifdef SCREENSHOT_TEST
-  if(screenShotTestEnabled)
-  {
-    screenShotTest.update();
-
-    m_kernelsCamHandleres[CustomCameras + screenShotTestCamIndex]->setMinerLightOn(false);
-    m_kernelsCamHandleres[CustomCameras + screenShotTestCamIndex]->render();
-  }
-#endif
 
   if(m_debugrender_on)
   {
@@ -373,76 +323,6 @@ void App::render()
     }
   }
   renderGUI();
-#ifdef TIME_TEST
-  timeTest.totalTime += timeTest.totalTimer.getTime();
-  //timeTest.printPartialResults();
-#endif
-#ifdef SCREENSHOT_TEST
-  if(screenShotTestEnabled)
-  {
-    //if(screenShotTest.isTestEnded())
-    //  exit(42);
-
-    char renderModeStr[500] = "";
-
-    GLuint texId = 0;
-    switch(m_renderMode)
-    {
-    default:
-    case NoShader:
-    case Voxelization:
-      break;
-    case SSAO_SphereApproximation:
-    case SSAO_HorizonSplit:
-       texId = m_kernelCombine->getOutputTexture(0);
-       sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
-      break;
-    case SSAO_Vox_RayMarch:
-      texId = m_kernelSSAO_Vox_RayMarch->getOutputTexture(KernelSSAO_Vox_RayMarch::SSAO);
-      sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
-      break;
-    case SSAO_Vox_TanSphereVolume:
-      texId = m_kernelSSAO_Vox_TanSphereVolume->getOutputTexture(KernelSSAO_Vox_RayMarch::SSAO);
-      sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f", m_SSAO_rfarPercent, m_SSAO_contrast);
-      break;
-    case SSAO_Vox_ConeTracing:
-      texId = m_kernelSSAO_Vox_ConeTracing->getOutputTexture(KernelSSAO_Vox_ConeTracing::SSAO);
-      
-      //sprintf(renderModeStr,"-Rfar=%.2f_Contrast=%.2f_NumCones=%d_NumSpheres=%d_SCntr=%.2f_SRad=%.2f_PaA0=%d_PaStp=%d", 
-      //sprintf(renderModeStr,"Rfar=%.2f; Contrast=%.2f; Jitter=%s; NumCones=%d; NumSpheres=%d; NumSamplers=%d; CurrentInfoMethod=%",
-      //  m_SSAO_rfarPercent, m_SSAO_contrast, m_SSAO_jitter?"On":"Off",
-      //  m_kernelSSAO_Vox_ConeTracing->getNumCones(), 
-      //  m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone(),
-      //  m_kernelSSAO_Vox_ConeTracing->getNumberSphereSamplers(),
-      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->currCalcMethod,
-      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.numMaxSpheres
-      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap
-      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm
-      //  m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm
-      //  );
-      break;
-    }
-    
-    char camStr[100] = "";
-    sprintf(camStr,"-Cam%02d", screenShotTestCamIndex);
-
-    screenShotTest.save(texId, 
-      SCREEN_TEST_PATH,
-      s_renderModeStr[m_renderMode] + string(camStr) + renderModeStr);    
-
-    screenShotTestCounter++;
-    
-    screenShotTestCamIndex = (screenShotTestCounter/SCREEN_TEST_INTERSCREEN_FRAMES);
-
-    if(screenShotTestCamIndex >= m_rtScene->getNumCameras() - 1)
-    {
-      screenShotTestEnabled = false;
-      TestLogger::inst()->logLine("},");
-      if(m_benchmark)
-        exit(42);
-    }
-  }
-#endif
 }
 
 
@@ -527,16 +407,6 @@ void App::listenKeyboard( int key )
       }
     }
     break;
-
-#ifdef SCREENSHOT_TEST
-  case 'T':
-  case 't':
-    screenShotTest.reset();
-    screenShotTestEnabled = true;
-    screenShotTestCounter = 0;
-    screenShotTestCamIndex = 0;
-    break;
-#endif // SCREENSHOT_TEST
 
   case 'K':
     switch(m_renderMode)
@@ -1064,23 +934,6 @@ void App::loadArgs(int argc, char *argv[])
       else cout << "Argument passed to "<< arg << " is invalid!" <<endl;
     }
   }
-#ifdef LOG_TESTS
-  TestLogger::setFileName(m_logFileName);
-  TestLogger::inst()->logLine("-- Program and argument list:");
-  //TestLogger::inst()->logLine(string("  ") + argv[0]);
-  //for(int i = 1; i < argc; ++i)
-    //TestLogger::inst()->log(string("  ") + argv[i]);
-  //TestLogger::inst()->logLine("\n");
-
-  TestLogger::inst()->logLine(string("[\"argument_list\"] = {"));
-  TestLogger::inst()->logLine(string("  [\"program_path\"] = [[") + string(argv[0]) + string("]],"));
-  for(int i = 1; i < argc; ++i)
-  {
-    TestLogger::inst()->log(string("  [[") + string(argv[i++]) + string("]],"));
-    TestLogger::inst()->logLine(string("  [[") + string(argv[i]) + string("]],"));
-  }
-  TestLogger::inst()->logLine(string("},"));
-#endif // LOG_TESTS
 }
 void App::loadSceneParameters()
 {
@@ -1125,6 +978,12 @@ void App::loadScene()
 
   if(m_rtScene->getNumMeshes() == 0)
     cout << "No Mesh Loaded!!" <<endl;
+
+  cout << "==================================="<<endl;
+  cout << "Scene Number of Vertices: " << m_rtScene->getNumVertices() <<endl;
+  cout << "Scene Number of Triangles: " << m_rtScene->getNumElements()<<endl;
+  cout << "==================================="<<endl;
+
 }
 
 void App::loadKernels()
@@ -1208,48 +1067,6 @@ void App::loadKernels()
   m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelSSAO_SphereApproximation->getColorTexId()
     );
-
-  if(m_benchmark)
-  {
-    screenShotTest.reset();
-    screenShotTestEnabled = true;
-    screenShotTestCounter = 0;
-    screenShotTestCamIndex = 0;
-  }
-
-#ifdef LOG_TESTS
-  char str[500];
-  TestLogger::inst()->logLine("-- Algorithm Parameters");
-  TestLogger::inst()->logLine("[\"algorithm_parameters\"] = {");
-  sprintf(str, "%.3f,", m_SSAO_rfarPercent);
-  TestLogger::inst()->logLine(string("  [\"Rfar\"] = ") + string(str));
-  sprintf(str, "%.3f,", m_SSAO_contrast);
-  TestLogger::inst()->logLine(string("  [\"Contrast\"] = ") + string(str));
-  sprintf(str, "%s,", m_SSAO_jitter?"true":"false");
-  TestLogger::inst()->logLine(string("  [\"Jitter\"] = ") + string(str));
-  sprintf(str, "%.5f,", m_kernelSSAO_Vox_ConeTracing->getConeRevolutionAngle());
-  TestLogger::inst()->logLine(string("  [\"ConeAngle\"] = ") + string(str));
-  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getNumCones());
-  TestLogger::inst()->logLine(string("  [\"NumCones\"] = ") + string(str));
-  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone());
-  TestLogger::inst()->logLine(string("  [\"NumSpheres\"] = ") + string(str));
-  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getNumberSphereSamplers());
-  TestLogger::inst()->logLine(string("  [\"NumSamplers\"] = ") + string(str));
-  sprintf(str, "\"%s\",", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->currCalcMethod == 0 ? "Progression" : "InitDist");
-  TestLogger::inst()->logLine(string("  [\"CurrentInfoMethod\"] = ") + string(str));
-  sprintf(str, "%d,", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.numMaxSpheres);
-  TestLogger::inst()->logLine(string("  [\"RadDistNumSpheres\"] = ") + string(str));
-  sprintf(str, "%.3f,", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap);
-  TestLogger::inst()->logLine(string("  [\"RadDistSphereOverlap\"] = ") + string(str));
-  sprintf(str, "%.3f,", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm);
-  TestLogger::inst()->logLine(string("  [\"RadProgSphereCenterParm\"] = ") + string(str));
-  sprintf(str, "%.3f,",m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm);
-  TestLogger::inst()->logLine(string("  [\"RadProgSphereRadiusParm\"] = ") + string(str));
-  TestLogger::inst()->logLine("},");
-
-  TestLogger::inst()->logLine("[\"screenshots\"] = {");
-  TestLogger::inst()->logLine(string("  [\"path\"] = [[") + string(SCREEN_TEST_PATH) + string("]],"));
-#endif // LOG_TESTS
 }
 
 void App::loadCameras()
@@ -1547,9 +1364,6 @@ void App::renderNoShader()
 
 void App::renderSSAOSphereAproximation()
 {
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //COLOR PASS
   m_kernelColor->setActive(true);
   glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
@@ -1558,16 +1372,9 @@ void App::renderSSAOSphereAproximation()
 
   m_kernelColor->setActive(false);
 
-#ifdef TIME_TEST 
-  timeTest.kColorTime += timeTest.getTime();    
-#endif
-
   GLfloat projectionMatrix[16];
   glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //DEPTH PEELING PASS
   for(int i = 0; i < m_SSAO_numPeelings; ++i)
   {
@@ -1580,57 +1387,29 @@ void App::renderSSAOSphereAproximation()
 
     m_kernelDeferred_Peeling->setActive(false);
   }
-#ifdef TIME_TEST
-  timeTest.kDeferedPeelingTime += timeTest.getTime();
-#endif
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //SSAO PASS
   m_kernelSSAO_SphereApproximation->step(projectionMatrix, m_SSAO_rfarPercent, m_SSAO_pixelmaskSize,m_SSAO_offsetSize, m_SSAO_contrast);
-#ifdef TIME_TEST
-  timeTest.kSSAOTime += timeTest.getTime();
-#endif
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //BLURR PASS
   if(m_blurr_on)
   {
     m_kernelBlur->setInputTexId(m_kernelSSAO_SphereApproximation->getColorTexId());
     m_kernelBlur->step(1);
   }
-#ifdef TIME_TEST
-  timeTest.kBlurTime += timeTest.getTime();
-#endif
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //COMBINE PASS
   if(m_blurr_on)
     m_kernelCombine->step(m_kernelBlur->getBlurredTexId());
   else
     m_kernelCombine->step(m_kernelSSAO_SphereApproximation->getColorTexId());
-#ifdef TIME_TEST
-  timeTest.kCombineTime += timeTest.getTime();
-#endif
 
-#ifdef TIME_TEST
-  timeTest.totalTime += timeTest.totalTimer.getTime();
-  //timeTest.printPartialResults();
-#endif
   //RENDER RESULT
   m_kernelCombine->renderOutput(0);
 }
 
 void App::renderSSAOHorizonSplit()
 {
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //COLOR PASS
   m_kernelColor->setActive(true);
     glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
@@ -1638,16 +1417,9 @@ void App::renderSSAOHorizonSplit()
     drawScene();
   m_kernelColor->setActive(false);
 
-#ifdef TIME_TEST 
-  timeTest.kColorTime += timeTest.getTime();    
-#endif
-
   GLfloat projectionMatrix[16];
   glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //DEPTH PEELING PASS
   for(int i=0; i < m_SSAO_numPeelings; ++i)
   {
@@ -1660,49 +1432,22 @@ void App::renderSSAOHorizonSplit()
 
     m_kernelDeferred_Peeling->setActive(false);
   }
-#ifdef TIME_TEST
-  timeTest.kDeferedPeelingTime += timeTest.getTime();
-#endif
-
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //SSAO PASS
   m_kernelSSAO_HorizonSplit->step(projectionMatrix, m_SSAO_rfarPercent, m_SSAO_pixelmaskSize,m_SSAO_offsetSize, m_SSAO_contrast);
-#ifdef TIME_TEST
-  timeTest.kSSAOTime += timeTest.getTime();
-#endif
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //BLURR PASS
   if(m_blurr_on)
   {
     m_kernelBlur->setInputTexId(m_kernelSSAO_HorizonSplit->getColorTexId());
     m_kernelBlur->step(1);
   }
-#ifdef TIME_TEST
-  timeTest.kBlurTime += timeTest.getTime();
-#endif
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif
   //COMBINE PASS
   if(m_blurr_on)
     m_kernelCombine->step(m_kernelBlur->getBlurredTexId());
   else
     m_kernelCombine->step(m_kernelSSAO_HorizonSplit->getColorTexId());
 
-#ifdef TIME_TEST
-  timeTest.kCombineTime += timeTest.getTime();
-#endif
-
-#ifdef TIME_TEST
-  timeTest.totalTime += timeTest.totalTimer.getTime();
-  //timeTest.printPartialResults();
-#endif
   //RENDER RESULT
   m_kernelCombine->renderOutput(0);
 }
@@ -1784,23 +1529,11 @@ void App::renderSSAOVoxTanSphereVolume()
 
 void App::renderSSAOVoxConeTracing()
 {
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif  
   voxelize();
-#ifdef TIME_TEST
-  timeTest.kVoxelizationTime += timeTest.getTime();
-#endif
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-#ifdef TIME_TEST
-  timeTest.resetTimer();
-#endif  
   m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix);
-#ifdef TIME_TEST
-  timeTest.kConeTracingTime += timeTest.getTime();
-#endif
 
   //BLURR PASS
   if(m_blurr_on)
@@ -1813,8 +1546,8 @@ void App::renderSSAOVoxConeTracing()
 
   //GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
   //GLuint* i = texObj.read2DTextureUIntData();
-  GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
-  GLfloat* f = t2.read2DTextureFloatData();
+  //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
+  //GLfloat* f = t2.read2DTextureFloatData();
 
   glPopAttrib();
 }
