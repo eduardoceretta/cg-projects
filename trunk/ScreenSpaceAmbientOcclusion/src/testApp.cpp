@@ -144,7 +144,7 @@ TestApp::TestApp()
   m_acceptedArgsBool["-alg:RayMarch"] = &m_RayMarch_enabled;
   m_acceptedArgsBool["-alg:ConeTracing"] = &m_ConeTracing_enabled;
 
-  m_acceptedArgsFloat["-parm:Sphere:rfar"] = &m_Sphere_offsetSize;
+  m_acceptedArgsFloat["-parm:Sphere:rfar"] = &m_Sphere_rfarPercent;
   m_acceptedArgsFloat["-parm:Sphere:offset"] = &m_Sphere_offsetSize;
   m_acceptedArgsFloat["-parm:Sphere:contrast"] = &m_Sphere_contrast;
 
@@ -282,7 +282,7 @@ void TestApp::render()
     if(poseIndex == 0)
       ss << "[\"" << s_renderModeStr[m_algorithms[algorithmIndex]] << "\"] = { " << endl;
     ss << "  {" << endl;
-    ss << "    [\"pose\"] = \"Cam_" << poseIndex << "\"," << endl;
+    ss << "    [\"pose\"] = \"Cam" << poseIndex << "\"," << endl;
 #endif // LOG_TESTS
 
     m_customCamHandleres[poseIndex]->render();
@@ -339,8 +339,10 @@ void TestApp::render()
       case NoShader:
         break;
       case Sphere:
-        screenShotFileName = m_screenShotTest->save(sphere, this, m_kernelCombine->getOutputTexture(0), m_screenShotsPath);
-        m_kernelCombine->renderOutput(0);
+        //screenShotFileName = m_screenShotTest->save(sphere, this, m_kernelCombine->getOutputTexture(0), m_screenShotsPath);
+        screenShotFileName = m_screenShotTest->save(sphere, this, m_kernelSSAO_SphereApproximation->getOutputTexture(0), m_screenShotsPath);
+        //m_kernelCombine->renderOutput(0);
+        m_kernelSSAO_SphereApproximation->renderOutput(0);
         break;
       case RayMarch:
         screenShotFileName = m_screenShotTest->save(rayMarch, this, m_kernelSSAO_Vox_RayMarch->getOutputTexture(KernelSSAO_Vox_RayMarch::SSAO), m_screenShotsPath);
@@ -371,7 +373,7 @@ void TestApp::render()
     sprintf(a,"Tests");
     m_fontRender->print(m_appWidth*.45f, m_appHeight*.45 + i++*25,a, Color(0., 0., 0.));
 
-    sprintf(a,"  %s: Cam_%d", s_renderModeStr[m_algorithms[algorithmIndex]].c_str(), poseIndex);
+    sprintf(a,"  %s: Cam%d", s_renderModeStr[m_algorithms[algorithmIndex]].c_str(), poseIndex);
     m_fontRender->print(m_appWidth*.45f, m_appHeight*.45 + i++*25,a, Color(0., 0., 0.));
 
     m_fontRender->endText();
@@ -528,7 +530,7 @@ void TestApp::loadScene()
   ss << "[\"resolution\"] = {" << m_appWidth << ", " << m_appHeight << "}," << endl;
   
   ss << "[\"scene\"] = {" << endl;
-  ss << "  [\"totalVerices\"] = " << m_rtScene->getNumVertices() << "," << endl;
+  ss << "  [\"totalVertices\"] = " << m_rtScene->getNumVertices() << "," << endl;
   ss << "  [\"totalTriangles\"] = " << m_rtScene->getNumElements() << "," <<endl;
   ss << "  [\"models\"] = {" << endl;
   for(int i = 0; i < m_rtScene->getNumMeshes(); ++i)
@@ -642,24 +644,55 @@ void TestApp::loadKernels()
 
 void TestApp::loadTests()
 {
-  if(m_Sphere_enabled)
-    m_algorithms.push_back(Sphere);
-
-  if(m_RayMarch_enabled)
-    m_algorithms.push_back(RayMarch);
-
-  if(m_ConeTracing_enabled)
-     m_algorithms.push_back(ConeTracing);
-
 #ifdef LOG_TESTS
   stringstream ss;
   ss << "[\"algorithms\"] = { " << endl;
+#endif // LOG_TESTS
 
-  vector<RenderMode> :: iterator it;
-  for(it = m_algorithms.begin(); it != m_algorithms.end(); ++it)
-    ss << "  \"" << s_renderModeStr[*it] << "\", " << endl;
+  if(m_Sphere_enabled)
+  {
+    m_algorithms.push_back(Sphere);
+#ifdef LOG_TESTS
+    ss << "  {" << endl;
+    ss << "    [\"name\"] = \"" << s_renderModeStr[Sphere] << "\", " << endl;
+    ss << "    {\"rfar\", " << m_Sphere_rfarPercent << "}," <<endl;
+    ss << "    {\"offset\", " << m_Sphere_offsetSize << "}," <<endl;
+    ss << "    {\"contrast\", " << m_Sphere_contrast << "}," <<endl;
+    ss << "  }," << endl;
+#endif // LOG_TESTS
+  }
+
+  if(m_RayMarch_enabled)
+  {
+    m_algorithms.push_back(RayMarch);
+#ifdef LOG_TESTS
+    ss << "  {" << endl;
+    ss << "    [\"name\"] = \"" << s_renderModeStr[RayMarch] << "\", " << endl;
+    ss << "    {\"rfar\", " << m_RayMarch_rfarPercent << "}," <<endl;
+    ss << "    {\"contrast\", " << m_RayMarch_contrast << "}," <<endl;
+    ss << "  }," << endl;
+#endif // LOG_TESTS
+  }
+
+  if(m_ConeTracing_enabled)
+  {
+    m_algorithms.push_back(ConeTracing);
+#ifdef LOG_TESTS
+    ss << "  {" << endl;
+    ss << "    [\"name\"] = \"" << s_renderModeStr[ConeTracing] << "\", " << endl;
+    ss << "    {\"rfar\", " << m_ConeTracing_rfarPercent << "}," <<endl;
+    ss << "    {\"contrast\", " << m_ConeTracing_contrast << "}," <<endl;
+    ss << "    {\"jitter\", " << m_ConeTracing_jitter << "}," <<endl;
+    ss << "    {\"coneAngle\", " << m_ConeTracing_coneAngle << "}," <<endl;
+    ss << "    {\"numCones\", " << m_ConeTracing_numCones << "}," <<endl;
+    ss << "    {\"numSpheres\", " << m_ConeTracing_numSpheres << "}," <<endl;
+    ss << "    {\"numSamplers\", " << m_ConeTracing_numSpamplers << "}," <<endl;
+    ss << "  }," << endl;
+#endif // LOG_TESTS
+  }
+
+#ifdef LOG_TESTS
   ss << "}, " << endl;
-
   ss << endl;
 #endif // LOG_TESTS
 
@@ -718,7 +751,7 @@ void TestApp::loadCameras()
   stringstream ss;
   ss << "[\"poses\"] = { " << endl;
   for(int i = 1; i < m_rtScene->getNumCameras(); ++i)
-    ss << "  \"Cam_" << i - 1<< "\", " << endl;
+    ss << "  \"Cam" << i - 1<< "\", " << endl;
   ss << "}, " << endl;
 
   TestLogger::inst()->log(ss.str());
@@ -778,7 +811,8 @@ void TestApp::sphere(TestApp* thisPtr)
   glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
   //DEPTH PEELING PASS
-  for(int i = 0; i < thisPtr->m_Sphere_numPeelings; ++i)
+  //for(int i = 0; i < thisPtr->m_Sphere_numPeelings; ++i)
+  int i = 0;
   {
     thisPtr->m_kernelDeferred_Peeling->step(i);
     thisPtr->m_kernelDeferred_Peeling->setActive(true);
@@ -798,7 +832,7 @@ void TestApp::sphere(TestApp* thisPtr)
     thisPtr->m_Sphere_contrast);
 
   //COMBINE PASS
-    thisPtr->m_kernelCombine->step(thisPtr->m_kernelSSAO_SphereApproximation->getColorTexId());
+    //thisPtr->m_kernelCombine->step(thisPtr->m_kernelSSAO_SphereApproximation->getColorTexId());
 }
 
 

@@ -322,6 +322,7 @@ void App::render()
       break;
     }
   }
+
   renderGUI();
 }
 
@@ -1376,7 +1377,8 @@ void App::renderSSAOSphereAproximation()
   glGetFloatv(GL_PROJECTION_MATRIX, projectionMatrix);
 
   //DEPTH PEELING PASS
-  for(int i = 0; i < m_SSAO_numPeelings; ++i)
+  //for(int i = 0; i < m_SSAO_numPeelings; ++i)
+  int i = 0;
   {
     m_kernelDeferred_Peeling->step(i);
     m_kernelDeferred_Peeling->setActive(true);
@@ -1406,6 +1408,7 @@ void App::renderSSAOSphereAproximation()
 
   //RENDER RESULT
   m_kernelCombine->renderOutput(0);
+  //m_kernelSSAO_SphereApproximation->renderOutput(0);
 }
 
 void App::renderSSAOHorizonSplit()

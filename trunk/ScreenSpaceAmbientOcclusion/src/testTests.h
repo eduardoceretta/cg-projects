@@ -91,7 +91,7 @@ private:
 //#include "Objects/Timer.h"
 #include "GLUtils/GLTimer.h"
 
-#define MEAN_NUMBER 100
+#define MEAN_NUMBER 300
 
 class TestApp;
 

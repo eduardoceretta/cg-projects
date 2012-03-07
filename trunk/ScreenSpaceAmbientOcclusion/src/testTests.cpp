@@ -235,7 +235,9 @@ string TimeTest::getFormatedResult()
     vector<Step> :: iterator it;
     for(it = m_steps.begin(); it != m_steps.end(); ++it)
     {
-      str+=tmp; sprintf(tmp, "        [\"%s\"] = {\n", it->name.c_str());   
+      //str+=tmp; sprintf(tmp, "        [\"%s\"] = {\n", it->name.c_str());   
+      str+=tmp; sprintf(tmp, "        {\n");   
+      str+=tmp; sprintf(tmp, "          [\"name\"] = \"%s\",\n", it->name.c_str());   
       str+=tmp; sprintf(tmp, "          [\"GPU\"] = {\n");   
       str+=tmp; sprintf(tmp, "            [\"Single\"] = %Lf,\n", it->singleGPUMeasuredTime);   
       str+=tmp; sprintf(tmp, "            [\"Mean\"] = %Lf,\n", it->meanGPUMeasuredTime);   
