@@ -143,9 +143,10 @@ uniform int perspective;
 
 
 #define DIST_ATT(x) \
-  ONE(x)
- //SQRT2(x)
+COS(x)
  //SIGMOID(x) 
+ //SQRT2(x)
+  //ONE(x)
  //SQRT(x)
  //LOG(x)
  //COS(x)
@@ -353,7 +354,7 @@ void main()
       float dist = sphereInfoData.x*(rfar - d0) + d0;
       
       float normalizedDist = sphereInfoData.x;
-      //vec3 sphereCenter = getSphereCenter(eyePosition + normal*.06*rfar, coneDir, rfar, sphereInfoData.x);//.06
+      //vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, rfar, sphereInfoData.x);//.06
       vec3 sphereCenter = getSphereCenter(eyePosition + normal*NORMAL_OFFSET*rfar, coneDir, 1.0, dist);
             
       float sphereRadius = getSphereRadius(rfar, sphereInfoData.y);
