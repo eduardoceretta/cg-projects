@@ -258,6 +258,7 @@ private:
   static void sphere(TestApp* );
   static void rayMarch(TestApp* );
   static void coneTracing(TestApp* );
+  static void noShader(TestApp* );
   
 };
 

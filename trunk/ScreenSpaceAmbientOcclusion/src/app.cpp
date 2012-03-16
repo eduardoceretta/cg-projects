@@ -634,16 +634,26 @@ void App::listenKeyboard( int key )
     }
     break;
 
+
   case '(':
     switch(m_renderMode)
     {
     default:
       break;
     case SSAO_Vox_ConeTracing:
-      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
-      overlap = max((overlap*.75f),0.0f);
-      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
-      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      if(m_SSAO_cone_infoMethod != "InitDist")
+      {
+        float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+        overlap = max((overlap*.75f),0.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }else
+      {
+        float center = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm;
+        center = max((center - .1f),0.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm = center;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }
       break;
     }
     break;
@@ -653,10 +663,19 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
-      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
-      overlap = max((overlap - .01f),0.0f);
-      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
-      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      if(m_SSAO_cone_infoMethod != "InitDist")
+      {
+        float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+        overlap = max((overlap - .01f),0.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }else
+      {
+        float radius = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm;
+        radius = max((radius - .01f),0.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm = radius;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }
       break;
     }
     break;
@@ -668,10 +687,19 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
-      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
-      overlap = min((overlap*1.25f),1.0f);
-      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
-      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      if(m_SSAO_cone_infoMethod != "InitDist")
+      {
+        float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+        overlap = min((overlap*1.25f),1.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }else
+      {
+        float center = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm;
+        center = min((center + .1f),10.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm = center;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }
       break;
     }
     break;
@@ -681,10 +709,19 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
-      float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
-      overlap = min((overlap + .01f),1.0f);
-      m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
-      m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      if(m_SSAO_cone_infoMethod != "InitDist")
+      {
+        float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
+        overlap = min((overlap + .01f),1.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }else
+      {
+        float radius = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm;
+        radius = min((radius + .01f),5.0f);
+        m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm = radius;
+        m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      }
       break;
     }
     break;
@@ -1303,8 +1340,19 @@ void App::renderGUI()
         sprintf(a,"(P) SphereInfo Method: %d ", (int)m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->currCalcMethod);
         m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
-        sprintf(a,"(9/0) SphereOverlap: %.2f ", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap);
-        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+        if(m_SSAO_cone_infoMethod != "InitDist")
+        {
+          sprintf(a,"(9/0) SphereOverlap: %.2f ", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap);
+          m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+        }else
+        {
+          sprintf(a,"('(' / ')') SphereCenter: %.2f ", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm);
+          m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+          sprintf(a,"(9/0) SphereRadius: %.2f ", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm);
+          m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+        }
+
 
       }
       break;
