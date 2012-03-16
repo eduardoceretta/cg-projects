@@ -7,14 +7,14 @@
 -- scene file. Performs a series of tests anda generate a log file containing
 -- the result of each test and the respectives screenshots.
 -----------------------------------------------------------------------------------
-executionEnabled = true
+-- executionEnabled = true
 
 workingDir = "../../" -- from here
 
 --DEBUG
--- programPath = "prj/ssao/vc9/testeSSAO_Debug/" -- from working dir
+programPath = "prj/ssao/vc9/testeSSAO_Debug/" -- from working dir
 --RELEASE
-programPath = "prj/ssao/vc9/testeSSAO_Release/" -- from working dir
+-- programPath = "prj/ssao/vc9/testeSSAO_Release/" -- from working dir
 programName = "testeSSAO.exe"
 
 --Program Needed Paths
@@ -31,8 +31,8 @@ activeTests = {
   -- algorithmCompare = true,
   -- parameterVariation = true,
   -- scalability = true,
-  screenshotQuality = true,
-  -- timeTable = true,
+  -- screenshotQuality = true,
+  timeTable = true,
 }
 
 --Program Aceptable Parameters
@@ -69,7 +69,7 @@ parameters = {
 
 -- Models Used in Tests. Sorted by importance. Not all will be used.
 testModels = {
-  path = "resources/Models/obj/Watertight/",
+  path = "resources/Models/optixCompare/",
   {--1
     name = "cutter.msb",
     poses = {
@@ -95,11 +95,14 @@ testModels = {
   {--4
     name = "dragon.msb",
     poses = {
-      "-28.1103  5.09934  -2.07215      -6.61092e-008  4.96995  -4.15856e-009    0.00135533  0.999031  0.043997     30    5     1000",
+      "-21.5185  7.61081  18.0132  -8.46725e-008  4.96995  5.65807e-008  0.0502917  0.995042  -0.0858016 30 5 1000",
+      "-12.9671  5.87109  -25.0109  -1.43579e-006  4.96995  -2.42542e-007  0.271954 0.956395  -0.106538  30 5 1000",
+      
+      -- "-28.1103  5.09934  -2.07215      -6.61092e-008  4.96995  -4.15856e-009    0.00135533  0.999031  0.043997     30    5     1000",
       -- "27.7427  1.57225  -3.64703       3.3931e-007  4.96995  7.40699e-007       0.110213  0.990331  -0.084241      30    5     1000",
-      "0.699758  6.52407  28.1354       8.94602e-007  4.96995  8.67915e-007      0.00236674  0.998472  -0.0552121   30    5     1000",
+      -- "0.699758  6.52407  28.1354       8.94602e-007  4.96995  8.67915e-007      0.00236674  0.998472  -0.0552121   30    5     1000",
       -- "0.514386  2.11135  -28.0369      8.53611e-007  4.96995  8.28582e-007      0.00899126 0.994819  -0.101265     30    5     1000",
-      "0.434503  32.6008  -5.55447      8.12403e-007  4.96995  7.57458e-007      -0.0748029 0.197659  0.977413      30    5     1000",
+      -- "0.434503  32.6008  -5.55447      8.12403e-007  4.96995  7.57458e-007      -0.0748029 0.197659  0.977413      30    5     1000",
       -- "3.24169  -23.0011  1.27389       8.93577e-007  4.96995  1.06895e-006      0.0368047  -0.041208  -0.998473    30    5     1000",
     },
   },
@@ -157,7 +160,68 @@ testModels = {
     poses = {
       "2.39071  2.76953  6.49835    2.54724  2.37149  -2.66228    -0.0133787  0.998958  -0.0436348          30       5      1000",
     },
-  },    
+  }, 
+  {--13
+    name = "bareliefply.msb",
+    poses = {
+      "13.3632  30.5817  3618.09     13.3632  30.5817  -138.15     0  1  0  30  5  1000",
+      "3108.06  -377.201  1951.35     13.3632  30.5817  -138.151     -0.557155  0.0248511  0.830036  30  5  1000",
+    },
+  }, 
+  {--14
+    name = "brain.msb",
+    poses = {
+      -- "1.92317  13.7947  0.0336796 -0.153472  1.11954  -1.61502e-005 -0.986607  0.161582  0.0223143 30 5 1000",
+      -- "4.32639  -5.07334  8.79172 1.05261  1.70505  0.109893 0.722661  0.650025  0.235007 30 5 1000",
+      -- CAMERA 7.26472  -3.60643  0.202613  -2.16066  4.55999  -0.0643376  0.655002  0.755457  -0.0160224 30 5 1000
+      -- CAMERA 8.31161  -0.0913365  3.99986  -1.99576  2.78985  -1.3377  0.218641  0.970497  0.101648 30 5 1000
+      "1.92317  13.7947  0.0336796 -0.153472  1.11954  -1.61502e-005 -0.986607  0.161582  0.0223143 30 5 1000",
+      "8.31161  -0.0913365  3.99986  -1.99576  2.78985  -1.3377  0.218641  0.970497  0.101648 30 5 1000",
+
+    },
+  }, 
+  {--15
+    name = "buddha15M.msb",
+    poses = {
+      "0.445269  71.0018  318.843     0.445269  71.0018  -0.418875     0  1  0  30  5  1000",
+      "-318.154  61.3621  17.7902     0.445272  71.0016  -0.418897     -0.0328169  0.998419  -0.045643  30  5  1000",
+    },
+  }, 
+  {--16
+    name = "bun_zipper.msb",
+    poses = {
+      "-0.0168405  0.110154  0.343843     -0.0168405  0.110154  -0.001537     0  1  0  30  5  1000",
+      "0.21772  0.276571  -0.192781     -0.0168405  0.110154  -0.00153703     -0.312391  0.872381  0.375983  30  5  1000",
+    },
+  }, 
+  {--17
+    name = "hand.msb",
+    poses = {
+      "5.34015  15.595  2.36007     3.40754  2.50787  1.54347     -0.229032  0.094274  -0.968843  30  5  1000",
+      "-7.99303  -0.740623  -4.38534     3.40754  2.50787  1.54347     -0.117636  0.948667  -0.293587  30  5  1000",
+    },
+  }, 
+  {--18
+    name = "happyvrip.msb",
+    poses = {
+      "-0.005439  0.148768  0.389356     -0.005439  0.148768  -0.00669     0  1  0  30  5  1000",
+      "0.18973  -0.0942517  0.0593348  -0.00623493  0.139666  -0.0290227  0.222726  0.502208  0.835572 30 5 1000",
+    },
+  }, 
+  {--19
+    name = "jsyrlin.msb",
+    poses = {
+      "56.3024  163.078  525.436     56.3024  163.078  -627.096     0  1  0  30  5  1000",
+      "671.41  946.681  -47.4913     56.3024  163.078  -627.096     -0.296544  0.707371  -0.641629  30  5  1000",
+    },
+  }, 
+  {--20
+    name = "karburator-500k.msb",
+    poses = {
+      "208.383  -186.606  32.5288     -8.8237  -25.8593  -223.298     -0.0037459  0.845283  0.534306  30  5  1000",
+      "-109.554  -315.481  -500.879     -8.8237  -25.8593  -223.298     0.354766  -0.708301  0.610287  30  5  1000",
+    },
+  }, 
 }
 
 
@@ -344,11 +408,23 @@ function scalabilityTest(models, parms)
 end
 
 function screenshotQualityTest(resolution, models)
-  resolution = resolution and resolution or {1024, 768}
-  models = models and models or {path = testModels.path, testModels[1], testModels[4], testModels[5], testModels[8], testModels[11]}
+  resolution = resolution and resolution or {640, 480}
+  models = models and models or {path = testModels.path, 
+    testModels[4],
+    -- testModels[12],
+    -- testModels[13],
+    testModels[14],
+    testModels[15],
+    -- testModels[16],
+    testModels[17],
+    testModels[18],
+    testModels[19],
+    testModels[20],
+  }
+    
     
   local tests = {
-    parameters.timeTestEnabled,
+    -- parameters.timeTestEnabled,
     parameters.screenShotTestEnabled,
   }
   local algorithms = {
@@ -357,20 +433,23 @@ function screenshotQualityTest(resolution, models)
   local varyingParms = {
     {
       name = "Baixa", 
+      {parameters.coneTracing_contrast, 1.4,},
       {parameters.coneTracing_jitter, false,},
       {parameters.coneTracing_numSpheres, 3,},
       {parameters.coneTracing_numSamplers, 3,},
     },    
     {
       name = "Media",
+      {parameters.coneTracing_contrast, 1.15,},
       {parameters.coneTracing_jitter, false,},
-      {parameters.coneTracing_numSpheres, 6,},
+      {parameters.coneTracing_numSpheres, 5,},
       {parameters.coneTracing_numSamplers, 6,},
     },    
     {
       name = "Alta",
-      {parameters.coneTracing_jitter, false,},
-      {parameters.coneTracing_numSpheres, 6,},
+      {parameters.coneTracing_contrast, 1.05,},
+      {parameters.coneTracing_jitter, true,},
+      {parameters.coneTracing_numSpheres, 7,},
       {parameters.coneTracing_numSamplers, 12,},
     },
   }
@@ -462,8 +541,7 @@ function algorithmCompareLogAnaliser(logFileName)
     
     --Scene
     texFile:write("%A cena é composta pelo modelo ".. modelName ..".".."\n\n")
-    -- texFile:write("O número total de vértices é ".. logFileTable.scene.totalVertices .." e de triângulos é ".. logFileTable.scene.totalTriangles.."\n\n")
-    texFile:write("A cena é composta por " .. logFileTable.scene.totalVertices .. " vértices e ".. logFileTable.scene.totalTriangles.." triângulos.\n\n")
+    texFile:write("A cena utilizada neste teste é composta pelo modelo " .. modelName .. " e possui " .. math.floor(logFileTable.scene.totalVertices/1000) .. "mil vértices e ".. math.floor(logFileTable.scene.totalTriangles/1000)  .. "mil triângulos.\n\n")
     texFile:write("%A resolução utilizada é ".. logFileTable.resolution[1] .."x" .. logFileTable.resolution[2].."\n\n")
     texFile:write("\n")
 
@@ -497,7 +575,7 @@ function algorithmCompareLogAnaliser(logFileName)
     end
     texFile:write("  Optix \\\\ \n")
 
-    texFile:write("  \\caption{Compração entre os algoritmos.}\n")
+    texFile:write("  \\caption{Comparação entre os algoritmos.}\n")
     texFile:write("  \\label{fig:".. testName .."}\n")
     texFile:write("\\end{figure}\n")
     texFile:write("\n")
@@ -600,7 +678,7 @@ function parameterVariationLogAnaliser(logFileNameList)
     
   --Scene
   texFile:write("%A cena é composta pelo modelo ".. modelName ..".".."\n\n")
-  texFile:write("A cena é composta por " .. logFileTable.scene.totalVertices .. " vértices e ".. logFileTable.scene.totalTriangles.." triângulos.\n\n")
+  texFile:write("A cena utilizada neste teste é composta pelo modelo " .. modelName .. " e possui " .. math.floor(logFileTable.scene.totalVertices/1000) .. "mil vértices e ".. math.floor(logFileTable.scene.totalTriangles/1000)  .. "mil triângulos.\n\n")
   texFile:write("%A resolução utilizada é ".. logFileTable.resolution[1] .."x" .. logFileTable.resolution[2].."\n\n")
   texFile:write("\n")
 
@@ -646,7 +724,7 @@ function parameterVariationLogAnaliser(logFileNameList)
   local size = math.min(math.floor(.5 + 100/n)/100, .5)
   texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. modelName .. pose .. ".png" .. "} }" .. "\n")
   texFile:write("\\\\    Optix \n")
-  texFile:write("    \\caption{Compração entre execução com e sem \\emph{jitter}.} \n")
+  texFile:write("    \\caption{Comparação entre execução com e sem \\emph{jitter}.} \n")
   texFile:write("    \\label{fig:".. testName .."}\n")
   texFile:write("\\end{figure}\n")
   texFile:write("\n")
@@ -739,7 +817,7 @@ function scalabilityLogAnaliser(logFileNameList)
     
   --Scene
   texFile:write("%A cena é composta pelo modelo ".. modelName ..".".."\n\n")
-  texFile:write("A cena é composta por " .. logFileTable.scene.totalVertices .. " vértices e ".. logFileTable.scene.totalTriangles.." triângulos.\n\n")
+  texFile:write("A cena utilizada neste teste é composta pelo modelo " .. modelName .. " e possui " .. math.floor(logFileTable.scene.totalVertices/1000) .. "mil vértices e ".. math.floor(logFileTable.scene.totalTriangles/1000)  .. "mil triângulos.\n\n")
   texFile:write("\n")
   
   --TableLines
@@ -842,47 +920,13 @@ function screenshotQualityLogAnaliser(logFileNameList)
     
   --Scene
   texFile:write("%A cena é composta pelo modelo ".. modelName ..".".."\n\n")
-  texFile:write("A cena é composta por " .. logFileTable.scene.totalVertices .. " vértices e ".. logFileTable.scene.totalTriangles.." triângulos.\n\n")
   texFile:write("%A resolução utilizada é ".. logFileTable.resolution[1] .."x" .. logFileTable.resolution[2].."\n\n")
+  texFile:write("A cena utilizada neste teste é composta pelo modelo \\emph{" .. modelName .. "} e possui " .. math.floor(logFileTable.scene.totalVertices/1000) .. "mil vértices e ".. math.floor(logFileTable.scene.totalTriangles/1000)  .. "mil triângulos. ")
+  texFile:write("A Tabela \\ref{tab:".. testName .."-" .. modelName .. "} contém os resultados de tempo para a execução de cada uma das configurações. ")
+  texFile:write("As imagens na Figura \\ref{fig:".. testName .."-"..modelName.."} visam apresentar uma comparação entre a qualidade de cada uma das configurações.\n\n")
   texFile:write("\n")
   
-  -- Move Figures
-  for i, logFileTable in ipairs(logFileTableList) do
-    for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
-      local cmdLine = string.gsub("copy \"" .. workingDir .. pose.screenshotTest.screenshotPath .. pose.screenshotTest.screenshotFile .. "\"  "   
-                                  .. workingDir .. logFilePath .. analiseLogDir .. "/" .. figuresDir .. "/" .. pose.screenshotTest.screenshotFile, "/", "\\")
-      os.execute(cmdLine)
-    end
-  end
   
-  local nameLines = {"Baixa", "Média", "Alta"}
-  -- SubFloats 
-  for i, logFileTable in ipairs(logFileTableList) do
-    texFile:write("\\begin{figure}[H]\n")
-    texFile:write("  \\centering\n")
-    local alg = logFileTable.algorithms[1]
-    for j, pose in ipairs(logFileTable[alg.name]) do
-      local n = #logFileTable[alg.name]
-      local size = math.min(math.floor(.5 + 100/n)/100, .5)
-      texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. pose.screenshotTest.screenshotFile .. "} }" .. (j == n and "\\\\" or "") .. "\n")
-    end
-    texFile:write("  " .. nameLines[i] .. "\n")
-    texFile:write("\\end{figure}\n")
-  end
-  
-  texFile:write("\\begin{figure}[H]\n")
-  texFile:write("  \\centering\n")
-  for j, pose in ipairs(logFileTable.poses) do
-    local n = #logFileTable.poses
-    local size = math.min(math.floor(.5 + 100/n)/100, .5)
-    texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. modelName .. pose .. ".png" .. "} }" .. (j == n and "\\\\" or "") .. "\n")
-  end
-  texFile:write("  Optix \\\\ \n")
-
-  texFile:write("  \\caption{Compração entre diferentes configurações de qualidade.}\n")
-  texFile:write("\\end{figure}\n")
-  texFile:write("\n")
-  texFile:write("\n")
   
   
   --TableLines
@@ -911,7 +955,8 @@ function screenshotQualityLogAnaliser(logFileNameList)
   texFile:write("%A tabela a seguir apresenta os resultados obtidos para cada configuração de qualidade." .. "\n")
   texFile:write("\\begin{table}[H]".."\n")
   texFile:write("  \\centering".."\n")
-  texFile:write("  \\caption{Compração entre execuções de diferentes qualidades do modelo " .. modelName .. ".}".."\n")
+  texFile:write("  \\caption{Comparação entre execuções de diferentes qualidades do modelo " .. modelName .. ".}".."\n")
+  texFile:write("  \\label{tab:".. testName .."-"..modelName.."}\n")
   texFile:write("  \\begin{tabular}{ |"..columns.."}".."\n")
   texFile:write("    \\hline".."\n")
   --Header
@@ -930,6 +975,46 @@ function screenshotQualityLogAnaliser(logFileNameList)
   
   texFile:write("  \\end{tabular}".."\n")
   texFile:write("\\end{table}".."\n")
+  
+  
+  -- Move Figures
+  for i, logFileTable in ipairs(logFileTableList) do
+    for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
+      local cmdLine = string.gsub("copy \"" .. workingDir .. pose.screenshotTest.screenshotPath .. pose.screenshotTest.screenshotFile .. "\"  "   
+                                  .. workingDir .. logFilePath .. analiseLogDir .. "/" .. figuresDir .. "/" .. pose.screenshotTest.screenshotFile, "/", "\\")
+      os.execute(cmdLine)
+    end
+  end
+  
+  local nameLines = {"Baixa", "Média", "Alta"}
+  texFile:write("\\newpage\n")
+  -- SubFloats 
+  texFile:write("\\begin{figure}[H]\n")
+  texFile:write("  \\centering\n")
+  for i, logFileTable in ipairs(logFileTableList) do
+    local alg = logFileTable.algorithms[1]
+    for j, pose in ipairs(logFileTable[alg.name]) do
+      local n = #logFileTable[alg.name]
+      local size = math.min(math.floor(.5 + 100/n)/100, .5)
+      texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. pose.screenshotTest.screenshotFile .. "} }" .. (j == n and "\\\\" or "") .. "\n")
+    end
+    texFile:write("  " .. nameLines[i] .. "\\\\ \n")
+  end
+
+  for j, pose in ipairs(logFileTable.poses) do
+    local n = #logFileTable.poses
+    local size = math.min(math.floor(.5 + 100/n)/100, .5)
+    texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. modelName .. pose .. ".png" .. "} }" .. (j == n and "\\\\" or "") .. "\n")
+  end
+  texFile:write("  Optix \\\\ \n")
+
+  texFile:write("  \\caption{Comparação entre diferentes configurações de qualidade do modelo "..modelName..".}\n")
+  texFile:write("  \\label{fig:".. testName .."-"..modelName.."}\n")
+  texFile:write("\\end{figure}\n")
+  texFile:write("\n")
+  texFile:write("\n")
+  
+  
   texFile:close()
   
 end
@@ -969,7 +1054,7 @@ function timeTableLogAnaliser(logFileName)
     
     --Scene
     texFile:write("%A cena é composta pelo modelo ".. modelName ..".".."\n\n")
-    texFile:write("A cena é composta por " .. logFileTable.scene.totalVertices .. " vértices e ".. logFileTable.scene.totalTriangles.." triângulos.\n\n")
+    texFile:write("A cena utilizada neste teste é composta pelo modelo " .. modelName .. " e possui " .. math.floor(logFileTable.scene.totalVertices/1000) .. "mil vértices e ".. math.floor(logFileTable.scene.totalTriangles/1000)  .. "mil triângulos.\n\n")
     texFile:write("%A resolução utilizada é ".. logFileTable.resolution[1] .."x" .. logFileTable.resolution[2].."\n\n")
     texFile:write("\n")
     
