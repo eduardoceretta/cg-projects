@@ -88,7 +88,6 @@ private:
  */
 #ifdef TIME_TEST
 #include <vector>
-//#include "Objects/Timer.h"
 #include "GLUtils/GLTimer.h"
 
 #define MEAN_NUMBER 300
@@ -97,7 +96,6 @@ class TestApp;
 
 class TimeTest
 {
-  //Timer m_timer; /**< Timer that controls the execution steps */
   GLTimer m_glTimer; /**< GLTimer that controls the GPU execution steps */
 
   struct Step{
@@ -106,18 +104,14 @@ class TimeTest
     TestApp* arg;
     // milliseconds
     double singleGPUMeasuredTime;
-    //double singleCPUMeasuredTime;
     double meanGPUMeasuredTime;
-    //double meanCPUMeasuredTime;
   };
 
   vector<Step> m_steps;
   
   // milliseconds
   double m_singleGPUMeasuredTotalTime;
-  //double m_singleCPUMeasuredTotalTime;
   double m_meanGPUMeasuredTotalTime;
-  //double m_meanCPUMeasuredTotalTime;
 
 public:
   TimeTest();

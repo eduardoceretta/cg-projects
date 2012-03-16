@@ -122,9 +122,7 @@ void TestLogger::setPath( string path )
 #ifdef TIME_TEST
 TimeTest::TimeTest()
 :m_singleGPUMeasuredTotalTime(-1.0)
-//,m_singleCPUMeasuredTotalTime(-1.0)
 ,m_meanGPUMeasuredTotalTime(-1.0)
-//,m_meanCPUMeasuredTotalTime(-1.0)
 {
   m_glTimer.init();
 }
@@ -132,11 +130,8 @@ TimeTest::TimeTest()
 void TimeTest::clearProfiler()
 {
   m_singleGPUMeasuredTotalTime = (-1.0);
-  //m_singleCPUMeasuredTotalTime = (-1.0);
   m_meanGPUMeasuredTotalTime = (-1.0);
-  //m_meanCPUMeasuredTotalTime = (-1.0);
   m_steps.clear();
-  //m_timer.reset();
   m_glTimer.reset();
   m_glTimer.init();
 }
@@ -164,9 +159,6 @@ void TimeTest::timeProfile()
         it->func(it->arg);
       m_glTimer.stop();
 
-      //m_timer.reset();
-      //  it->func(it->arg);
-      //it->singleCPUMeasuredTime = m_timer.getTimeInMilliseconds();
       it->singleGPUMeasuredTime = m_glTimer.getElapsedTimeInMilliseconds();
 
       //Mean
@@ -176,10 +168,6 @@ void TimeTest::timeProfile()
         it->func(it->arg);
       m_glTimer.stop();
 
-      //m_timer.reset();
-      //for(int i = 0; i < MEAN_NUMBER; ++i)
-      //  it->func(it->arg);
-      //it->meanCPUMeasuredTime = m_timer.getTimeInMilliseconds() / MEAN_NUMBER;
       it->meanGPUMeasuredTime = m_glTimer.getElapsedTimeInMilliseconds() / MEAN_NUMBER;
     }
   /************************/
@@ -190,10 +178,6 @@ void TimeTest::timeProfile()
     it->func(it->arg);
   m_glTimer.stop();
 
-  //m_timer.reset();
-  //for(it = m_steps.begin(); it != m_steps.end(); ++it)
-  //  it->func(it->arg);
-  //m_singleCPUMeasuredTotalTime = m_timer.getTimeInMilliseconds();
   m_singleGPUMeasuredTotalTime = m_glTimer.getElapsedTimeInMilliseconds();
 
   /************************/
@@ -205,11 +189,6 @@ void TimeTest::timeProfile()
       it->func(it->arg);
   m_glTimer.stop();
 
-  //m_timer.reset();
-  //for(it = m_steps.begin(); it != m_steps.end(); ++it)
-  //  for(int i = 0; i < MEAN_NUMBER; ++i)
-  //    it->func(it->arg);
-  //m_meanCPUMeasuredTotalTime = m_timer.getTimeInMilliseconds() / MEAN_NUMBER;
   m_meanGPUMeasuredTotalTime = m_glTimer.getElapsedTimeInMilliseconds()/ MEAN_NUMBER;
 }
 
@@ -223,10 +202,6 @@ string TimeTest::getFormatedResult()
   str+=tmp; sprintf(tmp, "          [\"Single\"] = %Lf,\n", m_singleGPUMeasuredTotalTime);   
   str+=tmp; sprintf(tmp, "          [\"Mean\"] = %Lf,\n", m_meanGPUMeasuredTotalTime);   
   str+=tmp; sprintf(tmp, "        },\n"); 
-  //str+=tmp; sprintf(tmp, "        [\"CPU\"] = {\n");   
-  //str+=tmp; sprintf(tmp, "          [\"Single\"] = %Lf,\n", m_singleCPUMeasuredTotalTime);   
-  //str+=tmp; sprintf(tmp, "          [\"Mean\"] = %Lf,\n", m_meanCPUMeasuredTotalTime);   
-  //str+=tmp; sprintf(tmp, "        },\n"); 
   str+=tmp; sprintf(tmp, "      },\n"); 
 
   if(m_steps.size() > 1)
@@ -235,17 +210,13 @@ string TimeTest::getFormatedResult()
     vector<Step> :: iterator it;
     for(it = m_steps.begin(); it != m_steps.end(); ++it)
     {
-      //str+=tmp; sprintf(tmp, "        [\"%s\"] = {\n", it->name.c_str());   
       str+=tmp; sprintf(tmp, "        {\n");   
       str+=tmp; sprintf(tmp, "          [\"name\"] = \"%s\",\n", it->name.c_str());   
       str+=tmp; sprintf(tmp, "          [\"GPU\"] = {\n");   
       str+=tmp; sprintf(tmp, "            [\"Single\"] = %Lf,\n", it->singleGPUMeasuredTime);   
       str+=tmp; sprintf(tmp, "            [\"Mean\"] = %Lf,\n", it->meanGPUMeasuredTime);   
       str+=tmp; sprintf(tmp, "          },\n"); 
-      //str+=tmp; sprintf(tmp, "          [\"CPU\"] = {\n");   
-      //str+=tmp; sprintf(tmp, "            [\"Single\"] = %Lf,\n", it->singleCPUMeasuredTime);   
-      //str+=tmp; sprintf(tmp, "            [\"Mean\"] = %Lf,\n", it->meanCPUMeasuredTime);   
-      //str+=tmp; sprintf(tmp, "          },\n"); 
+      
       str+=tmp; sprintf(tmp, "        },\n"); 
     }
     str+=tmp; sprintf(tmp, "      },\n"); 

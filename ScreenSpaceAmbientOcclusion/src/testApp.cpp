@@ -311,6 +311,7 @@ void TestApp::render()
           break;
         case ConeTracing:
           m_timeTest->clearProfiler();
+          m_timeTest->pushBackStep("noShader", noShader, this);
           m_timeTest->pushBackStep("deferredShading", deferredShading, this);
           m_timeTest->pushBackStep("voxelize", voxelize, this);
           m_timeTest->pushBackStep("coneTracing", coneTracing, this);
@@ -858,6 +859,11 @@ void TestApp::coneTracing(TestApp* thisPtr)
   thisPtr->m_kernelSSAO_Vox_ConeTracing->step(thisPtr->m_voxProjectionMatrix);
 
   glPopAttrib();
+}
+
+void TestApp::noShader(TestApp* thisPtr)
+{
+  thisPtr->drawScene();
 }
 
 
