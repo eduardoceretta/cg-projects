@@ -8,12 +8,13 @@ CAMERA   100 100 40  0 0 0     0 1 0     30    5   1000
 
 //MATERIAL (dif)r g b (spec)r g b spec_exponent reflectiveIndex refractiveIndex opacity 
 MATERIAL   .8 .8 .8     1. 1. 1.        50.0           0.0            0.8         0.4 
-MATERIAL   .8 .8 .8     0. 0. 0.        50.0           0.0            0.8         0.4 
+MATERIAL   .8 .8 .8     1. 1. 1.        50.0           0.0            0.8         0.4 
 MATERIAL   .8 .6 .2     0. 0. 0.       100.0           0.0            0.8         0.4 
 MATERIAL   .8 .5 .4     .8 .8 .8        32.0           0.0            0.8         0.4 
 
 //LIGHT (pos)x y z (dif)r g b (spec)r g b [type]{Dir=0 Pnt=1 Spt=2} [spotExponent] [spotAngle] [spotDir] x y z
-LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
+//LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
+LIGHT  400 100 10   1 1 1   0 0 0
 
 
 //MESH materialIndex (pos)x y z (scale)x y z  path
@@ -135,6 +136,13 @@ LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
 //MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/DW-Ormesh-02.msb        //WATERTIGHT 143k Vertex  71k Triangles                                                    
 //CAMERA    26.4077 180.487 1009.17        26.4077 180.487 -178.905             0 1 0                           30       5      1000
 
+MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/dragonPlane.msb          //WATERTIGHT 300k Vertex    100k Triangles
+//CAMERA -15.4498   0.879684   -12.315  -2.53061e-006   4.71994   1.13048e-006  -0.0748817   0.974821   -0.21004 30       5      1000
+CAMERA 34.3196   3.08033   12.8054  0.27665   4.63417   -0.615212  0.0159964   0.997065   0.0748635 30       5      1000
+//CAMERA -18.1179  5.7182  0.536121 0.174393  5.33022  1.40324 0.0189543  0.998714  0.0470215 30 5 1000
+CAMERA -24.4297  5.85208  0.236916 0.174393  5.33022  1.40325 0.0189543  0.998714 0.0470215 30 5 100
+
+
 //MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/dragon.msb          //WATERTIGHT 300k Vertex    100k Triangles
 //CAMERA -21.5185  7.61081  18.0132  -8.46725e-008  4.96995  5.65807e-008  0.0502917  0.995042  -0.0858016 30 5 1000
 //CAMERA -12.9671  5.87109  -25.0109  -1.43579e-006  4.96995  -2.42542e-007  0.271954 0.956395  -0.106538  30 5 1000
@@ -184,11 +192,15 @@ LIGHT  .25 .5 .83   .85 .85 .85   .5 .5 .5
  //CAMERA  13.3632  30.5817  3618.09     13.3632  30.5817  -138.15     0  1  0  30  5  1000
  //CAMERA  3108.06  -377.201  1951.35     13.3632  30.5817  -138.151     -0.557155  0.0248511  0.830036  30  5  1000
 
-// MESH  1  0  -50  0  1  1  1  resources/Models/optixCompare/buddha1.5M.msb
-// CAMERA  0.445269  71.0018  318.843     0.445269  71.0018  -0.418875     0  1  0  30  5  1000
-// CAMERA  -318.154  61.3621  17.7902     0.445272  71.0016  -0.418897     -0.0328169  0.998419  -0.045643  30  5  1000
+ //MESH  1  50    80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
+ //MESH  1  -50   80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
+ //MESH  1  50   -80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
+ //MESH  1  -50  -80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
+   //MESH  1  0 0 0  1  1  1  resources/Models/optixCompare/buddha15M.msb
+ //CAMERA  0.445269  71.0018  318.843     0.445269  71.0018  -0.418875     0  1  0  30  5  1000
+ //CAMERA  -318.154  61.3621  17.7902     0.445272  71.0016  -0.418897     -0.0328169  0.998419  -0.045643  30  5  1000
 
-//MESH  1  0.  0.  0.  1  1  1  resources/Models/optixCompare/bun_zipper.msb  
+//MESH  1  0.  0.  0.  1  1  1  resources/Models/optixCompare/bunzipper.msb  
 // CAMERA  -0.0168405  0.110154  0.343843     -0.0168405  0.110154  -0.001537     0  1  0  30  5  1000
 // CAMERA  0.21772  0.276571  -0.192781     -0.0168405  0.110154  -0.00153703     -0.312391  0.872381  0.375983  30  5  1000
 
