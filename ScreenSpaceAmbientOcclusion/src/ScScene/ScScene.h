@@ -126,6 +126,11 @@ public:
   int getNumLights();
 
   /**
+   * Get the ith Light imported
+   */
+  ScLight* getLightAt(int i);
+
+  /**
    * Get the number of imported meshes
    */
   int getNumMeshes();

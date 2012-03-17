@@ -30,6 +30,7 @@
 #include "Kernels/KernelDeferred_Peeling.h"
 #include "Kernels/KernelBlur.h"
 #include "Kernels/KernelCombine.h"
+#include "Kernels/KernelDeferredLighting.h"
 #include "Kernels/KernelVoxDepth.h"
 #include "Kernels/KernelVoxelization.h"
 #include "Kernels/KernelSSAO_SphereApproximation.h"
@@ -77,6 +78,7 @@ TestApp::TestApp()
 ,m_kernelColor(NULL)
 ,m_kernelBlur(NULL)
 ,m_kernelCombine(NULL)
+,m_kernelDeferredLighting(NULL)
 ,m_kernelVoxDepth(NULL)
 ,m_kernelVoxelization(NULL)
 ,m_kernelSSAO_SphereApproximation(NULL)
@@ -107,6 +109,8 @@ TestApp::TestApp()
 
 ,m_ConeTracing_enabled(false)
 ,m_ConeTracing_jitter(true)
+,m_ConeTracing_diffuse_enabled(false)
+,m_ConeTracing_ao_enabled(true)
 ,m_ConeTracing_rfarPercent(0.1f)
 ,m_ConeTracing_contrast(1.28f)
 ,m_ConeTracing_coneAngle(DEG_TO_RAD(30.0f))
@@ -152,6 +156,8 @@ TestApp::TestApp()
   m_acceptedArgsFloat["-parm:RayMarch:contrast"] = &m_RayMarch_contrast;
 
   m_acceptedArgsBool["-parm:ConeTracing:jitter"] = &m_ConeTracing_jitter;
+  m_acceptedArgsBool["-parm:ConeTracing:diffuse_enabled"] = &m_ConeTracing_diffuse_enabled;
+  m_acceptedArgsBool["-parm:ConeTracing:ao_enabled"] = &m_ConeTracing_ao_enabled;
   m_acceptedArgsFloat["-parm:ConeTracing:rfar"] = &m_ConeTracing_rfarPercent;
   m_acceptedArgsFloat["-parm:ConeTracing:contrast"] = &m_ConeTracing_contrast;
   m_acceptedArgsFloat["-parm:ConeTracing:coneAngle"] = &m_ConeTracing_coneAngle;
@@ -191,6 +197,9 @@ TestApp::~TestApp()
 
   if(m_kernelCombine)
     delete m_kernelCombine;
+
+  if(m_kernelDeferredLighting)
+    delete m_kernelDeferredLighting;
 
   if(m_kernelVoxelization)
     delete m_kernelVoxelization;
@@ -287,7 +296,6 @@ void TestApp::render()
 
     m_customCamHandleres[poseIndex]->render();
 
-
     //TIME
     //TIME
     //TIME
@@ -311,10 +319,12 @@ void TestApp::render()
           break;
         case ConeTracing:
           m_timeTest->clearProfiler();
-          m_timeTest->pushBackStep("noShader", noShader, this);
+          //m_timeTest->pushBackStep("noShader", noShader, this);
           m_timeTest->pushBackStep("deferredShading", deferredShading, this);
           m_timeTest->pushBackStep("voxelize", voxelize, this);
-          m_timeTest->pushBackStep("coneTracing", coneTracing, this);
+          if(m_ConeTracing_diffuse_enabled)
+            m_timeTest->pushBackStep("coneTracingDiffuse", coneTracingDiffuse, this);
+          else m_timeTest->pushBackStep("coneTracing", coneTracing, this);
           m_timeTest->timeProfile();
           break;
       }
@@ -352,8 +362,15 @@ void TestApp::render()
       case ConeTracing:
         deferredShading(this);
         voxelize(this);
-        screenShotFileName = m_screenShotTest->save(coneTracing, this, m_kernelSSAO_Vox_ConeTracing->getOutputTexture(KernelSSAO_Vox_ConeTracing::SSAO), m_screenShotsPath);
-        m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
+        if(m_ConeTracing_diffuse_enabled)
+        {
+          screenShotFileName = m_screenShotTest->save(coneTracingDiffuse, this, m_kernelDeferredLighting->getOutputTexture(0), m_screenShotsPath);
+          m_kernelDeferredLighting->renderOutput(0);
+        }else 
+        {
+          screenShotFileName = m_screenShotTest->save(coneTracing, this, m_kernelSSAO_Vox_ConeTracing->getOutputTexture(KernelSSAO_Vox_ConeTracing::SSAO), m_screenShotsPath);
+          m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
+        }
         break;
       }
 
@@ -633,7 +650,19 @@ void TestApp::loadKernels()
     m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(m_ConeTracing_numSpamplers);
     m_kernelSSAO_Vox_ConeTracing->setRfarPercent(m_ConeTracing_rfarPercent);
     m_kernelSSAO_Vox_ConeTracing->setContrast(m_ConeTracing_contrast);
+
+    GLfloat *lDif, *lPos;
+    lDif = m_rtScene->getLightAt(0)->getLightStruct()->diffuse;
+    lPos = m_rtScene->getLightAt(0)->getLightStruct()->pos;
+    m_kernelDeferredLighting = new KernelDeferredLighting((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+      ,m_kernelVoxDepth->getTexIdNormalDepth()
+      ,m_kernelVoxDepth->getTexIdEyePos()
+      ,m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0)
+      ,Vector3(lPos[0], lPos[1], lPos[2])
+      ,Vector3(lDif[0], lDif[1], lDif[2])
+      );
   }
+
 
   if(m_Sphere_enabled || m_ConeTracing_enabled)
   {
@@ -858,6 +887,20 @@ void TestApp::coneTracing(TestApp* thisPtr)
  
   thisPtr->m_kernelSSAO_Vox_ConeTracing->step(thisPtr->m_voxProjectionMatrix);
 
+  glPopAttrib();
+}
+
+
+void TestApp::coneTracingDiffuse(TestApp* thisPtr)
+{
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+  thisPtr->m_kernelSSAO_Vox_ConeTracing->step(thisPtr->m_voxProjectionMatrix);
+
+  thisPtr->m_rtScene->setMaterialActive(true, 0);
+  thisPtr->m_kernelDeferredLighting->step((int)thisPtr->m_ConeTracing_ao_enabled, (int)thisPtr->m_ConeTracing_diffuse_enabled, Vector3(.5, .5, .5));
+  thisPtr->m_rtScene->setMaterialActive(false, 0);
   glPopAttrib();
 }
 

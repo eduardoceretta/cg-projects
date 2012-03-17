@@ -36,6 +36,7 @@ class ScScene;
 class P3bMeshFile;
 
 class GLCameraHandler;
+class GLOcclusionQuery;
 class GLFont;
 class Frames;
 
@@ -46,6 +47,7 @@ class KernelDeferred_Peeling;
 
 class KernelBlur;
 class KernelCombine;
+class KernelDeferredLighting;
 class KernelVoxDepth;
 class KernelVoxelization;
 class KernelSSAO_SphereApproximation;
@@ -92,6 +94,7 @@ class App
   Frames *m_frames;
   float m_fps;
 
+
   /**
    * Scene Objects
    */
@@ -105,6 +108,7 @@ class App
   KernelDeferred_Peeling* m_kernelDeferred_Peeling;
   KernelBlur* m_kernelBlur;
   KernelCombine* m_kernelCombine;
+  KernelDeferredLighting* m_kernelDeferredLighting;
   KernelVoxDepth* m_kernelVoxDepth;
   KernelVoxelization* m_kernelVoxelization;
 
@@ -125,6 +129,9 @@ class App
   bool m_orthographicProjection_on;
   bool m_blurr_on;
   bool m_debugrender_on;
+
+  bool m_diffuseEnabled;
+  bool m_aoEnabled;
   
   /**
    * Global Algorithm Parameters
@@ -182,6 +189,8 @@ class App
    * Debug
    */
   GLenum e;
+  GLOcclusionQuery * m_occlusionQuery;
+  bool m_occlusionQueryEnabled;
 
 public:
   App();

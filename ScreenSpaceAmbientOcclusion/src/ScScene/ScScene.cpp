@@ -120,6 +120,12 @@ int ScScene::getNumLights()
 }
 
 
+
+ScLight* ScScene::getLightAt( int i )
+{
+  return &m_lights[i];
+}
+
 void ScScene::setLightActive( bool op )
 {
   if(op && m_lightEnabled)

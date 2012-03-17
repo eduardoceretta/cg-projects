@@ -47,6 +47,7 @@ class KernelColor;
 class KernelDeferred_Peeling;
 class KernelBlur;
 class KernelCombine;
+class KernelDeferredLighting;
 class KernelVoxDepth;
 class KernelVoxelization;
 class KernelSSAO_SphereApproximation;
@@ -102,6 +103,7 @@ class TestApp
   KernelDeferred_Peeling* m_kernelDeferred_Peeling;
   KernelBlur* m_kernelBlur;
   KernelCombine* m_kernelCombine;
+  KernelDeferredLighting* m_kernelDeferredLighting;
   KernelVoxDepth* m_kernelVoxDepth;
   KernelVoxelization* m_kernelVoxelization;
 
@@ -145,6 +147,8 @@ class TestApp
 
   bool m_ConeTracing_enabled;
   bool m_ConeTracing_jitter;
+  bool m_ConeTracing_diffuse_enabled;
+  bool m_ConeTracing_ao_enabled;
   float m_ConeTracing_rfarPercent;
   float m_ConeTracing_contrast;
   float m_ConeTracing_coneAngle;
@@ -161,6 +165,7 @@ class TestApp
                  ,Sphere
                  ,RayMarch
                  ,ConeTracing
+                 ,ConeTracing_Diffuse
                  ,Debug
                  ,CustomCameras = 2*Debug};
 
@@ -258,6 +263,7 @@ private:
   static void sphere(TestApp* );
   static void rayMarch(TestApp* );
   static void coneTracing(TestApp* );
+  static void coneTracingDiffuse(TestApp* );
   static void noShader(TestApp* );
   
 };
