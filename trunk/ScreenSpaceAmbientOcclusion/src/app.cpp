@@ -33,6 +33,7 @@
 #include "Kernels/KernelDeferred_Peeling.h"
 #include "Kernels/KernelBlur.h"
 #include "Kernels/KernelCombine.h"
+#include "Kernels/KernelDeferredLighting.h"
 #include "Kernels/KernelVoxDepth.h"
 #include "Kernels/KernelVoxelization.h"
 #include "Kernels/KernelSSAO_SphereApproximation.h"
@@ -42,6 +43,7 @@
 #include "Kernels/KernelSSAO_Vox_ConeTracing.h"
 
 #include "GLUtils/GLTextureObject.h"
+#include "GLUtils/GLOcclusionQuery.h"
 
 #include "app.h"
 
@@ -58,6 +60,7 @@ string App::s_renderModeStr[] = {
   ,STR(Voxelization)
   ,STR(Debug)
 };
+
 
 
 /*******************************************/
@@ -84,6 +87,7 @@ App::App()
 ,m_kernelSSAO_HorizonSplit(NULL)
 ,m_kernelBlur(NULL)
 ,m_kernelCombine(NULL)
+,m_kernelDeferredLighting(NULL)
 ,m_kernelVoxDepth(NULL)
 ,m_kernelVoxelization(NULL)
 ,m_kernelSSAO_Vox_RayMarch(NULL)
@@ -95,6 +99,8 @@ App::App()
 ,m_updateCamHandler(true)
 ,m_wireframe_on(false)
 ,m_debugrender_on(false)
+,m_diffuseEnabled(false)
+,m_aoEnabled(true)
 ,m_blurr_on(false)
 ,m_orthographicProjection_on(false)
 ,m_SSAO_rfarPercent(.1f)
@@ -114,6 +120,8 @@ App::App()
 ,m_voxProjectionMatrix(new GLProjectionMatrix())
 ,m_updateVoxelgrid(true)
 ,m_renderMode(SSAO_Vox_ConeTracing)
+,m_occlusionQuery(NULL)
+,m_occlusionQueryEnabled(false)
 {
   m_clearColor[0] =  0.8f;
   m_clearColor[1] =  0.8f;
@@ -256,6 +264,7 @@ void App::render()
   m_frames->update();
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
+  
 
   if(m_debugrender_on)
   {
@@ -349,6 +358,25 @@ void App::listenKeyboard( int key )
     exit(42);
     break;
 
+  case 'A':
+  case 'a':
+    {
+      Vector3 pos = m_camHandler->getPos();
+      Vector3 at = m_camHandler->getAt();
+      Vector3 up = m_camHandler->getUp();
+      cout << "CAMERA " << pos.x << " " << pos.y << " " << pos.z << "   " 
+                       << at.x << " " << at.y << " " << at.z << "   " 
+                       << up.x << " " << up.y << " " << up.z << "   " 
+                       << m_fov << " " << m_nearPlane  << " " << m_farPlane << endl << endl;
+    }
+    break;
+
+
+  case 'S':
+  case 's':
+    m_occlusionQueryEnabled = !m_occlusionQueryEnabled;
+    break;
+
   case 'C':
     m_customCameraIndex = (m_customCameraIndex - 1 >= 0 ? m_customCameraIndex : m_rtScene->getNumCameras() - 1) - 1;
     m_camHandler = m_kernelsCamHandleres[CustomCameras + m_customCameraIndex];
@@ -383,6 +411,16 @@ void App::listenKeyboard( int key )
   case 'B':
   case 'b':
     m_blurr_on = !m_blurr_on;
+    break;
+
+  case 'Z':
+  case 'z':
+    m_aoEnabled = !m_aoEnabled;
+    break;
+
+  case 'X':
+  case 'x':
+    m_diffuseEnabled = !m_diffuseEnabled;
     break;
 
   case 'O':
@@ -480,6 +518,7 @@ void App::listenKeyboard( int key )
     m_kernelSSAO_HorizonSplit->reloadShader();
     m_kernelBlur->reloadShader();
     m_kernelCombine->reloadShader();
+    m_kernelDeferredLighting->reloadShader();
     m_kernelVoxelization->reloadShader();
     m_kernelSSAO_Vox_RayMarch->reloadShader();
     m_kernelSSAO_Vox_TanSphereVolume->reloadShader();
@@ -1102,9 +1141,24 @@ void App::loadKernels()
   m_kernelSSAO_Vox_ConeTracing->setRfarPercent(m_SSAO_rfarPercent);
   m_kernelSSAO_Vox_ConeTracing->setContrast(m_SSAO_contrast);
 
+  GLfloat *lDif, *lPos;
+  lDif = m_rtScene->getLightAt(0)->getLightStruct()->diffuse;
+  lPos = m_rtScene->getLightAt(0)->getLightStruct()->pos;
+  m_kernelDeferredLighting = new KernelDeferredLighting((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelVoxDepth->getTexIdNormalDepth()
+    ,m_kernelVoxDepth->getTexIdEyePos()
+    ,m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0)
+    ,Vector3(lPos[0], lPos[1], lPos[2])
+    ,Vector3(lDif[0], lDif[1], lDif[2])
+    );
+
   m_kernelBlur = new KernelBlur((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelSSAO_SphereApproximation->getColorTexId()
     );
+
+
+  m_occlusionQuery = new GLOcclusionQuery();
+  m_occlusionQuery->init();
 }
 
 void App::loadCameras()
@@ -1322,6 +1376,15 @@ void App::renderGUI()
     case SSAO_Vox_ConeTracing:
       if(m_menu_on)
       {
+        sprintf(a,"(X) Diffuse: %s", m_diffuseEnabled? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(Z) AO: %s", m_aoEnabled? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
+        sprintf(a,"(S) OcclusionQuery: %s", m_occlusionQueryEnabled? "On":"Off");
+        m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
+
         sprintf(a,"(N) Jitter: %s", m_SSAO_jitter? "On":"Off");
         m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
 
@@ -1352,8 +1415,11 @@ void App::renderGUI()
           sprintf(a,"(9/0) SphereRadius: %.2f ", m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm);
           m_fontRender->print(m_appWidth*xTop, m_appHeight*yRight + 25*yRight_i++,a, Color(0., 0., 0.));
         }
-
-
+      }
+      if(m_occlusionQueryEnabled)
+      {
+        sprintf(a,"%.3fk Frags", (float)m_occlusionQuery->getNumberOfFragments()/1000);
+        m_fontRender->print(m_appWidth*.85,m_appHeight*.85 + 25, a, Color(0., 0., 0.));
       }
       break;
   }
@@ -1593,7 +1659,26 @@ void App::renderSSAOVoxConeTracing()
     m_kernelBlur->step(1);
     m_kernelBlur->renderOutput(0);
   }else
-    m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
+  {
+    m_rtScene->setMaterialActive(true, 1);
+
+    if(m_occlusionQueryEnabled)
+    {
+      m_occlusionQuery->begin();
+      m_kernelDeferredLighting->stepShaderOnly((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.5, .5, .5));
+      m_occlusionQuery->end();
+    }else 
+      m_kernelDeferredLighting->step((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.5, .5, .5));
+
+    m_rtScene->setMaterialActive(false, 1);
+
+    if(!m_occlusionQueryEnabled)
+      m_kernelDeferredLighting->renderOutput(0);
+
+    
+    //m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
+  }
+
 
   //GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
   //GLuint* i = texObj.read2DTextureUIntData();
