@@ -90,7 +90,7 @@ private:
 #include <vector>
 #include "GLUtils/GLTimer.h"
 
-#define MEAN_NUMBER 5
+#define MEAN_NUMBER 300
 
 class TestApp;
 
