@@ -28,13 +28,13 @@ screenShotsPath = "resources/Tests/ScreenShots/MainTest/"
 
 --Enabled Tests
 activeTests = {
-  algorithmCompare = true,
-  parameterVariation = true,
-  scalability = true,
-  geometryScalability = true,
-  screenshotQuality = true,
+  -- algorithmCompare = true,
+  -- parameterVariation = true,
+  -- scalability = true,
+  -- geometryScalability = true,
+  -- screenshotQuality = true,
   diffuseScreenshotQuality = true,
-  timeTable = true,
+  -- timeTable = true,
 }
 
 --Program Aceptable Parameters
@@ -99,8 +99,8 @@ testModels = {
   {--4
     name = "dragon.msb",
     poses = {
-      "-21.5185  7.61081  18.0132  -8.46725e-008  4.96995  5.65807e-008  0.0502917  0.995042  -0.0858016 30 5 1000",
-      "-12.9671  5.87109  -25.0109  -1.43579e-006  4.96995  -2.42542e-007  0.271954 0.956395  -0.106538  30 5 1000",
+      "-24.5728  6.4762  13.7261   5.53371e-008  4.96995  -3.44313e-007   0.0314752  0.998089  -0.0531787 30 5 1000",
+      "-11.0748  2.76192  -25.826   -5.38595e-007  4.96994  8.50791e-007   0.0981899  0.987095  -0.126499 30 5 1000",
     },
   },
   {--5
@@ -168,16 +168,17 @@ testModels = {
   {--14
     name = "brain.msb",
     poses = {
-      "1.92317  13.7947  0.0336796 -0.153472  1.11954  -1.61502e-005 -0.986607  0.161582  0.0223143 30 5 1000",
-      "8.31161  -0.0913365  3.99986  -1.99576  2.78985  -1.3377  0.218641  0.970497  0.101648 30 5 1000",
+      "0.204921  13.9582  0.11195   -0.153471  1.11954  -1.62232e-005   -0.999581  0.0278339  0.00800828 30 5 1000",
+      "7.69197  -0.68503  5.94048   0.018383  2.36432  0.128711   0.291874  0.949764  0.112951 30 5 1000",
+
 
     },
   }, 
   {--15
     name = "buddha15M.msb",
     poses = {
-      "0.445269  71.0018  318.843     0.445269  71.0018  -0.418875     0  1  0  30  5  1000",
-      "-318.154  61.3621  17.7902     0.445272  71.0016  -0.418897     -0.0328169  0.998419  -0.045643  30  5  1000",
+      "0.445269  71.0018  320.779   0.445269  71.0018  -0.418875   0  1  0 30 5 1000",
+      "-320.733  70.7011  3.21145   0.445268  71.0018  -0.418877   -0.000450478  0.99908  0.0428767 30 5 1000",
     },
   }, 
   {--16
@@ -190,36 +191,36 @@ testModels = {
   {--17
     name = "hand.msb",
     poses = {
-      "5.34015  15.595  2.36007     3.40754  2.50787  1.54347     -0.229032  0.094274  -0.968843  30  5  1000",
-      "-7.99303  -0.740623  -4.38534     3.40754  2.50787  1.54347     -0.117636  0.948667  -0.293587  30  5  1000",
+      "3.46506  15.693  2.89557   3.40755  2.50787  1.54347   -0.212579  0.100598  -0.971952 30 5 1000",
+      "-1.88218  -4.01881  -8.70866   3.40755  2.50787  1.54347   -0.278111  0.868832  -0.409617 30 5 1000",
     },
   }, 
   {--18
     name = "happyvrip.msb",
     poses = {
-      "-0.005439  0.148768  0.389356     -0.005439  0.148768  -0.00669     0  1  0  30  5  1000",
-      "0.18973  -0.0942517  0.0593348  -0.00623493  0.139666  -0.0290227  0.222726  0.502208  0.835572 30 5 1000",
+      "-0.005439  0.148768  0.389356   -0.005439  0.148768  -0.00669   0  1  0 30 5 1000",
+      "0.252884  -0.143896  0.0602102   -0.00543906  0.148769  -0.00669016   0.32637  0.474896  0.817286 30 5 1000",
     },
   }, 
   {--19
     name = "jsyrlin.msb",
     poses = {
-      "56.3024  163.078  525.436     56.3024  163.078  -627.096     0  1  0  30  5  1000",
-      "671.41  946.681  -47.4913     56.3024  163.078  -627.096     -0.296544  0.707371  -0.641629  30  5  1000",
+      "56.3024  163.078  525.436   56.3024  163.078  -627.096   0  1  0 30 5 1000",
+      "563.794  998.664  -16.6851   56.3025  163.078  -627.096   -0.302551  0.675199  -0.672733 30 5 1000",
     },
   }, 
   {--20
     name = "karburator-500k.msb",
     poses = {
-      "208.383  -186.606  32.5288     -8.8237  -25.8593  -223.298     -0.0037459  0.845283  0.534306  30  5  1000",
-      "-109.554  -315.481  -500.879     -8.8237  -25.8593  -223.298     0.354766  -0.708301  0.610287  30  5  1000",
+      "180.948  -210.824  39.0366   -8.8237  -25.8594  -223.298   -0.0148237  0.812109  0.583318 30 5 1000",
+      "-120.02  -301.207  -514.717   -8.8237  -25.8593  -223.298   0.411913  -0.73557  0.537833 30 5 1000",
     },
   }, 
   {--21
     name = "buddha15M.msb",
     poses = {
-      "-420.733 28.6044 -436.562   0.445271 71.0018 -0.418875   420.484 42.4148 435.424   30 42.7269 1306",
-      "-453.599 238.532 367.259   0.445271 71.0018 -0.418875   453.319 -167.171 -367.09   30 42.7269 1306",
+      "455.513 195.834 541.909   0.445271 71.0018 -0.418875   -454.446 -124.573 -541.588   30 42.7269 1306",
+      "-498.627 96.0903 516.385   0.445271 71.0018 -0.418875   498.383 -24.9667 -516.09   30 42.7269 1306",
     },
     multiple = {
       "50    80  0  1  1  1",
@@ -539,7 +540,7 @@ function screenshotQualityTest(resolution, models)
     
     
   local tests = {
-    parameters.timeTestEnabled,
+    -- parameters.timeTestEnabled,
     parameters.screenShotTestEnabled,
   }
   local algorithms = {
@@ -585,7 +586,7 @@ function screenshotQualityTest(resolution, models)
 end
 
 function diffuseScreenshotQualityTest(resolution, models)
-  resolution = resolution and resolution or {1024, 768}
+  resolution = resolution and resolution or {640, 480}
   models = models and models or {path = testModels.path, 
     testModels[21],
   }
@@ -600,10 +601,10 @@ function diffuseScreenshotQualityTest(resolution, models)
   
   local varyingParms = {
     {
-      -- name = "Iluminação Difusa desligada e Oclusão Ambiente ligada", 
-      name = "DifOff_AoOn", 
-      {parameters.coneTracing_diffuseEnabled, false,},
-      {parameters.coneTracing_aoEnabled, true,},
+      -- name = "Iluminação Difusa Ligada e Oclusão Ambiente desligada", 
+      name = "DifOn_AoOff", 
+      {parameters.coneTracing_diffuseEnabled, true,},
+      {parameters.coneTracing_aoEnabled, false,},
       {parameters.coneTracing_contrast, 1.15,},
       {parameters.coneTracing_jitter, false,},
       {parameters.coneTracing_numSpheres, 5,},
@@ -619,16 +620,7 @@ function diffuseScreenshotQualityTest(resolution, models)
       {parameters.coneTracing_numSpheres, 5,},
       {parameters.coneTracing_numSamplers, 6,},
     },    
-    {
-      -- name = "Iluminação Difusa Ligada e Oclusão Ambiente desligada", 
-      name = "DifOn_AoOff", 
-      {parameters.coneTracing_diffuseEnabled, true,},
-      {parameters.coneTracing_aoEnabled, false,},
-      {parameters.coneTracing_contrast, 1.15,},
-      {parameters.coneTracing_jitter, false,},
-      {parameters.coneTracing_numSpheres, 5,},
-      {parameters.coneTracing_numSamplers, 6,},
-    },    
+  
   }
     
   local sceneFullPath = workingDir..scenePath
@@ -743,7 +735,7 @@ function algorithmCompareLogAnaliser(logFileName)
         texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. pose.screenshotTest.screenshotFile .. "} }" .. (j == n and "\\\\" or "") .. "\n")
       end
       texFile:write("  " .. alg.name .. " \\\\ \n")
-      texFile:write("  \\vspace{15pt} \n")
+      -- texFile:write("  \\vspace{15pt} \n")
     end
     
     for j, pose in ipairs(logFileTable.poses) do
@@ -882,31 +874,34 @@ function parameterVariationLogAnaliser(logFileNameList)
   -- end
   
   -- SubFloats 
+  texFile:write("\\begin{figure}[H]\n")
+  texFile:write("  \\centering\n")
   for i, logFileTable in ipairs(logFileTableList) do
-    texFile:write("\\begin{figure}[H]\n")
-    texFile:write("  \\centering\n")
     local alg = logFileTable.algorithms[1]
     local pose = logFileTable[alg.name][1]
     local n = #logFileTable[alg.name]
     local size = math.min(math.floor(.5 + 100/n)/100, .5)
     texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. pose.screenshotTest.screenshotFile .. "} }" .. "\n")
     texFile:write("\\\\  " .. nameLines[i] .. " \n")
-    texFile:write("\\end{figure}\n")
-    texFile:write("\n")
   end
-  
-  texFile:write("\\begin{figure}[H]\n")
-  texFile:write("  \\centering\n")
-  local pose = logFileTable.poses[1]
-  local n = #logFileTable.poses
-  local size = math.min(math.floor(.5 + 100/n)/100, .5)
-  texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. modelName .. pose .. ".png" .. "} }" .. "\n")
-  texFile:write("\\\\    Optix \n")
   texFile:write("    \\caption{Comparação entre execução com e sem \\emph{jitter}.} \n")
   texFile:write("    \\label{fig:".. testName .."}\n")
   texFile:write("\\end{figure}\n")
   texFile:write("\n")
   texFile:write("\n")
+  
+  -- texFile:write("\\begin{figure}[H]\n")
+  -- texFile:write("  \\centering\n")
+  -- local pose = logFileTable.poses[1]
+  -- local n = #logFileTable.poses
+  -- local size = math.min(math.floor(.5 + 100/n)/100, .5)
+  -- texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. modelName .. pose .. ".png" .. "} }" .. "\n")
+  -- texFile:write("\\\\    Optix \n")
+  -- texFile:write("    \\caption{Comparação entre execução com e sem \\emph{jitter}.} \n")
+  -- texFile:write("    \\label{fig:".. testName .."}\n")
+  -- texFile:write("\\end{figure}\n")
+  -- texFile:write("\n")
+  -- texFile:write("\n")
   
   
   --TableLines
@@ -1168,6 +1163,11 @@ function screenshotQualityLogAnaliser(logFileNameList)
   local timeMetric = "Mean" -- {"Mean" | "Single"}
   local nameLines = {"Baixa", "Média", "Alta"}
   
+  local tests = {
+    timeTest = true,
+    screenShotTest = true
+  }
+  
   local logFileList = {}
   for i, logFileName in ipairs(logFileNameList) do
     local logFile = loadfile(workingDir .. logFilePath .. logFileName)
@@ -1213,99 +1213,98 @@ function screenshotQualityLogAnaliser(logFileNameList)
   texFile:write("%A cena é composta pelo modelo ".. modelName ..".".."\n\n")
   texFile:write("%A resolução utilizada é ".. logFileTable.resolution[1] .."x" .. logFileTable.resolution[2].."\n\n")
   texFile:write("A cena utilizada neste teste é composta pelo modelo \\emph{" .. modelName .. "} e possui " .. math.floor(logFileTable.scene.totalVertices/1000) .. " mil vértices e ".. math.floor(logFileTable.scene.totalTriangles/1000)  .. " mil triângulos. ")
-  texFile:write("A Tabela \\ref{tab:".. testName .."-" .. modelName .. "} contém os resultados de tempo para a execução de cada uma das configurações. ")
+  texFile:write("A Tabela \\ref{tab:".. testName .."-" .. modelName .. "} contém os resultados de tempo para a execução de cada uma das configurações de qualidade. ")
   texFile:write("As imagens na Figura \\ref{fig:".. testName .."-"..modelName.."} visam apresentar uma comparação entre a qualidade de cada uma das configurações.\n\n")
   texFile:write("\n")
   
-  
-  
-  
-  --TableLines
-  local parameterTableLines = {}
-  for i, logFileTable in ipairs(logFileTableList) do
-    local alg = logFileTable.algorithms[1]
-    local tableLine = nameLines[i]
-    for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
-      tableLine = tableLine .. " & " .. tostring(math.floor(pose.timeTest.total.GPU[timeMetric]*100+.5)/100) .. " ms"
+  if tests.timeTest then
+    --TableLines
+    local parameterTableLines = {}
+    for i, logFileTable in ipairs(logFileTableList) do
+      local alg = logFileTable.algorithms[1]
+      local tableLine = nameLines[i]
+      for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
+        tableLine = tableLine .. " & " .. tostring(math.floor(pose.timeTest.total.GPU[timeMetric]*100+.5)/100) .. " ms"
+      end
+      tableLine = tableLine .. " \\\\ \n"
+      for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
+        local ms = math.floor(pose.timeTest.total.GPU[timeMetric]*100+.5)/100
+        local fps = math.floor((1.0/(ms/1000.0))*100 + .5)/100
+        tableLine = tableLine .. " & " .. tostring(fps) .. " fps"
+      end
+      table.insert(parameterTableLines, tableLine)
     end
-    tableLine = tableLine .. " \\\\ \n"
-    for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
-      local ms = math.floor(pose.timeTest.total.GPU[timeMetric]*100+.5)/100
-      local fps = math.floor((1.0/(ms/1000.0))*100 + .5)/100
-      tableLine = tableLine .. " & " .. tostring(fps) .. " fps"
-    end
-    table.insert(parameterTableLines, tableLine)
-  end
 
-  -- Table
-  local columns = " p{2cm} |"
-  for i, j in ipairs(logFileTable.poses) do
-    columns = columns .. " c |"
-  end
-  
-  texFile:write("%A tabela a seguir apresenta os resultados obtidos para cada configuração de qualidade." .. "\n")
-  texFile:write("\\begin{table}[H]".."\n")
-  texFile:write("  \\centering".."\n")
-  texFile:write("  \\caption{Comparação entre execuções de diferentes qualidades do modelo " .. modelName .. ".}".."\n")
-  texFile:write("  \\label{tab:".. testName .."-"..modelName.."}\n")
-  texFile:write("  \\begin{tabular}{ |"..columns.."}".."\n")
-  texFile:write("    \\hline".."\n")
-  --Header
-  texFile:write("    Qualidade")
-  for i, pose in ipairs(logFileTable.poses) do
-    texFile:write(" & Pose " .. i)
-  end
-  texFile:write("    \\\\ \n")
-  texFile:write("    \\hline".."\n")
-  
-  --Content
-  for i, parameterLine in ipairs(parameterTableLines) do
-    texFile:write("    " .. parameterLine .. " \\\\ \n")
+    -- Table
+    local columns = " p{2cm} |"
+    for i, j in ipairs(logFileTable.poses) do
+      columns = columns .. " c |"
+    end
+    
+    texFile:write("%A tabela a seguir apresenta os resultados obtidos para cada configuração de qualidade." .. "\n")
+    texFile:write("\\begin{table}[H]".."\n")
+    texFile:write("  \\centering".."\n")
+    texFile:write("  \\caption{Comparação entre execuções de diferentes qualidades do modelo \\emph{" .. modelName .. "}.}".."\n")
+    texFile:write("  \\label{tab:".. testName .."-"..modelName.."}\n")
+    texFile:write("  \\begin{tabular}{ |"..columns.."}".."\n")
     texFile:write("    \\hline".."\n")
-  end
-  
-  texFile:write("  \\end{tabular}".."\n")
-  texFile:write("\\end{table}".."\n")
-  
-  
-  -- Move Figures
-  for i, logFileTable in ipairs(logFileTableList) do
-    for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
-      local cmdLine = string.gsub("copy \"" .. workingDir .. pose.screenshotTest.screenshotPath .. pose.screenshotTest.screenshotFile .. "\"  "   
-                                  .. workingDir .. logFilePath .. analiseLogDir .. "/" .. figuresDir .. "/" .. pose.screenshotTest.screenshotFile, "/", "\\")
-      os.execute(cmdLine)
+    --Header
+    texFile:write("    Qualidade")
+    for i, pose in ipairs(logFileTable.poses) do
+      texFile:write(" & Pose " .. i)
     end
+    texFile:write("    \\\\ \n")
+    texFile:write("    \\hline".."\n")
+    
+    --Content
+    for i, parameterLine in ipairs(parameterTableLines) do
+      texFile:write("    " .. parameterLine .. " \\\\ \n")
+      texFile:write("    \\hline".."\n")
+    end
+    
+    texFile:write("  \\end{tabular}".."\n")
+    texFile:write("\\end{table}".."\n")
   end
   
+  if tests.screenShotTest then
+    
+    -- Move Figures
+    for i, logFileTable in ipairs(logFileTableList) do
+      for j, pose in ipairs(logFileTable[logFileTable.algorithms[1].name]) do
+        local cmdLine = string.gsub("copy \"" .. workingDir .. pose.screenshotTest.screenshotPath .. pose.screenshotTest.screenshotFile .. "\"  "   
+                                    .. workingDir .. logFilePath .. analiseLogDir .. "/" .. figuresDir .. "/" .. pose.screenshotTest.screenshotFile, "/", "\\")
+        os.execute(cmdLine)
+      end
+    end
+    
+    texFile:write("\\newpage\n")
+    -- SubFloats 
+    texFile:write("\\begin{figure}[H]\n")
+    texFile:write("  \\centering\n")
+    for i, logFileTable in ipairs(logFileTableList) do
+      local alg = logFileTable.algorithms[1]
+      for j, pose in ipairs(logFileTable[alg.name]) do
+        local n = #logFileTable[alg.name]
+        local size = math.min(math.floor(.5 + 100/n)/100, .5)
+        texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. pose.screenshotTest.screenshotFile .. "} }" .. (j == n and "\\\\" or "") .. "\n")
+      end
+      texFile:write("  " .. nameLines[i] .. "\\\\ \n")
+    end
 
-  texFile:write("\\newpage\n")
-  -- SubFloats 
-  texFile:write("\\begin{figure}[H]\n")
-  texFile:write("  \\centering\n")
-  for i, logFileTable in ipairs(logFileTableList) do
-    local alg = logFileTable.algorithms[1]
-    for j, pose in ipairs(logFileTable[alg.name]) do
-      local n = #logFileTable[alg.name]
+    for j, pose in ipairs(logFileTable.poses) do
+      local n = #logFileTable.poses
       local size = math.min(math.floor(.5 + 100/n)/100, .5)
-      texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. pose.screenshotTest.screenshotFile .. "} }" .. (j == n and "\\\\" or "") .. "\n")
+      texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. modelName .. pose .. ".png" .. "} }" .. (j == n and "\\\\" or "") .. "\n")
     end
-    texFile:write("  " .. nameLines[i] .. "\\\\ \n")
+    texFile:write("  Optix \\\\ \n")
+
+    texFile:write("  \\caption{Comparação entre diferentes configurações de qualidade do modelo \\emph{"..modelName.."}.}\n")
+    texFile:write("  \\label{fig:".. testName .."-"..modelName.."}\n")
+    texFile:write("\\end{figure}\n")
+    texFile:write("\n")
   end
 
-  for j, pose in ipairs(logFileTable.poses) do
-    local n = #logFileTable.poses
-    local size = math.min(math.floor(.5 + 100/n)/100, .5)
-    texFile:write("  \\subfloat{\\includegraphics[width=".. tostring(size) .."\\textwidth]{".. figuresDir .. "/" .. modelName .. pose .. ".png" .. "} }" .. (j == n and "\\\\" or "") .. "\n")
-  end
-  texFile:write("  Optix \\\\ \n")
-
-  texFile:write("  \\caption{Comparação entre diferentes configurações de qualidade do modelo "..modelName..".}\n")
-  texFile:write("  \\label{fig:".. testName .."-"..modelName.."}\n")
-  texFile:write("\\end{figure}\n")
   texFile:write("\n")
-  texFile:write("\n")
-  
-  
   texFile:close()
   
 end
@@ -1343,7 +1342,7 @@ function diffuseScreenshotQualityLogAnaliser(logFileNameList)
   local texFileName = testName .. "_" .. modelName .. "_analysis.tex"
   local texFile = io.open(workingDir .. logFilePath .. analiseLogDir .. "/" .. texFileName, "w")
 
-  texFile:write("\\subsection{Modelo ".. modelName .."}\n\n")
+  -- texFile:write("\\subsection{Modelo ".. modelName .."}\n\n")
   --Intro
   texFile:write("%Tabela de comparação qualidade com iluminação difusa.\n\n")
   texFile:write("%Gerada em " .. logFileTable.creation_date .. "\n\n")
@@ -1373,9 +1372,8 @@ function diffuseScreenshotQualityLogAnaliser(logFileNameList)
     end
   end
   
-  -- local nameLines = {"Iluminação difusa desligada e oclusão ambiente ligada", "Iluminação difusa ligada e oclusão ambiente ligada", "Iluminação difusa ligada e oclusão ambiente desligada",}
-  local nameLines = {"Iluminação difusa:Desligada | Oclusão ambiente: Ligada", "Iluminação difusa:Ligada | Oclusão ambiente: Ligada", "Iluminação difusa:Ligada | Oclusão ambiente: Desligada"}
-  texFile:write("\\newpage\n")
+  local nameLines = { "Iluminação difusa sem oclusão ambiente", " Iluminação difusa com oclusão ambiente",}
+  -- texFile:write("\\newpage\n")
   -- SubFloats 
   texFile:write("\\begin{figure}[H]\n")
   texFile:write("  \\centering\n")
