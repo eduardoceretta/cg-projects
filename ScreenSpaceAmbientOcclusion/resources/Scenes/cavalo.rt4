@@ -15,8 +15,8 @@ LIGHT 100. 100. 100.   .8 .8 .8   1. 1. 1.
 #MESH materialIndex (pos)x y z (scale)x y z  path
 
 ############MSH MSH MSH MSH#############
-# MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/cube_C.msh
-# MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/box.msh
+# MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/MSH/cube_C.msh
+# MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/MSH/box.msh
 
 ############PLY PLY PLY PLY#############
 # MESH 1  0. 0. 0.     600. 600. 600.  resources/Models/Stanford/bun_zipper_res2.msb

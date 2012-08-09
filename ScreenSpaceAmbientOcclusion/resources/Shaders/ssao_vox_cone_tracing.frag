@@ -9,19 +9,25 @@
  *  cone integral of each ray.
  */
 #extension GL_EXT_gpu_shader4 : enable //Enable Integer Operations - Shader Model 4.0 GF 8 Series
+#extension GL_ARB_gpu_shader5 : enable //Enable Some Bit Operations - Shader Model 5.0 
 
 /****************************************************************************************/
 /* Shader Controls.                                                                     */
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
 //EYE_NEAREST
-#define EYE_NEAREST          /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
+#define EYE_NEAREST                /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
 //NORMAL_OFFSET 
-#define NORMAL_OFFSET .01   /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
+#define NORMAL_OFFSET .01          /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
 //JITTER
-//#define JITTER               /**< Enable pixel sampler Jitter*/
+//#define JITTER                   /**< Enable pixel sampler Jitter*/
 
-#define TEXTURE_SPHERE_SAMPLERS  /**< Uses texture to access the sphere samplers*/
+#define TEXTURE_SPHERE_SAMPLERS    /**< Uses texture to access the sphere samplers*/
+//#define TEXTURE_BIT_COUNT        /**< Uses texture to count the number of bits 1 in a integer*/
+
+#ifndef TEXTURE_BIT_COUNT
+  #define BIT_EXTRACTION           /**< Uses glsl bitextract function instead of own function*/
+#endif
 
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
@@ -44,9 +50,11 @@ uniform sampler1D coneDirSamplers;    /**< Cone directions Samplers Texture*/
 uniform sampler1D sphereInfo;          /**< Sphere Info Texture*/
 uniform int sphereInfoWidth;           /**< Sphere Info Texture Width*/
 
+#ifdef TEXTURE_BIT_COUNT
 uniform int bitCount16Height;         /**< BitCount Texture Height*/
 uniform int bitCount16Width;          /**< BitCount Texture Width*/
 uniform sampler2D bitCount16;         /**< Number of bits counter Texture(Max 16 bits)*/
+#endif
 
 //uniform mat4 projInv;
 
@@ -292,6 +300,15 @@ void main()
   //OUT = BLACK;
   //return;
 //}
+
+  //unsigned int rr = 1u;
+  //unsigned int a = bitfieldExtract(-1, 0, 31);
+  //unsigned int b = bitfieldExtract(-1, 2, 8);
+  //unsigned int c = bitfieldExtract(-1, 31, 0);
+  //OUT = vec4(uintBitsToFloat(rr),uintBitsToFloat(a),uintBitsToFloat(b),uintBitsToFloat(c));
+  //OUT = vec4(uintBitsToFloat(a),uintBitsToFloat(b),uintBitsToFloat(c),uintBitsToFloat(rr));
+    //return;
+
   vec3 normal; vec3 eyePosition; float depth;
   readInputData(normal, eyePosition, depth);
   
@@ -371,16 +388,16 @@ void main()
 
     ao += coneAo;
   }
-  
 
   ao = normalizeAo(ao, numCones);
-  ao = clamp(ao*contrast, 0.0, 1.0);
+  ao = clamp(ao*contrast, 0.0, 1.0); 
 
   gl_FragData[0] = WHITE*(1.0 - ao);
-
+  
   /*************************\
          Debug Area 
   \*************************/
+
 
   /**/
 }
@@ -535,8 +552,9 @@ unsigned int countFullVoxelsInRange(unsigned int voxelContent, unsigned int inde
 {
   voxelContent = voxelContent & (4294967295u >> indexStart);
   voxelContent = voxelContent >> (31u -  indexEnd);
-  unsigned int i = 0u;
   unsigned int count = 0u;
+#ifdef TEXTURE_BIT_COUNT  
+  unsigned int i = 0u;
   vec2 bitCountSize = vec2(bitCount16Width, bitCount16Height);
   while(i <= indexEnd - indexStart)
   {
@@ -547,6 +565,9 @@ unsigned int countFullVoxelsInRange(unsigned int voxelContent, unsigned int inde
     voxelContent = voxelContent >> 16u;
     i+=16u;
   }
+#else
+  count = bitCount(voxelContent);
+#endif  
   return count;
 }
 
@@ -565,12 +586,12 @@ unsigned int countFullVoxelsVolSphere(vec3 gridIndex, unsigned int gridIndexBott
   //////////////////////////////////////////////////////////////////////
  
   uvec4 cellContent = texture2D(voxelGrid, gridIndex.xy).rgba;
-
+  unsigned int numFullVoxels = 0u;
+/**/
+#ifndef BIT_EXTRACTION
   unsigned int bottonContentColor = gridIndexBottonN/32u;
   unsigned int topContentColor = gridIndexTopN/32u;
-  
-  unsigned int numFullVoxels = 0u;
-  
+   
   for(unsigned int i = topContentColor; i <= bottonContentColor; ++i)
   {
     if(i == topContentColor && i == bottonContentColor)
@@ -587,6 +608,28 @@ unsigned int countFullVoxelsVolSphere(vec3 gridIndex, unsigned int gridIndexBott
       numFullVoxels += countFullVoxelsInRange(cellContent[i], 0u, 31u);
     }
   }
+#else  
+  int tmax32 = max(0, gridIndexTopN-32);
+  int tmax64 = max(0, gridIndexTopN-64);
+  int tmax96 = max(0, gridIndexTopN-96);
+  
+  int top[4];
+  top[0] = min(31, gridIndexTopN);
+  top[1] = min(31, tmax32);
+  top[2] = min(31, tmax64);
+  top[3] = min(31, tmax96);
+  
+  int bot[4];
+  bot[0] = max(0, min(31, gridIndexBottonN) - gridIndexTopN + 1);
+  bot[1] = max(0, min(31, gridIndexBottonN-32) - tmax32 + 1);
+  bot[2] = max(0, min(31, gridIndexBottonN-64) - tmax64 + 1);
+  bot[3] = max(0, min(31, gridIndexBottonN-96) - tmax96 + 1);
+
+  numFullVoxels += bitCount(bitfieldExtract(cellContent.r, 32 - top[0] - bot[0], bot[0]));
+  numFullVoxels += bitCount(bitfieldExtract(cellContent.g, 32 - top[1] - bot[1], bot[1]));
+  numFullVoxels += bitCount(bitfieldExtract(cellContent.b, 32 - top[2] - bot[2], bot[2]));
+  numFullVoxels += bitCount(bitfieldExtract(cellContent.a, 32 - top[3] - bot[3], bot[3]));
+#endif
   return numFullVoxels;
 }  
 
