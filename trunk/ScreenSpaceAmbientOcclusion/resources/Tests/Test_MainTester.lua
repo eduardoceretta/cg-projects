@@ -33,8 +33,10 @@ activeTests = {
   -- scalability = true,
   -- geometryScalability = true,
   -- screenshotQuality = true,
-  diffuseScreenshotQuality = true,
+  -- diffuseScreenshotQuality = true,
   -- timeTable = true,
+  timeTableScalability = true,
+  -- timeTableGeometryScalability = true,
 }
 
 --Program Aceptable Parameters
@@ -540,7 +542,7 @@ function screenshotQualityTest(resolution, models)
     
     
   local tests = {
-    -- parameters.timeTestEnabled,
+    parameters.timeTestEnabled,
     parameters.screenShotTestEnabled,
   }
   local algorithms = {
@@ -665,6 +667,88 @@ function timeTableTest(resolution, models, parms)
     createSceneFile(sceneFullPath, resolution , {path = models.path, model})
     runTestProgram(logName, scenePath, tests, algorithms, parms)
     timeTableLogAnaliser(logName)
+  end
+end
+
+function timeTableGeometryScalabilityTest(resolution, models, parms)
+  resolution = resolution and resolution or {640, 480}
+  models = models and models or {path = testModels.path, 
+      testModels[22], 
+      -- testModels[23], 
+      -- testModels[24], 
+      testModels[25], 
+      testModels[26], 
+      testModels[27], 
+      testModels[28], 
+      testModels[29] 
+    }
+  parms = parms and parms or 
+    { --Média
+      {parameters.coneTracing_contrast, 1.15,},
+      {parameters.coneTracing_jitter, false,},
+      {parameters.coneTracing_numSpheres, 5,},
+      {parameters.coneTracing_numSamplers, 6,},
+    }
+
+  local tests = {
+    parameters.timeTestEnabled,
+    -- parameters.screenShotTestEnabled,
+  }
+  local algorithms = {
+    parameters.coneTracingEnabled,
+  }
+  
+  local sceneFullPath = workingDir..scenePath
+  local logfileName = "TimeTableGeometryScalabilityTest_"
+  
+  local logFileNameList = {}
+  for i, model in ipairs(models) do
+    local logName = logfileName .. model.name .. "_" .. tostring(i) .. ".log"
+    createSceneFile(sceneFullPath, resolution , {path = models.path, model})
+    runTestProgram(logName, scenePath, tests, algorithms, parms)
+    table.insert(logFileNameList, logName)
+  end
+  timeTableGeometryScalabilityLogAnaliser(logFileNameList)
+end
+
+function timeTableScalabilityTest(resolution, models, parms)
+  models = models and models or {path = testModels.path, testModels[1]}
+  parms = parms and parms or 
+      { --Média
+        {parameters.coneTracing_contrast, 1.15,},
+        {parameters.coneTracing_jitter, false,},
+        {parameters.coneTracing_numSpheres, 5,},
+        {parameters.coneTracing_numSamplers, 6,},
+      }
+
+  local tests = {
+    parameters.timeTestEnabled,
+  }
+  local algorithms = {
+    parameters.coneTracingEnabled,
+  }
+  
+  local resolutions = {
+    {640, 480},
+    {800, 600},
+    {1024, 768},
+    {1280, 960},
+    {1600, 1200},
+    {2048, 1536},
+  }
+    
+  local sceneFullPath = workingDir..scenePath
+  local logfileName = "TimeTableScalability_"
+  
+  for i, model in ipairs(models) do
+    local logFileNameList = {}
+    for j, resolution in ipairs(resolutions) do
+      local logName = logfileName .. model.name .. "_" .. tostring(j) .. ".log"
+      createSceneFile(sceneFullPath, resolution , {path = models.path, model})
+      runTestProgram(logName, scenePath, tests, algorithms, parms)
+      table.insert(logFileNameList, logName)
+    end
+    timeTableScalabilityLogAnaliser(logFileNameList)
   end
 end
 
@@ -1494,6 +1578,249 @@ function timeTableLogAnaliser(logFileName)
   end
 end
 
+function timeTableScalabilityLogAnaliser(logFileNameList)
+  local testName = "TimeTableScalability"
+  local timeMetric = "Mean" -- {"Mean" | "Single"}
+  
+  local logFileList = {}
+  for i, logFileName in ipairs(logFileNameList) do
+    local logFile = loadfile(workingDir .. logFilePath .. logFileName)
+    table.insert(logFileList, logFile)
+  end
+  
+  local logFileTableList = {}
+  for i, logFile in ipairs(logFileList) do
+    local logFileTable = logFile()
+    table.insert(logFileTableList, logFileTable)
+  end  
+  
+  local logFileTable = logFileTableList[1]
+  local modelName = logFileTable.scene.models[1][1]
+    
+  -- Create Result Log Dir
+  local analiseLogDir = testName .. "_" .. modelName .. "_analysis"
+  local cmdStr = string.gsub("mkdir " .. workingDir .. logFilePath .. analiseLogDir, "/", "\\")
+  os.execute(cmdStr)
+    
+  -- Create Result Log File
+  local texFileName = testName .. "_analysis.tex"
+  local texFile = io.open(workingDir .. logFilePath .. analiseLogDir .. "/" .. texFileName, "w")
+    
+  --Intro
+  texFile:write("%Tabela de comparação de tempo de acordo com cada resolução para cada step.\n\n")
+  texFile:write("%Gerada em " .. logFileTable.creation_date .. "\n\n")
+  texFile:write("\n")
+  
+  --Algorithms
+  for i, alg in ipairs(logFileTable.algorithms) do
+    texFile:write("%Algoritmo utilizado: " .. alg.name .. "\n\n")
+  end
+  texFile:write("\n")
+    
+  --Scene
+  texFile:write("%A cena é composta pelo modelo \\emph{".. modelName .."}.".."\n\n")
+  texFile:write("A cena utilizada neste teste é composta pelo modelo \\emph{" .. modelName .. "} e possui " .. math.floor(logFileTable.scene.totalVertices/1000) .. " mil vértices e ".. math.floor(logFileTable.scene.totalTriangles/1000)  .. " mil triângulos.\n\n")
+  texFile:write("\n")
+  
+  --TableLines
+  local csvTableLines = {}
+  local tableLines = {}
+  
+  for i, logFileTable in ipairs(logFileTableList) do
+    local alg = logFileTable.algorithms[1]
+    local pose = logFileTable[alg.name][1]
+    local resolutionSting = logFileTable.resolution[1] .. "x" .. logFileTable.resolution[2]
+    
+    local totalMean = 0
+    for j, step in ipairs(pose.timeTest.steps) do
+      totalMean = totalMean + pose.timeTest.steps[j].GPU[timeMetric]
+    end
+    
+    for j, step in ipairs(pose.timeTest.steps) do
+      local tableLine = resolutionSting .. " & " .. step.name
+      local csvLine = "%%" .. resolutionSting .. "\t" .. step.name
+      local ms = math.floor(pose.timeTest.steps[j].GPU[timeMetric]*100+.5)/100
+      -- local fps = math.floor((1.0/(ms/1000.0))*100 + .5)/100
+      -- local totalMean = pose.timeTest.total.GPU[timeMetric]
+      local percent = math.floor((1000*pose.timeTest.steps[j].GPU[timeMetric]/totalMean)+.5)/10
+      tableLine = tableLine .. " & " .. tostring(ms) 
+      -- tableLine = tableLine .. " & " .. tostring(fps) 
+      tableLine = tableLine .. " & " .. tostring(percent) .. " \\%"
+      csvLine = csvLine .. "\t" .. tostring(ms)
+      csvLine = csvLine .. "\t" .. tostring(percent)
+      table.insert(tableLines, tableLine)
+      table.insert(csvTableLines, csvLine)
+    end
+    local tableLine = resolutionSting .. " & " .. "Total"
+    local csvLine = "%%" .. resolutionSting .. "\t" .. "Total"
+    local ms = math.floor(totalMean*100+.5)/100
+    -- local fps = math.floor((1.0/(ms/1000.0))*100 + .5)/100
+    tableLine = tableLine .. " & " .. tostring(ms)
+    csvLine = csvLine .. "\t" .. tostring(ms)
+    -- tableLine = tableLine .. " & " .. tostring(fps) 
+    tableLine = tableLine .. " & --"
+    csvLine = csvLine .. "\t" .. tostring("--")
+    table.insert(tableLines, tableLine)
+    table.insert(csvTableLines, csvLine)
+  end
+
+  --Table
+  local columns = "c | c | c | c |"
+
+  texFile:write("A tabela a seguir apresenta os resultados obtidos para cada resolução." .. "\n")
+  texFile:write("\\begin{table}[H]".."\n")
+  texFile:write("  \\centering".."\n")
+  texFile:write("  \\caption{Resultados de tempo para a execução em diversas resoluções.}\n")
+  texFile:write("  \\label{tab:".. testName .."}\n")
+  texFile:write("  \\begin{tabular}{ |"..columns.."}".."\n")
+  texFile:write("    \\hline".."\n")
+  --Header
+  texFile:write("    Resolução & Etapa & Tempo (ms) & Percentual \\\\ \n")
+  texFile:write("    \\hline".."\n")
+  
+  --Content
+  for i, line in ipairs(tableLines) do
+    texFile:write("    " .. line .. " \\\\ \n")
+    texFile:write("    \\hline".."\n")
+  end
+  
+  texFile:write("  \\end{tabular}".."\n")
+  texFile:write("\\end{table}".."\n")
+  
+  texFile:write("%%CSV Data".."\n")
+  
+  for i, csvLine in ipairs(csvTableLines) do
+    texFile:write(csvLine .. "\n")
+  end
+  
+  texFile:close()
+end
+
+function timeTableGeometryScalabilityLogAnaliser(logFileNameList)
+  local testName = "TimeTableGeometryScalability"
+  local timeMetric = "Mean" -- {"Mean" | "Single"}
+  
+  local logFileList = {}
+  for i, logFileName in ipairs(logFileNameList) do
+    local logFile = loadfile(workingDir .. logFilePath .. logFileName)
+    table.insert(logFileList, logFile)
+  end
+  
+  local logFileTableList = {}
+  for i, logFile in ipairs(logFileList) do
+    local logFileTable = logFile()
+    table.insert(logFileTableList, logFileTable)
+  end  
+  
+  local logFileTable = logFileTableList[1]
+  -- local modelName = logFileTable.scene.models[1][1]
+    
+  -- Create Result Log Dir
+  local analiseLogDir = testName .. "_analysis"
+  local cmdStr = string.gsub("mkdir " .. workingDir .. logFilePath .. analiseLogDir, "/", "\\")
+  os.execute(cmdStr)
+  
+  -- Create Result Log File
+  local texFileName = testName .. "_analysis.tex"
+  local texFile = io.open(workingDir .. logFilePath .. analiseLogDir .. "/" .. texFileName, "w")
+    
+  --Intro
+  texFile:write("%Tabela de comparação de tempo para cada etapa de acordo com cada modelo.\n\n")
+  texFile:write("%Gerada em " .. logFileTable.creation_date .. "\n\n")
+  texFile:write("\n")
+  
+  --Algorithms
+  for i, alg in ipairs(logFileTable.algorithms) do
+    texFile:write("%Algoritmo utilizado: " .. alg.name .. "\n\n")
+  end
+  texFile:write("\n")
+   
+  
+  --TableLines
+  local csvTableLines = {}
+  local tableLines = {}
+  
+  for i, logFileTable in ipairs(logFileTableList) do
+    local alg = logFileTable.algorithms[1]
+    local pose = logFileTable[alg.name][1]
+    local modelName = logFileTable.scene.models[1][1]
+    local modelNumVertices = math.floor((logFileTable.scene.totalVertices/1000)*100 + .5)/100
+    local modelNumTriangles = math.floor((logFileTable.scene.totalTriangles/1000)*100 + .5)/100
+    
+    local tableInitLine = modelName 
+    local csvInitLine = "%%" .. modelName 
+    tableInitLine = tableInitLine .. " & " .. modelNumVertices
+    csvInitLine =  csvInitLine .. "\t" .. modelNumVertices    
+    tableInitLine = tableInitLine .. " & " .. modelNumTriangles
+    csvInitLine =  csvInitLine .. "\t" .. modelNumTriangles
+    
+    local totalMean = 0
+    for j, step in ipairs(pose.timeTest.steps) do
+      totalMean = totalMean + pose.timeTest.steps[j].GPU[timeMetric]
+    end
+    
+    for j, step in ipairs(pose.timeTest.steps) do
+      local tableLine = tableInitLine .. " & " .. step.name
+      local csvLine = "%%" .. csvInitLine .. "\t" .. step.name
+      local ms = math.floor(pose.timeTest.steps[j].GPU[timeMetric]*100+.5)/100
+      -- local fps = math.floor((1.0/(ms/1000.0))*100 + .5)/100
+      -- local totalMean = pose.timeTest.total.GPU[timeMetric]
+      local percent = math.floor((1000*pose.timeTest.steps[j].GPU[timeMetric]/totalMean)+.5)/10
+      tableLine = tableLine .. " & " .. tostring(ms) 
+      -- tableLine = tableLine .. " & " .. tostring(fps) 
+      tableLine = tableLine .. " & " .. tostring(percent) .. " \\%"
+      csvLine = csvLine .. "\t" .. tostring(ms)
+      csvLine = csvLine .. "\t" .. tostring(percent)
+      table.insert(tableLines, tableLine)
+      table.insert(csvTableLines, csvLine)
+    end
+    local tableLine = tableInitLine .. " & " .. "Total"
+    local csvLine = "%%" .. csvInitLine .. "\t" .. "Total"
+    local ms = math.floor(totalMean*100+.5)/100
+    -- local fps = math.floor((1.0/(ms/1000.0))*100 + .5)/100
+    tableLine = tableLine .. " & " .. tostring(ms)
+    csvLine = csvLine .. "\t" .. tostring(ms)
+    -- tableLine = tableLine .. " & " .. tostring(fps) 
+    tableLine = tableLine .. " & --"
+    csvLine = csvLine .. "\t" .. tostring("--")
+    table.insert(tableLines, tableLine)
+    table.insert(csvTableLines, csvLine)
+  end
+
+  --Table
+  local columns = " c | c | c | c | c | c |"
+
+  texFile:write("A tabela a seguir apresenta o tempo para cada etapa para a execução de cada modelo de acordo com o seu número de triângulos." .. "\n")
+  texFile:write("\\begin{table}[H]".."\n")
+  texFile:write("  \\centering".."\n")
+  texFile:write("  \\caption{Resultados de tempo para a execução de modelos de diversos tamanhos.}\n")
+  texFile:write("  \\label{tab:".. testName .."}\n")
+  texFile:write("  \\begin{tabular}{ |"..columns.."}".."\n")
+  texFile:write("    \\hline".."\n")
+  --Header
+  texFile:write("    Modelo & Vértices (mil) & Triângulos (mil) & Etapa & Tempo (ms) & FPS \\\\ \n")
+  texFile:write("    \\hline".."\n")
+  
+  --Content
+  for i, line in ipairs(tableLines) do
+    texFile:write("    " .. line .. " \\\\ \n")
+    texFile:write("    \\hline".."\n")
+  end
+  
+  texFile:write("  \\end{tabular}".."\n")
+  texFile:write("\\end{table}".."\n")
+  
+  texFile:write("%%CSV Data".."\n")
+  
+  for i, csvLine in ipairs(csvTableLines) do
+    texFile:write(csvLine .. "\n")
+  end
+  
+  texFile:close()
+end
+
+
+
 ------------------------------
 ------------------------------
 ------------------------------
@@ -1530,6 +1857,14 @@ end
 
 if activeTests.algorithmCompare then  
   algorithmCompareTest()
+end
+
+if activeTests.timeTableScalability then  
+  timeTableScalabilityTest()
+end
+
+if activeTests.timeTableGeometryScalability then  
+  timeTableGeometryScalabilityTest()
 end
 
 
