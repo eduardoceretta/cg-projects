@@ -28,6 +28,7 @@
 
 #include "ScScene/ScScene.h"
 #include "MeshLoaders/P3bMeshFile.h"
+#include "ScScene/ScAnimMesh.h"
 
 #include "Kernels/KernelColor.h"
 #include "Kernels/KernelDeferred_Peeling.h"
@@ -291,8 +292,8 @@ void App::render()
       break;
     case SSAO_Vox_ConeTracing:
       //m_kernelSSAO_Vox_ConeTracing->renderSphereInfoDistribution(((ccounter)/200)%5);
-      m_kernelSSAO_Vox_ConeTracing->renderSphereInfoDistribution(0);
-      //m_kernelSSAO_Vox_ConeTracing->renderConeDistribution(0);
+      //m_kernelSSAO_Vox_ConeTracing->renderSphereInfoDistribution(0);
+      m_kernelSSAO_Vox_ConeTracing->renderConeDistribution(0);
       //m_kernelSSAO_Vox_ConeTracing->renderSphereSamplerDistribution(((++ccounter)/200)%5, ((ccounter)/1000)%3);
       break;
     case Voxelization:
@@ -1053,14 +1054,14 @@ void App::loadScene()
     }
   }
 
-  if(m_rtScene->getNumMeshes() == 0)
+  int numMeshes = m_rtScene->getNumMeshes() + m_rtScene->getNumAnimatedMeshes();
+  if(numMeshes == 0)
     cout << "No Mesh Loaded!!" <<endl;
 
   cout << "==================================="<<endl;
   cout << "Scene Number of Vertices: " << m_rtScene->getNumVertices() <<endl;
   cout << "Scene Number of Triangles: " << m_rtScene->getNumElements()<<endl;
   cout << "==================================="<<endl;
-
 }
 
 void App::loadKernels()
@@ -1168,7 +1169,7 @@ void App::loadCameras()
 
   m_fov = m_rtScene->getCamera()->getFovy();
 
-  SphereGLCameraHandler *cam3D = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
+  SphereGLCameraHandler *cam3D = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 2.0f);
 
   SphereGLCameraHandler *voxDebug = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
   SphereGLCameraHandler *samplersDebug = new SphereGLCameraHandler(10.f, 0.f, 90.0f, 5.f);
@@ -1665,10 +1666,10 @@ void App::renderSSAOVoxConeTracing()
     if(m_occlusionQueryEnabled)
     {
       m_occlusionQuery->begin();
-      m_kernelDeferredLighting->stepShaderOnly((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.5, .5, .5));
+      m_kernelDeferredLighting->stepShaderOnly((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.2, .2, .2));
       m_occlusionQuery->end();
     }else 
-      m_kernelDeferredLighting->step((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.5, .5, .5));
+      m_kernelDeferredLighting->step((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.35, .35, .35));
 
     m_rtScene->setMaterialActive(false, 1);
 
@@ -1684,6 +1685,7 @@ void App::renderSSAOVoxConeTracing()
   //GLuint* i = texObj.read2DTextureUIntData();
   //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracing->getOutputTexture(0));
   //GLfloat* f = t2.read2DTextureFloatData();
+  //GLuint* i = (GLuint*)t2.read2DTextureFloatData();
 
   glPopAttrib();
 }

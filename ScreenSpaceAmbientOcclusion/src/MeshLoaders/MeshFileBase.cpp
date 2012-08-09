@@ -65,7 +65,7 @@ GLfloat * MeshFileBase::getNormals() const
   return m_normals;
 }
 
-GLfloat * MeshFileBase::getVertexes() const
+GLfloat * MeshFileBase::getVertices() const
 {
   return m_vertices;
 }
@@ -95,6 +95,11 @@ bool MeshFileBase::isWriteBinaryFileEnabled() const
 void MeshFileBase::setWriteBinaryFileEnabled( bool val )
 {
   m_writeBinaryFile = val;
+}
+
+std::string MeshFileBase::getFileName() const
+{
+  return m_fileName;
 }
 
 

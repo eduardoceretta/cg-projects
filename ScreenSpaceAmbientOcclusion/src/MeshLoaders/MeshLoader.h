@@ -35,6 +35,11 @@ public:
   MeshLoader();
 
   /**
+   *	Destructor
+   */
+  virtual ~MeshLoader();
+
+  /**
    * Verify if the filetype given can be loaded
    */
   virtual bool isValidFileType(string filetype);
@@ -42,7 +47,7 @@ public:
   /**
    * Read the given file and set the attributes to be applied to the model as translation and scale
    */
-  void readFile(string fileName, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
+  virtual void readFile(string fileName, Vector3 pos = Vector3(0,0,0), Vector3 scale = Vector3(1,1,1));
 
 protected:
   /**
