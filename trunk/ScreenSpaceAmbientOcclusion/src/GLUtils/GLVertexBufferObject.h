@@ -23,6 +23,9 @@ using namespace std;
  */
 typedef struct vbobuffer
 {
+
+
+
   /**
    * data array
    */
@@ -46,10 +49,32 @@ typedef struct vbobuffer
   int offset; 
 
   /**
-   * OpenGL client state
-   *  (GL_NORMAL_ARRAY, GL_COLOR_ARRAY, GL_SECONDARY_COLOR_ARRAY, GL_VERTEX_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_INDEX_ARRAY)
+   *	Client State
+   *   equals OpenGL client state
+   *   For generic vertex attribute there is only 3 for each size(1,2,3,4).
+   *   (More will be created as needed).
    */
-  GLenum clientState;
+  enum ClientState 
+  {
+    VERTEX_ARRAY = GL_VERTEX_ARRAY, //0x8074
+    NORMAL_ARRAY = GL_NORMAL_ARRAY, //0x8075
+    COLOR_ARRAY = GL_COLOR_ARRAY,   //0x8076
+    INDEX_ARRAY = GL_INDEX_ARRAY,   //0x8077
+    TEXTURE_COORD_ARRAY = GL_TEXTURE_COORD_ARRAY, //0x8078
+    EDGE_FLAG_ARRAY = GL_EDGE_FLAG_ARRAY, //0x8079
+    VERTEX_ATTRIB1_ARRAY_0 = 0,
+
+    VERTEX_ATTRIB2_ARRAY_0 = 20,
+    
+    VERTEX_ATTRIB3_ARRAY_0 = 40,
+    VERTEX_ATTRIB3_ARRAY_1,
+    VERTEX_ATTRIB3_ARRAY_2,
+    VERTEX_ATTRIB3_ARRAY_3,
+
+    VERTEX_ATTRIB4_ARRAY_0 = 60,
+  }clientState;
+
+  //GLenum clientState;
   
   /**
    * struct Constructor
@@ -69,6 +94,12 @@ typedef struct vbobuffer
    *  Considers colors RGB
    */
   void setPointer();
+
+  /**
+   * Enable\Disable client pointer to the OpenGL Render.
+   */
+  void enable();
+  void disable();
 }GLVBOBuffer;
 
 
@@ -172,13 +203,14 @@ public:
 
   /**
    * Sets a VBO buffer. 
-   *  clientState is the buffer Type (GL_NORMAL_ARRAY, GL_COLOR_ARRAY, GL_SECONDARY_COLOR_ARRAY, GL_VERTEX_ARRAY, GL_TEXTURE_COORD_ARRAY, GL_INDEX_ARRAY)
+   *  clientState is the buffer Type (GL_NORMAL_ARRAY, GL_COLOR_ARRAY, GL_VERTEX_ARRAY, (VERTEX_ATTRIB3_ARRAY_0...), GL_TEXTURE_COORD_ARRAY, GL_INDEX_ARRAY)
    *  type is the OpenGL type (GL_FLOAT, GL_BYTE, ...)
    *  n is the number of elements in the buffer.
    *  data is a pointer to the main memory data.
    */
+  void setVBOBuffer(vbobuffer::ClientState clientState, GLenum type, int n, void* data);
   void setVBOBuffer(GLenum clientState, GLenum type, int n, void* data);
-  
+
   /**
    * Sets a VBO index buffer.
    *  type is the OpenGL type (GL_FLOAT, GL_BYTE, ...)

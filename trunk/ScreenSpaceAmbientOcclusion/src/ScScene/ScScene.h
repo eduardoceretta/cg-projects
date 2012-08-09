@@ -18,6 +18,7 @@
 #include "ScScene/ScLight.h"
 #include "ScScene/ScMesh.h"
 #include "ScScene/ScMaterial.h"
+#include "ScScene/ScAnimMesh.h"
 
 using namespace std;
 
@@ -70,6 +71,7 @@ protected:
    * Meshes Array
    */
   vector<ScMesh> m_meshes;
+  vector<ScAnimMesh*> m_animMeshes;
 
   /**
    * Scene's Multiple Cameras
@@ -141,7 +143,17 @@ public:
   ScMesh* getMeshAt(int i);
 
   /**
-   *	Get Total Meshes Attributes 
+   * Get the number of imported animated meshes
+   */
+  int getNumAnimatedMeshes();
+
+  /**
+   * Get the ith animated mesh imported
+   */
+  ScAnimMesh* getAnimatedMeshAt(int i);
+
+  /**
+   *	Get Total Meshes(ONLY) Attributes 
    */
   unsigned int getNumVertices() const;
   unsigned int getNumElements() const;
@@ -203,6 +215,11 @@ public:
    * Render ith mesh
    */
   void renderMesh(int index);
+
+  /**
+   * Render animated ith mesh
+   */
+  void renderAnimatedMesh(int index);
 
   /**
    * Get Bounding Box info

@@ -29,7 +29,6 @@ protected:
    * File Name to import
    */
   string m_fileName;
-
   /**
    * Position to translate
    */
@@ -89,7 +88,7 @@ public:
    * Initialize members
    */
   MeshFileBase(void);
-  ~MeshFileBase(void);
+  virtual ~MeshFileBase(void);
 
   /**
    * Compares the given filetype(".typ") with the loader accepted type.
@@ -121,7 +120,7 @@ public:
    * Get the array of vertexes of the model.
    *  Size equals 3*Number of Vertexes
    */
-  GLfloat * getVertexes() const;
+  GLfloat * getVertices() const;
   
   /**
    * Get the array of normals of the model.
@@ -142,6 +141,11 @@ public:
   GLVertexBufferObject * getVbo();
 
   /**
+   *	Get the filename of the model
+   */
+  std::string getFileName() const;
+
+  /**
    * Getter and Setter for the automatic generation of a MSB file 
    *  after the construction of the VBO.
    */
@@ -155,3 +159,4 @@ protected:
    */
   virtual void calcVBO() = 0;
 };
+

@@ -31,6 +31,9 @@ ScScene :: ScScene()
 
 ScScene :: ~ScScene()
 {
+  vector<ScAnimMesh*> :: reverse_iterator it;
+  for(it = m_animMeshes.rbegin(); it != m_animMeshes.rend(); ++it)
+    delete *it;
 }
 
 void ScScene :: readFromStr(char buffer[])
@@ -60,13 +63,22 @@ void ScScene :: configure()
     {
       lightIt->configure();
     }
+  }
 
-    vector<ScMesh> :: iterator meshIt;
-    for( meshIt = m_meshes.begin(); meshIt!=m_meshes.end(); ++meshIt)
-    {
+  vector<ScMesh> :: iterator meshIt;
+  for( meshIt = m_meshes.begin(); meshIt!=m_meshes.end(); ++meshIt)
+  {
+    if(m_lightEnabled)
       m_materials[meshIt->getMaterialIndex()].configure();
-      meshIt->configure();
-    }
+    meshIt->configure();
+  }
+
+  vector<ScAnimMesh*> :: iterator animMeshIt;
+  for( animMeshIt = m_animMeshes.begin(); animMeshIt!=m_animMeshes.end(); ++animMeshIt)
+  {
+    if(m_lightEnabled)
+      m_materials[(*animMeshIt)->getMaterialIndex()].configure();
+    (*animMeshIt)->configure();
   }
 }
 
@@ -88,6 +100,15 @@ void ScScene :: render()
       glPushAttrib(GL_LIGHTING_BIT);
           m_materials[meshIt->getMaterialIndex()].render();
           meshIt->render();
+      glPopAttrib();
+    }
+
+    vector<ScAnimMesh*> :: iterator animMeshIt;
+    for( animMeshIt = m_animMeshes.begin(); animMeshIt!=m_animMeshes.end(); ++animMeshIt)
+    {
+      glPushAttrib(GL_LIGHTING_BIT);
+          m_materials[(*animMeshIt)->getMaterialIndex()].render();
+          (*animMeshIt)->render();
       glPopAttrib();
     }
   glPopAttrib();
@@ -167,6 +188,12 @@ void ScScene::renderMesh(int index)
   m_meshes[index].render();
 }
 
+void ScScene::renderAnimatedMesh(int index)
+{
+  m_animMeshes[index]->configure();
+  m_animMeshes[index]->render();
+}
+
 int ScScene::getNumMeshes()
 {
   return m_meshes.size();
@@ -175,6 +202,16 @@ int ScScene::getNumMeshes()
 ScMesh* ScScene::getMeshAt( int i )
 {
   return &m_meshes[i];
+}
+
+int ScScene::getNumAnimatedMeshes()
+{
+  return m_animMeshes.size();
+}
+
+ScAnimMesh* ScScene::getAnimatedMeshAt(int i)
+{
+  return m_animMeshes.at(i);
 }
 
 Color ScScene::getClearColor() const
@@ -237,6 +274,16 @@ Vector3 ScScene::getSceneBoundingBoxMin() const
     bb_min.y = min(mesh.y, bb_min.y);
     bb_min.z = min(mesh.z, bb_min.z);
   }
+
+  vector<ScAnimMesh*> :: const_iterator animMeshIt;
+  for( animMeshIt = m_animMeshes.begin(); animMeshIt!=m_animMeshes.end(); ++animMeshIt)
+  {
+    Vector3 mesh = (*animMeshIt)->getBoundingBoxMin();
+    bb_min.x = min(mesh.x, bb_min.x);
+    bb_min.y = min(mesh.y, bb_min.y);
+    bb_min.z = min(mesh.z, bb_min.z);
+  }
+
   return bb_min;
 }
 
@@ -247,6 +294,15 @@ Vector3 ScScene::getSceneBoundingBoxMax() const
   for( meshIt = m_meshes.begin(); meshIt!=m_meshes.end(); ++meshIt)
   {
     Vector3 mesh = meshIt->getBoundingBoxMax();
+    bb_max.x = max(mesh.x, bb_max.x);
+    bb_max.y = max(mesh.y, bb_max.y);
+    bb_max.z = max(mesh.z, bb_max.z);
+  }
+
+  vector<ScAnimMesh*> :: const_iterator animMeshIt;
+  for( animMeshIt = m_animMeshes.begin(); animMeshIt!=m_animMeshes.end(); ++animMeshIt)
+  {
+    Vector3 mesh = (*animMeshIt)->getBoundingBoxMax();
     bb_max.x = max(mesh.x, bb_max.x);
     bb_max.y = max(mesh.y, bb_max.y);
     bb_max.z = max(mesh.z, bb_max.z);
@@ -304,7 +360,7 @@ void ScScene::readSceneParameters( string rt4FileName )
 void ScScene::readSceneObjects( string rt4FileName )
 {
   FILE *file;
-  char buffer[1024];
+  char buffer[32768]; //32KB
 
   file = fopen(rt4FileName.c_str(), "rt");
   MyAssert("File Not Found: " + rt4FileName, file);
@@ -313,6 +369,7 @@ void ScScene::readSceneObjects( string rt4FileName )
   int numCameras = 0;
   int numMaterials = 0;
   int numMeshes = 0;
+  int numAnimMeshes = 0;
   int numLights = 0;
 
   while(!feof(file))
@@ -365,6 +422,14 @@ void ScScene::readSceneObjects( string rt4FileName )
       m.readFromStr(buffer);
       if(m.getVbo() || m.getP3bMesh())
         m_meshes.push_back(m);
+    }else if(!strcmp(buffer, "ANIMMESH"))
+    {
+      numAnimMeshes++;
+      fscanf(file, "%[^\n]s", buffer);
+      ScAnimMesh *m = new ScAnimMesh();
+      m->readFromStr(buffer);
+      m->configure();
+      m_animMeshes.push_back(m);
     }else
     {
       fscanf(file, "%*[^\n]s");

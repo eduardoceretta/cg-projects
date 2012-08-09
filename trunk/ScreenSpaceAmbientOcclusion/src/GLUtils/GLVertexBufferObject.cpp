@@ -19,12 +19,75 @@ using namespace std;
 /************************************************************************/
 /* GLVBOBuffer - struct vbobuffer                                       */
 /************************************************************************/
-vbobuffer::vbobuffer() :data(NULL)
+vbobuffer::vbobuffer() 
+:data(NULL)
 ,type(sizeof(GL_BYTE))
 ,n(0)
 ,offset(0)
-,clientState(GL_VERTEX_ARRAY)
+,clientState(VERTEX_ARRAY)
 {
+}
+
+void vbobuffer::enable()
+{
+  switch(clientState)
+  {
+  case GL_NORMAL_ARRAY:
+  case GL_COLOR_ARRAY: 
+  case GL_VERTEX_ARRAY:
+  case GL_TEXTURE_COORD_ARRAY:
+  case GL_INDEX_ARRAY:
+  case GL_EDGE_FLAG_ARRAY:
+    glEnableClientState(clientState);
+    break;
+
+  case VERTEX_ATTRIB1_ARRAY_0:
+  case VERTEX_ATTRIB2_ARRAY_0:
+  case VERTEX_ATTRIB3_ARRAY_0:
+  case VERTEX_ATTRIB4_ARRAY_0:
+    glEnableVertexAttribArray(0);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_1:
+    glEnableVertexAttribArray(1);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_2:
+    glEnableVertexAttribArray(2);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_3:
+    glEnableVertexAttribArray(3);
+    break;
+  }
+}
+
+void vbobuffer::disable()
+{
+  switch(clientState)
+  {
+  case GL_NORMAL_ARRAY:
+  case GL_COLOR_ARRAY: 
+  case GL_VERTEX_ARRAY:
+  case GL_TEXTURE_COORD_ARRAY:
+  case GL_INDEX_ARRAY:
+  case GL_EDGE_FLAG_ARRAY:
+    glDisableClientState(clientState);
+    break;
+
+  case VERTEX_ATTRIB1_ARRAY_0:
+  case VERTEX_ATTRIB2_ARRAY_0:
+  case VERTEX_ATTRIB3_ARRAY_0:
+  case VERTEX_ATTRIB4_ARRAY_0:
+    glDisableVertexAttribArray(0);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_1:
+    glDisableVertexAttribArray(1);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_2:
+    glDisableVertexAttribArray(2);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_3:
+    glDisableVertexAttribArray(3);
+    break;
+  }
 }
 
 void vbobuffer::setPointer()
@@ -54,6 +117,28 @@ void vbobuffer::setPointer()
   case GL_EDGE_FLAG_ARRAY:
     glEdgeFlagPointer(0, (GLvoid*)offset);
     break;
+
+  case VERTEX_ATTRIB1_ARRAY_0:
+    glVertexAttribPointer(0, 1, type, GL_FALSE, 0, (GLvoid*)offset);
+    break;
+  case VERTEX_ATTRIB2_ARRAY_0:
+    glVertexAttribPointer(0, 2, type, GL_FALSE, 0, (GLvoid*)offset);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_0:
+    glVertexAttribPointer(0, 3, type, GL_FALSE, 0, (GLvoid*)offset);
+    break;
+  case VERTEX_ATTRIB4_ARRAY_0:
+    glVertexAttribPointer(0, 4, type, GL_FALSE, 0, (GLvoid*)offset);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_1:
+    glVertexAttribPointer(1, 3, type, GL_FALSE, 0, (GLvoid*)offset);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_2:
+    glVertexAttribPointer(2, 3, type, GL_FALSE, 0, (GLvoid*)offset);
+    break;
+  case VERTEX_ATTRIB3_ARRAY_3:
+    glVertexAttribPointer(3, 3, type, GL_FALSE, 0, (GLvoid*)offset);
+    break;
   }
 }
 
@@ -61,18 +146,28 @@ int vbobuffer::sizeInBytes()
 {
   switch(clientState)
   {
+  case VERTEX_ATTRIB4_ARRAY_0:
+    return n*sizeof(type)*4;
+
   case GL_NORMAL_ARRAY:
   case GL_COLOR_ARRAY:  
   case GL_VERTEX_ARRAY:
+  case VERTEX_ATTRIB3_ARRAY_0:
+  case VERTEX_ATTRIB3_ARRAY_1:
+  case VERTEX_ATTRIB3_ARRAY_2:
+  case VERTEX_ATTRIB3_ARRAY_3:
     return n*sizeof(type)*3;
 
   case GL_TEXTURE_COORD_ARRAY:
+  case VERTEX_ATTRIB2_ARRAY_0:
     return n*sizeof(type)*2;
 
   case GL_INDEX_ARRAY:
   case GL_EDGE_FLAG_ARRAY:
+  case VERTEX_ATTRIB1_ARRAY_0:
     return n*sizeof(type);
   }
+  return -1;
 }
 
 
@@ -206,7 +301,7 @@ void GLVertexBufferObject :: render()
    vector<GLVBOBuffer> :: iterator it;
    for(it = m_VBOBuffers.begin(); it != m_VBOBuffers.end(); ++it)
    {
-      glEnableClientState(it->clientState);
+      it->enable();
       it->setPointer();
    }
 
@@ -216,7 +311,7 @@ void GLVertexBufferObject :: render()
       glDrawArrays(m_primitive, 0, m_VBOBuffers.begin()->n);
 
    for(it = m_VBOBuffers.begin(); it != m_VBOBuffers.end(); ++it)
-      glDisableClientState(it->clientState);
+     it->disable();
 
    if(m_hasIndices == true)
       glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER_ARB, 0);
@@ -225,6 +320,11 @@ void GLVertexBufferObject :: render()
 
 
 void GLVertexBufferObject :: setVBOBuffer(GLenum clientState, GLenum type, int n, void* data)
+{
+  setVBOBuffer((vbobuffer::ClientState)clientState, type, n, data);
+}
+
+void GLVertexBufferObject :: setVBOBuffer(vbobuffer::ClientState clientState, GLenum type, int n, void* data)
 {
    m_calculated = false;
    
@@ -246,7 +346,7 @@ void GLVertexBufferObject :: setVBOBuffer(GLenum clientState, GLenum type, int n
 void GLVertexBufferObject :: setVBOIndexBuffer(GLenum type, int n, void* data)
 {
    m_hasIndices = true;
-   m_VBOIndexBuffer.clientState = GL_INDEX_ARRAY;
+   m_VBOIndexBuffer.clientState = vbobuffer::INDEX_ARRAY;
    m_VBOIndexBuffer.type = type;
    m_VBOIndexBuffer.n = n;
    m_VBOIndexBuffer.data = data;
@@ -258,13 +358,22 @@ void GLVertexBufferObject::writeToFile( FILE * fp )
 
   vector<GLVBOBuffer> :: iterator it;
   int totalSize = sizeof(int)+ sizeof(bool);
+
+  // OverFlow Error checker
+  int lastSize = totalSize;
   
   if(m_hasIndices)
     totalSize += sizeof(GLVBOBuffer) +m_VBOIndexBuffer.sizeInBytes();
   
-  for(it = m_VBOBuffers.begin(); it != m_VBOBuffers.end(); ++it )
-    totalSize += sizeof(GLVBOBuffer) + it->sizeInBytes();
+  MyAssert("VBO SIZE OVERFLOW\n", totalSize >= lastSize);
+  lastSize = totalSize;
   
+  for(it = m_VBOBuffers.begin(); it != m_VBOBuffers.end(); ++it )
+  {
+    totalSize += sizeof(GLVBOBuffer) + it->sizeInBytes();
+    MyAssert("VBO SIZE OVERFLOW\n", totalSize >= lastSize);
+    lastSize = totalSize;
+  }
   
   fwrite(&totalSize, sizeof(int), 1, fp);
   fwrite(&m_hasIndices, sizeof(bool), 1, fp);

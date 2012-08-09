@@ -17,9 +17,15 @@
 #include "GLUtils/GLProjectionMatrix.h"
 #include "MathUtils/UniformPoissonDiskSampler.h"
 
+
 #define STATIC_RAND 456
 #define CALC_NUM_SPHERES_BASED_ON_RFAR(rfar) \
   (floor(pow(rfar, .5f)*SPHERE_MAX_NUM + .5f))
+
+//BITCOUNT TEXTURE//////////////////////////////
+//BITCOUNT TEXTURE//////////////////////////////
+//BITCOUNT TEXTURE//////////////////////////////
+//#define TEXTURE_BIT_COUNT
 
 //SPHERE SAMPLERS//////////////////////////////
 //SPHERE SAMPLERS//////////////////////////////
@@ -182,7 +188,10 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
   generateConeSamplerTexture();
   generateSphereSamplerTexture();
   generateSphereInfoTexture();
+
+#ifdef TEXTURE_BIT_COUNT
   generateBitCount16Texture();
+#endif // TEXTURE_BIT_COUNT
 
   GLTextureObject t;
   t.createTexture2D(width, height, GL_RGBA32UI_EXT, GL_RGBA_INTEGER_EXT, GL_UNSIGNED_INT);
@@ -205,13 +214,17 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
     addInputInt("jitterEnabled", int(m_jitterEnabled));
     addInputInt("numSamplersDistributions", m_numSamplersDistributions);
     addInputInt("coneDirSamplersWidth", m_coneDirSamplersWidth);
-    addInputInt("bitCount16Width", m_bitCount16Width);
-    addInputInt("bitCount16Height", m_bitCount16Height);
     
     addInputInt("sphereInfoWidth", m_sphereInfoWidth);
     addInputTexture(GL_TEXTURE_1D, "sphereInfo", m_texIdSphereInfo);
     addInputTexture(GL_TEXTURE_1D, "coneDirSamplers", m_texIdConeDirSamplers);
+
+#ifdef TEXTURE_BIT_COUNT
     addInputTexture(GL_TEXTURE_2D, "bitCount16", m_texIdBitCount16);
+    addInputInt("bitCount16Width", m_bitCount16Width);
+    addInputInt("bitCount16Height", m_bitCount16Height);
+#endif // TEXTURE_BIT_COUNT
+
 #ifdef TEXTURE_SPHERE_SAMPLERS
     addInputInt("sphereSamplersWidth", m_sphereSamplersWidth);
     addInputTexture(GL_TEXTURE_1D, "sphereSamplers", m_texIdSphereSamplers);
@@ -722,9 +735,9 @@ void KernelSSAO_Vox_ConeTracing::renderConeDistribution(int distribution)
         Vector3 center = getSphereCenter(Vector3(0,0,0), Vector3(0,1,0), 1, texDataInfo[i*2 + 0]);
         float radius = getSphereRadius(1, texDataInfo[i*2 + 1]);
 
-        glTranslatef(center.x, center.y, center.z);
-        glutSolidSphere(radius, 30, 30);
-        glPopMatrix();
+        //glTranslatef(center.x, center.y, center.z);
+        //glutSolidSphere(radius, 30, 30);
+        //glPopMatrix();
       }
 
       //CONES

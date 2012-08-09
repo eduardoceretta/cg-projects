@@ -32,6 +32,11 @@ MeshFileBase* MeshLoader :: s_meshLoaders[] =
 };
 
 
+MeshLoader :: ~MeshLoader()
+{
+}
+
+
 MeshLoader :: MeshLoader()
 :MeshFileBase()
 ,m_meshLoader(NULL)
@@ -52,9 +57,10 @@ void MeshLoader::readFile( string fileName, Vector3 pos /*= Vector3(0,0,0)*/, Ve
       m_meshLoader->readFile(fileName, pos, scale);
       m_numVertices = m_meshLoader->getNumVertices();
       m_numTriangles = m_meshLoader->getNumTriangles();
-      m_vertices = m_meshLoader->getVertexes();
+      m_vertices = m_meshLoader->getVertices();
       m_normals = m_meshLoader->getNormals();
       m_indexes = m_meshLoader->getIndexes();
+      m_fileName = m_meshLoader->getFileName();
       knownFileType = true;
       break;
     }
