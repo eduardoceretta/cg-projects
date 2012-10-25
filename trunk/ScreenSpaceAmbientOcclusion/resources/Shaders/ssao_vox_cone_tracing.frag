@@ -16,17 +16,21 @@
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
 //EYE_NEAREST
-#define EYE_NEAREST                /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
-//NORMAL_OFFSET 
-#define NORMAL_OFFSET .01          /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
-//JITTER
-//#define JITTER                   /**< Enable pixel sampler Jitter*/
+#define EYE_NEAREST             /**< Uses the information in the eyeNearest texture to get the nearest eye position of the fragment*/
+//LIMITED_FAR 
+#define LIMITED_FAR   .2         /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
 
-#define TEXTURE_SPHERE_SAMPLERS    /**< Uses texture to access the sphere samplers*/
-//#define TEXTURE_BIT_COUNT        /**< Uses texture to count the number of bits 1 in a integer*/
+//NORMAL_OFFSET 
+#define NORMAL_OFFSET .01       /**< Modifies the center of each sphere so it does not cause same plane occlusion*/
+
+//JITTER
+//#define JITTER                /**< Enable pixel sampler Jitter*/
+
+#define TEXTURE_SPHERE_SAMPLERS /**< Uses texture to access the sphere samplers*/
+//#define TEXTURE_BIT_COUNT     /**< Uses texture to count the number of bits 1 in a integer*/
 
 #ifndef TEXTURE_BIT_COUNT
-  #define BIT_EXTRACTION           /**< Uses glsl bitextract function instead of own function*/
+  #define BIT_EXTRACTION        /**< Uses glsl bitextract function instead of own function*/
 #endif
 
 /****************************************************************************************/
@@ -301,14 +305,6 @@ void main()
   //return;
 //}
 
-  //unsigned int rr = 1u;
-  //unsigned int a = bitfieldExtract(-1, 0, 31);
-  //unsigned int b = bitfieldExtract(-1, 2, 8);
-  //unsigned int c = bitfieldExtract(-1, 31, 0);
-  //OUT = vec4(uintBitsToFloat(rr),uintBitsToFloat(a),uintBitsToFloat(b),uintBitsToFloat(c));
-  //OUT = vec4(uintBitsToFloat(a),uintBitsToFloat(b),uintBitsToFloat(c),uintBitsToFloat(rr));
-    //return;
-
   vec3 normal; vec3 eyePosition; float depth;
   readInputData(normal, eyePosition, depth);
   
@@ -330,7 +326,6 @@ void main()
     sphereInfoDistributionIndex = randNum * numSpheresByCone * numCones;
   }  
   
-
   /**
 	 * TEST NORMAL
 	 *  Print the Normal's Color.
@@ -338,13 +333,10 @@ void main()
    * /
     vec3 nn = (normal.xyz)*.5 + .5;
     //vec3 nn = (normal.xyz);
-    gl_FragData[0] = vec4(nn, 1.);
-    return;
+    //gl_FragData[0] = vec4(nn, 1.);
+    gl_FragData[0] = RED;
+        return;
   /**/
-  
-  
-  
-  
   
   vec3 voxelSize = getGridCellSize(near);
   float halfDiagonal = sqrt(voxelSize.x*voxelSize.x + voxelSize.y*voxelSize.y + voxelSize.z*voxelSize.z)/2.0;
@@ -397,8 +389,6 @@ void main()
   /*************************\
          Debug Area 
   \*************************/
-
-
   /**/
 }
 
@@ -437,7 +427,12 @@ float getZnear(vec2 winCoordinate)
 
 float getZGridIndex(float eyeZ, float zNear)
 {
+#ifdef LIMITED_FAR 
+  float zIndex = (-eyeZ - zNear)/(LIMITED_FAR*far);
+#else  
   float zIndex = (-eyeZ - zNear)/far;
+#endif  
+    
   if(zIndex < 0.0 || zIndex > 1.0)
     return -1.;
   return texture1D(gridInvFunc, zIndex).a;
@@ -445,7 +440,12 @@ float getZGridIndex(float eyeZ, float zNear)
 
 float getClampedZGridIndex(float eyeZ, float zNear)
 {
+#ifdef LIMITED_FAR   
+  float zIndex = clamp((-eyeZ - zNear)/(LIMITED_FAR*far), 0.0, 1.0);
+#else  
   float zIndex = clamp((-eyeZ - zNear)/far, 0.0, 1.0);
+#endif  
+    
   return texture1D(gridInvFunc, zIndex).a;
 }
 
@@ -539,7 +539,11 @@ float calcSphereAo(vec3 sphereSampler, vec3 sphereCenter, float sphereRadius, ou
     return 0.0;
 
   unsigned int numFullVoxels = countFullVoxelsVolSphere(samplerGridIndex, gridIndexBottonN, gridIndexTopN);
+#ifdef LIMITED_FAR 
+  float height = min(float(numFullVoxels)*(LIMITED_FAR*far)/128.0, secant);
+#else  
   float height = min(float(numFullVoxels)*(far - zzNear)/128.0, secant);
+#endif  
   return height;
 }
 
@@ -647,8 +651,12 @@ vec3 getGridIndex(vec3 ray, vec3 eyePosition)
 #else  
   zzNear = near;
 #endif  
-  
+
+#ifdef LIMITED_FAR 
+  float zIndex = (dist - zzNear)/(LIMITED_FAR*far);
+#else  
   float zIndex = (dist - zzNear)/far;
+#endif  
   if(zIndex < 0.0 || zIndex > 1.0 )
     return vec3(-1);
   float zGridIndex = texture1D(gridInvFunc, zIndex).a;
@@ -791,10 +799,20 @@ vec3 getGridCellSize(float zNear)
     ym = (top*(far - near)/(2.0*near))/screenHeight;//Half Frustum Height 
   }
 
+#ifdef LIMITED_FAR  
+  #ifdef EYE_NEAREST
+    float zfar = LIMITED_FAR*far + zNear;
+  #else
+    float zfar = LIMITED_FAR*far + near;
+  #endif
+#else  
+  float zfar = far;
+#endif
+
 #ifdef EYE_NEAREST
-  float zm = (far - zNear)/128.0;
+  float zm = (zfar - zNear)/128.0;
 #else
-  float zm = (far - near)/128.0;
+  float zm = (zfar - near)/128.0;
 #endif //EYE_NEAREST
 
   return vec3(xm, ym, zm);

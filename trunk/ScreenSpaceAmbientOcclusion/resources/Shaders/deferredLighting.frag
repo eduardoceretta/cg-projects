@@ -61,6 +61,17 @@ void main()
   if(depth < 0.0)
     discard;
     
+  /**
+	 * TEST NORMAL
+	 *  Print the Normal's Color.
+	 *  Result must be Blue for normals facing the screen
+   * /
+    vec3 nn = (normal.xyz)*.5 + .5;
+    //vec3 nn = (normal.xyz);
+    gl_FragData[0] = vec4(nn, 1.);
+    return;
+  /**/
+    
   vec3 eyePosition = texture2D(positionTex, fragCoord).xyz;
   
   float ambientValue = 0.0;
