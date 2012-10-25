@@ -20,6 +20,7 @@
 
 #define VOXELIZATION_BITMAP_FULLONE 
 #define EYE_NEAREST
+//#define GRID_BBOX
 //#define FULL_GRID 1
 #ifdef FULL_GRID
   #define WIRE_ON
@@ -31,6 +32,8 @@
 //#define FUNC_POW
 //#define FUNC_EXP
 //#define FUNC_ASIN
+
+//#define LIMITED_FAR .5          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
 
 
 
@@ -504,10 +507,11 @@ void KernelVoxelization::renderVoxelization()
             glEnable(GL_POLYGON_OFFSET_FILL);
             glPolygonOffset(0.0,.0);
             //glPolygonOffset(1.1,.0);
-            glTranslatef(pw.x, pw.y, pw.z);
-
             Vector3 size = getGridCellSize(x, y, z, zNear);
+            glTranslatef(pw.x, pw.y, pw.z + size.z*float(m_stepZ)/(2.0*size.x*float(m_stepX)));
+
             glScalef(size.x*m_stepX, size.y*m_stepY*m_width/m_height, size.z*m_stepZ);
+            //glScalef(1.0f, size.y*float(m_stepY)/(size.x*float(m_stepX)), size.z*float(m_stepZ)/(size.x*float(m_stepX)));
 
             if(Bit::isBitActiveLeftToRight(pp, z%UINT_BIT_SIZE))
             {
@@ -518,7 +522,7 @@ void KernelVoxelization::renderVoxelization()
               //glColorMaterial(GL_FRONT, GL_DIFFUSE);
               //glColor3f(.5,.2,.2);
               glutSolidCube(1.0);
-              glDisable(GL_COLOR_MATERIAL);
+              //glDisable(GL_COLOR_MATERIAL);
             }
 #ifdef WIRE_ON
             //else
@@ -533,13 +537,31 @@ void KernelVoxelization::renderVoxelization()
             }
 #endif // WIRE_ON
 
+
+
             glPopMatrix();
           }
         }
+#ifdef GRID_BBOX
+        Vector3 pw = getGridCellCenter(x, y, 0, zNear);
+        glPushMatrix();
+          Vector3 size = getGridCellSize(x, y, 128/2, zNear);
+          glTranslatef(pw.x, pw.y, pw.z + size.z*128.0/(2.0*size.x*float(m_stepX)));
+          glScalef(1.0f, size.y*float(m_stepY)/(size.x*float(m_stepX)), size.z*128.0/(size.x*float(m_stepX)));
+          glPushAttrib(GL_ALL_ATTRIB_BITS);
+          glEnable(GL_POLYGON_OFFSET_LINE);
+          glPolygonOffset(.1,.0);
+          glDisable(GL_LIGHTING);
+          glColor3f(1,1,1);
+          glutWireCube(1.0);
+          glPopAttrib();
+
+        glPopMatrix();
+#endif // GRID_BBOX
       }
     }
   }
-
+printf("%d\n", maxZ);
   glPopMatrix();
 
   glPopAttrib();
@@ -567,8 +589,14 @@ Vector3 KernelVoxelization::getGridCellCenter(int x, int y, int z, float zNear)
   float ye = ym*float(y + .5);
 
 #ifdef EYE_NEAREST
-  float zm = (m_far - 0.0);
-  float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm + zNear ;
+  //float zm = (m_far - 0.0);
+  //float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm + zNear ;
+  #ifdef LIMITED_FAR
+    float zm = (m_far*LIMITED_FAR)/128.0;
+  #else
+    float zm = (m_far - zNear)/128.0;
+  #endif // LIMITED_FAR
+  float ze = zm*float(z + .5) + zNear;
 #else
   float zm = (m_far);
   float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm;
@@ -593,16 +621,21 @@ Vector3 KernelVoxelization::getGridCellSize(int x, int y, int z, float zNear)
   }
 
 #ifdef EYE_NEAREST
-  float zm = (m_far - 0.0);
+  //float zm = (m_far - 0.0);
+  #ifdef LIMITED_FAR
+    float zm = (m_far*LIMITED_FAR)/128.0;
+  #else
+    float zm = (m_far - zNear)/128.0;
+  #endif // LIMITED_FAR
 #else
   float zm = (m_far);
 #endif //EYE_NEAREST
 
-  return Vector3(xm, ym, zm*(
-    m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
-    m_funcData[(int)floor((float(z + 0.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]
-  ));
-
+  //return Vector3(xm, ym, zm*(
+    //m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
+    //m_funcData[(int)floor((float(z + 0.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]
+  //));
+  return Vector3(xm, ym, zm);
 }
 
 Vector3 KernelVoxelization::getVoxBBMax() 
