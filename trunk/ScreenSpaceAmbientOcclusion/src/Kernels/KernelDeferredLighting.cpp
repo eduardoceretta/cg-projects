@@ -35,6 +35,13 @@ GLuint KernelDeferredLighting::getShadedTexId() const
   return m_shadedTexId; 
 }
 
+void KernelDeferredLighting::setAmbientInputTexId(GLuint inputTexId)
+{
+  m_shader->setActive(true);
+  setInputTexture(GL_TEXTURE_2D, "ambientTex", inputTexId, 2);
+  m_shader->setActive(false);
+}
+
 void KernelDeferredLighting::step(bool ambientEnabled, bool diffuseEnabled, Vector3 ambColor)
 {
   GLfloat p[16];

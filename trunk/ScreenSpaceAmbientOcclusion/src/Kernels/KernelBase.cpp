@@ -12,6 +12,7 @@
 #include "GLUtils/GLFrameBufferObject.h"
 #include "GLUtils/GLShader.h"
 #include "GLUtils/GLTextureObject.h"
+#include "GLUtils/GLError.h"
 
 KernelBase::KernelBase(){
 
@@ -42,6 +43,30 @@ KernelBase::~KernelBase(){
   if(m_shader)
 	  delete m_shader;
 	delete m_fbo;
+}
+
+void KernelBase::setShader(char* path, char* vert, char* frag)
+{
+  delete m_shader;
+
+  if(!vert || !frag)
+    m_shader = NULL;
+  else
+  {
+    string v = string(path) + vert;
+    string f = string(path) + frag;
+    m_shader = new GLShader((char*)v.c_str(), (char*)f.c_str());
+  }
+}
+
+void KernelBase::setShader(char* vert, char* frag)
+{
+  delete m_shader;
+
+  if(!vert || !frag)
+    m_shader = NULL;
+  else
+    m_shader = new GLShader(vert, frag);
 }
 
 void KernelBase::reloadShader()
@@ -215,19 +240,24 @@ void KernelBase::addInputVec3Array(char* name, GLfloat *value, int n){
   m_shader->setUniformVec3Array(name, value, n);
 }
 
-void KernelBase::addInputFloat( char* name, GLfloat value )
-{
+void KernelBase::addInputFloat(char* name, GLfloat value){
   m_shader->setUniformFloat(name, value);
 }
 
-void KernelBase::addInputInt( char* name, GLint value )
-{
+void KernelBase::addInputFloatArray(char* name, GLfloat* value, int n){
+  m_shader->setUniformFloatArray(name, value, n);
+}
+
+void KernelBase::addInputFloat2Array(char* name, GLfloat* value, int n){
+  m_shader->setUniformFloat2Array(name, value, n);
+}
+
+void KernelBase::addInputInt(char* name, GLint value){
   m_shader->setUniformInt(name, value);
 }
 
 
-void KernelBase::addInputMatrix4( char* name, const GLfloat* value )
-{
+void KernelBase::addInputMatrix4(char* name, const GLfloat* value){
   m_shader->setUniformMatrix4(name, value);
 }
 

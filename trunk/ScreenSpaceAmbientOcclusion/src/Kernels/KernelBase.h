@@ -40,6 +40,12 @@ public:
 	~KernelBase();
 	
   /**
+   * Creates a Shader with the filenames received.
+   */
+	void setShader(char* path, char* vert, char* frag);
+	void setShader(char* vert, char* frag);
+
+  /**
    * Reload the Kernel's Shader
    */
   void reloadShader();
@@ -93,6 +99,8 @@ protected:
 	void addInputVec3(char* name, Vector3 value);
 	void addInputInt(char* name, GLint value);
   void addInputFloat(char* name, GLfloat value);
+  void addInputFloatArray(char* name, GLfloat* value, int n);
+  void addInputFloat2Array(char* name, GLfloat* value, int n);
   void addInputMatrix4(char* name, const GLfloat* value);
   
   /**
@@ -120,7 +128,8 @@ protected:
    * Set an Output Texture
    */
   GLuint setOutput(int index, GLuint textureId);
- 
+  
+
   /**
    * Frame Buffer used for rendering
    */
