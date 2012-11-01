@@ -15,12 +15,13 @@
 #include "MathUtils/Vector4.h"
 #include "MathUtils/Bit.h"
 #include "GLUtils/GLProjectionMatrix.h"
+#include "GLUtils/GLTextureObject.h"
 #include "MathUtils/UniformPoissonDiskSampler.h"
 
 
 #define STATIC_RAND 456
 #define CALC_NUM_SPHERES_BASED_ON_RFAR(rfar) \
-  (floor(pow(rfar, .5f)*SPHERE_MAX_NUM + .5f))
+  (floor(pow((rfar), .5f)*SPHERE_MAX_NUM + .5f))
 
 //BITCOUNT TEXTURE//////////////////////////////
 //BITCOUNT TEXTURE//////////////////////////////
@@ -33,8 +34,8 @@
 #define TEXTURE_SPHERE_SAMPLERS
 
 //Functions:
-#define ARITPROG_AN(a, d, n) int((a) + ((n-1.0)*(d)))
-#define ARITPROG_SUM(a, d, n) int(((n)*((a)+ARITPROG_AN(a,d,n))/2.0))
+#define ARITPROG_AN(a, d, n) int((a) + (((n)-1.0)*(d)))
+#define ARITPROG_SUM(a, d, n) int(((n)*((a)+ARITPROG_AN((a),(d),(n)))/2.0))
 
 #define getNumSphereSamplers(n) \
   m_numSphereSamplers
@@ -47,7 +48,7 @@
   //ARITPROG_SUM(PROG_A0, PROG_STEP, (n))
 
 #define getTotalNumSphereSamplersAccumulated(numSpheresByCone) \
-((getNumSphereSamplers(1))*numSpheresByCone)
+((getNumSphereSamplers(1))*(numSpheresByCone))
 //(getNumSphereSamplers(1))
 //getNumSphereSamplersAccumulated(numSpheresByCone)
 //(m_numSphereSamplers*numSpheresByCone)
@@ -67,7 +68,10 @@
 #define getSphereRadius(rfar, multiplier) \
   ((multiplier)*(rfar))
 
-void SphereInfo::setParameters( float coneRevolutionAngle, int numSpheresByCone, int numCones )
+
+
+
+void SphereInfo::setParameters(float coneRevolutionAngle, int numSpheresByCone, int numCones )
 {
   m_coneRevolutionAngle = coneRevolutionAngle;
   m_numSpheresByCone = numSpheresByCone;
@@ -146,8 +150,6 @@ float SphereInfo::RadProg_GetSphereCenterMultiplier( int i, int numSpheresByCone
 }
 
 
-
-
 ////////KERNEL////////////////////////////////////////////////
 ////////KERNEL////////////////////////////////////////////////
 ////////KERNEL////////////////////////////////////////////////
@@ -189,6 +191,7 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
   generateSphereSamplerTexture();
   generateSphereInfoTexture();
 
+
 #ifdef TEXTURE_BIT_COUNT
   generateBitCount16Texture();
 #endif // TEXTURE_BIT_COUNT
@@ -208,6 +211,7 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
 
     addInputFloat("screenWidth", width);
     addInputFloat("screenHeight", height);
+
     addInputInt("numCones", m_numCones);
     addInputInt("numSpheresByCone", m_numSpheresByCone);
     addInputInt("numSphereSamplers", m_numSphereSamplers);
@@ -250,9 +254,9 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
   m_pointLight.setRenderSphereEnabled(true);
 }
 
-KernelSSAO_Vox_ConeTracing::~KernelSSAO_Vox_ConeTracing(){
-  if(m_sphereSamplers)
-    delete[] m_sphereSamplers;
+KernelSSAO_Vox_ConeTracing::~KernelSSAO_Vox_ConeTracing()
+{
+  delete[] m_sphereSamplers;
 }
 
 

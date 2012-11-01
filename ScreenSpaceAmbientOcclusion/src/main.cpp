@@ -13,6 +13,7 @@
 #include "main.h"
 
 #include "app.h"
+#include "GLUtils/GLError.h"
 
 App ssaoApp;
 
@@ -64,9 +65,7 @@ void display()
   ssaoApp.render();
 
 #ifndef NDEBUG  
-  GLenum e = glGetError();
-  if(e)
-    printf("GL_ERROR\n");
+  PrintGLError();
 #endif  
 
   glutSwapBuffers();

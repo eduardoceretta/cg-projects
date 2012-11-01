@@ -55,6 +55,7 @@ class KernelSSAO_HorizonSplit;
 class KernelSSAO_Vox_RayMarch;
 class KernelSSAO_Vox_TanSphereVolume;
 class KernelSSAO_Vox_ConeTracing;
+class KernelSSAO_Vox_ConeTracingUniformData;
 
 using namespace std;
 
@@ -117,6 +118,7 @@ class App
   KernelSSAO_Vox_RayMarch* m_kernelSSAO_Vox_RayMarch;
   KernelSSAO_Vox_TanSphereVolume * m_kernelSSAO_Vox_TanSphereVolume;
   KernelSSAO_Vox_ConeTracing * m_kernelSSAO_Vox_ConeTracing;
+  KernelSSAO_Vox_ConeTracingUniformData * m_kernelSSAO_Vox_ConeTracingUniformData;
 
   /**
    * Interface control
@@ -141,7 +143,7 @@ class App
   bool m_SSAO_jitter;
 
   /**
-   * Sphere ALgorithm Parameters
+   * Sphere Algorithm Parameters
    */
   float m_SSAO_pixelmaskSize;
   float m_SSAO_offsetSize;
@@ -157,7 +159,6 @@ class App
   /**
    * Cone Algorithm Parameters
    */
-
   float m_SSAO_cone_angle;
   int m_SSAO_cone_numCones;
   int m_SSAO_cone_numSpheres;
@@ -177,6 +178,7 @@ class App
                  ,SSAO_Vox_RayMarch
                  ,SSAO_Vox_TanSphereVolume
                  ,SSAO_Vox_ConeTracing
+                 ,SSAO_Vox_ConeTracingUniformData
                  ,Voxelization
                  ,Debug
                  ,CustomCameras = 2*Debug};
@@ -197,8 +199,7 @@ public:
   ~App();
   
   void initGL(int *argc, char *argv[]);
-  
-  
+    
   /**
    * Load scene and application parameters (win size, clear color...)
    */
@@ -289,6 +290,7 @@ private:
   void renderSSAOVoxRayMarch();
   void renderSSAOVoxTanSphereVolume();
   void renderSSAOVoxConeTracing();
+  void renderSSAOVoxConeTracingUniformData();
   void renderVoxelization();
 };
 

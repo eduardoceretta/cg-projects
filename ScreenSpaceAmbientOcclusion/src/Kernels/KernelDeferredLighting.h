@@ -26,7 +26,12 @@ public:
    */
 	~KernelDeferredLighting();
  
-   /**
+  /**
+   *	Changes the ambient input texture
+   */
+  void setAmbientInputTexId(GLuint inputTexId); 
+  
+  /**
    * Gets the shaded texture
    */
   GLuint getShadedTexId() const;
@@ -46,7 +51,7 @@ public:
    *    AmbColor determines the ambient light color. Does not consider ambient material.
    */
   void stepShaderOnly(bool ambientEnabled, bool diffuseEnabled, Vector3 ambColor);
-
+ 
 private:
   /**
    * Color texture ID

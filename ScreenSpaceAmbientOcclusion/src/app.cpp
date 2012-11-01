@@ -18,6 +18,7 @@
 #include "MathUtils/Matrix3.h"
 #include "MathUtils/Matrix4.h"
 
+#include "GLUtils/GLError.h"
 #include "GLUtils/GLFont.h"
 #include "GLLights/GLPointLight.h"
 
@@ -42,6 +43,7 @@
 #include "Kernels/KernelSSAO_Vox_RayMarch.h"
 #include "Kernels/KernelSSAO_Vox_TanSphereVolume.h"
 #include "Kernels/KernelSSAO_Vox_ConeTracing.h"
+#include "Kernels/KernelSSAO_Vox_ConeTracingUniformData.h"
 
 #include "GLUtils/GLTextureObject.h"
 #include "GLUtils/GLOcclusionQuery.h"
@@ -58,10 +60,10 @@ string App::s_renderModeStr[] = {
   ,STR(SSAO_Vox_RayMarch)
   ,STR(SSAO_Vox_TanSphereVolume)
   ,STR(SSAO_Vox_ConeTracing)
+  ,STR(SSAO_Vox_ConeTracingUniformData)
   ,STR(Voxelization)
   ,STR(Debug)
 };
-
 
 
 /*******************************************/
@@ -94,6 +96,7 @@ App::App()
 ,m_kernelSSAO_Vox_RayMarch(NULL)
 ,m_kernelSSAO_Vox_TanSphereVolume(NULL)
 ,m_kernelSSAO_Vox_ConeTracing(NULL)
+,m_kernelSSAO_Vox_ConeTracingUniformData(NULL)
 ,m_menu_on(false)
 ,m_lights_on(false)
 ,m_minerLight_on(false)
@@ -111,9 +114,21 @@ App::App()
 ,m_SSAO_jitter(false)
 ,m_SSAO_numPeelings(3)
 ,m_SSAO_cone_angle(DEG_TO_RAD(30.0f))
+//LOW
+//,m_SSAO_cone_numCones(6)
+//,m_SSAO_cone_numSpheres(3)
+//,m_SSAO_cone_numSpamplers(3)
+//Med
 ,m_SSAO_cone_numCones(6)
 ,m_SSAO_cone_numSpheres(5)
 ,m_SSAO_cone_numSpamplers(6)
+//HIGH
+//,m_SSAO_cone_numCones(6)
+//,m_SSAO_cone_numSpheres(7)
+//,m_SSAO_cone_numSpamplers(12)
+//,m_SSAO_cone_numCones(6)
+//,m_SSAO_cone_numSpheres(12)
+//,m_SSAO_cone_numSpamplers(18)
 ,m_SSAO_cone_infoMethod("InitDist")
 ,m_SSAO_cone_infoSphereOverlap(0.0f)
 ,m_SSAO_cone_infoCenterParm(2.5f)
@@ -171,44 +186,23 @@ App::~App()
   //  }
   //}
   
-  if(m_rtScene)
-    delete m_rtScene;
+  delete m_rtScene;
+  delete m_p3bMesh;
 
-  if(m_p3bMesh)
-    delete m_p3bMesh;
+  delete m_kernelDeferred_Peeling;
+  delete m_kernelColor;
+  delete m_kernelSSAO_SphereApproximation;
+  delete m_kernelSSAO_HorizonSplit;
+  delete m_kernelBlur;
+  delete m_kernelCombine;
+  delete m_kernelVoxelization;
 
-  if(m_kernelDeferred_Peeling)
-    delete m_kernelDeferred_Peeling;
+  delete m_kernelSSAO_Vox_RayMarch;
+  delete m_kernelSSAO_Vox_TanSphereVolume;
+  delete m_kernelSSAO_Vox_ConeTracing;
+  delete m_kernelSSAO_Vox_ConeTracingUniformData;
 
-  if(m_kernelColor)
-    delete m_kernelColor;
-
-  if(m_kernelSSAO_SphereApproximation)
-    delete m_kernelSSAO_SphereApproximation;
-
-  if(m_kernelSSAO_HorizonSplit)
-    delete m_kernelSSAO_HorizonSplit;
-
-  if(m_kernelBlur)
-    delete m_kernelBlur;
-
-  if(m_kernelCombine)
-    delete m_kernelCombine;
-
-  if(m_kernelVoxelization)
-    delete m_kernelVoxelization;
-
-  if(m_kernelSSAO_Vox_RayMarch)
-    delete m_kernelSSAO_Vox_RayMarch;
-
-  if(m_kernelSSAO_Vox_TanSphereVolume)
-    delete m_kernelSSAO_Vox_TanSphereVolume;
-
-  if(m_kernelSSAO_Vox_ConeTracing)
-    delete m_kernelSSAO_Vox_ConeTracing;
-
-  if(m_voxProjectionMatrix)
-    delete m_voxProjectionMatrix;
+  delete m_voxProjectionMatrix;
 }
 
 
@@ -266,7 +260,6 @@ void App::render()
   m_camHandler->setMinerLightOn(false);
   m_camHandler->render();
   
-
   if(m_debugrender_on)
   {
     glMatrixMode (GL_PROJECTION);
@@ -295,6 +288,12 @@ void App::render()
       //m_kernelSSAO_Vox_ConeTracing->renderSphereInfoDistribution(0);
       m_kernelSSAO_Vox_ConeTracing->renderConeDistribution(0);
       //m_kernelSSAO_Vox_ConeTracing->renderSphereSamplerDistribution(((++ccounter)/200)%5, ((ccounter)/1000)%3);
+      break;
+    case SSAO_Vox_ConeTracingUniformData:
+      //m_kernelSSAO_Vox_ConeTracingUniformData->renderSphereInfoDistribution(((ccounter)/200)%5);
+      //m_kernelSSAO_Vox_ConeTracingUniformData->renderSphereInfoDistribution(0);
+      //m_kernelSSAO_Vox_ConeTracingUniformData->renderConeDistribution(0);
+      //m_kernelSSAO_Vox_ConeTracingUniformData->renderSphereSamplerDistribution(((++ccounter)/200)%5, ((ccounter)/1000)%3);
       break;
     case Voxelization:
       renderVoxelization();
@@ -327,6 +326,9 @@ void App::render()
     case SSAO_Vox_ConeTracing:
       renderSSAOVoxConeTracing();
       break;
+    case SSAO_Vox_ConeTracingUniformData:
+      renderSSAOVoxConeTracingUniformData();
+      break;
     case Voxelization:
       renderVoxelization();
       break;
@@ -334,6 +336,7 @@ void App::render()
   }
 
   renderGUI();
+  PrintGLErrorFunction();
 }
 
 
@@ -393,6 +396,69 @@ void App::listenKeyboard( int key )
     m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
     break;
 
+  case 'Q':
+  case 'q':
+    // Low
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setContrast(1.4f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.4f);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(3);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(3);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(3);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(3);
+      break;
+    }
+    break;
+
+  case 'W':
+  case 'w':
+    // Medium
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setContrast(1.15f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.15f);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(5);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(5);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(6);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(6);
+      break;
+    }
+    break;
+
+  case 'E':
+  case 'e':
+    // High
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setContrast(1.05f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.05f);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(7);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(7);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(12);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(12);
+      break;
+    }
+    break;
+
   case 'M':
   case 'm':
     m_minerLight_on = !m_minerLight_on;
@@ -402,6 +468,7 @@ void App::listenKeyboard( int key )
   case 'n':
     m_SSAO_jitter = !m_SSAO_jitter;
     m_kernelSSAO_Vox_ConeTracing->setJitterEnabled(m_SSAO_jitter);
+    m_kernelSSAO_Vox_ConeTracingUniformData->setJitterEnabled(m_SSAO_jitter);
     break;
 
   case 'L':
@@ -457,9 +524,11 @@ void App::listenKeyboard( int key )
       m_SSAO_offsetSize = min(m_SSAO_offsetSize + 1.0f, m_appWidth/2.0f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
       numSpheres = ceil(numSpheres * 1.1);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(numSpheres);
       break;
     }
     
@@ -473,9 +542,11 @@ void App::listenKeyboard( int key )
       m_SSAO_offsetSize = min(m_SSAO_offsetSize + .1f, m_appWidth/2.0f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
       numSpheres += 1;
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(numSpheres);
       break;
     }
     break;
@@ -489,9 +560,11 @@ void App::listenKeyboard( int key )
       m_SSAO_offsetSize = max(m_SSAO_offsetSize - 1.0f, 1.0f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
       numSpheres = max(int(floor(numSpheres*.9)), 1);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(numSpheres);
       break;
     }
     break;
@@ -504,9 +577,11 @@ void App::listenKeyboard( int key )
       m_SSAO_offsetSize = max(m_SSAO_offsetSize - .1f, 1.0f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSpheres = m_kernelSSAO_Vox_ConeTracing->getNumSpheresByCone();
       numSpheres = max(numSpheres - 1, 1);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(numSpheres);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(numSpheres);
       break;
     }
     break;
@@ -524,6 +599,7 @@ void App::listenKeyboard( int key )
     m_kernelSSAO_Vox_RayMarch->reloadShader();
     m_kernelSSAO_Vox_TanSphereVolume->reloadShader();
     m_kernelSSAO_Vox_ConeTracing->reloadShader();
+    m_kernelSSAO_Vox_ConeTracingUniformData->reloadShader();
     break;
 
   
@@ -536,9 +612,11 @@ void App::listenKeyboard( int key )
       m_SSAO_pixelmaskSize = min(m_SSAO_pixelmaskSize + .01f * 10 , .999f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
       numCones = ceil(numCones * 1.1);
       m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(numCones);
       break;
     }
     
@@ -553,9 +631,11 @@ void App::listenKeyboard( int key )
       m_SSAO_pixelmaskSize = min(m_SSAO_pixelmaskSize + .01f, .999f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
       numCones += 1;
       m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(numCones);
       break;
     }
     break;
@@ -570,9 +650,11 @@ void App::listenKeyboard( int key )
       m_SSAO_pixelmaskSize = max(m_SSAO_pixelmaskSize - .01f * 10, 0.001f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
       numCones = max(int(floor(numCones*.5)), 1);
       m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(numCones);
       break;
     }
     break;
@@ -585,9 +667,11 @@ void App::listenKeyboard( int key )
       m_SSAO_pixelmaskSize = max(m_SSAO_pixelmaskSize - .01f, 0.001f);
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numCones = m_kernelSSAO_Vox_ConeTracing->getNumCones();
       numCones = max(numCones - 2, 1);
       m_kernelSSAO_Vox_ConeTracing->setNumCones(numCones);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(numCones);
       break;
     }
     break;
@@ -599,9 +683,11 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumberSphereSamplers();
       numSphereSamplers = ceil(numSphereSamplers * 1.1);
       m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(numSphereSamplers);
       break;
     }
 
@@ -613,9 +699,11 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumberSphereSamplers();
       numSphereSamplers += 1;
       m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(numSphereSamplers);
       break;
     }
     break;
@@ -627,9 +715,11 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumberSphereSamplers();
       numSphereSamplers = max(int(floor(numSphereSamplers*.5)), 1);
       m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(numSphereSamplers);
       break;
     }
     break;
@@ -639,9 +729,11 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       int numSphereSamplers = m_kernelSSAO_Vox_ConeTracing->getNumberSphereSamplers();
       numSphereSamplers = max(numSphereSamplers - 2, 1);
       m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(numSphereSamplers);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(numSphereSamplers);
       break;
     }
     break;
@@ -653,9 +745,11 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       float coneAngle = m_kernelSSAO_Vox_ConeTracing->getConeRevolutionAngle();
       coneAngle = DEG_TO_RAD(min((RAD_TO_DEG(coneAngle) + 15.0f),60.0f));
       m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(coneAngle);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setConeRevolutionAngle(coneAngle);
       break;
     }
     break;
@@ -667,9 +761,11 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       float coneAngle = m_kernelSSAO_Vox_ConeTracing->getConeRevolutionAngle();
       coneAngle = DEG_TO_RAD(max((RAD_TO_DEG(coneAngle) - 15.0f), 15.0f));
       m_kernelSSAO_Vox_ConeTracing->setConeRevolutionAngle(coneAngle);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setConeRevolutionAngle(coneAngle);
       break;
     }
     break;
@@ -681,18 +777,23 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       if(m_SSAO_cone_infoMethod != "InitDist")
       {
         float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
         overlap = max((overlap*.75f),0.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }else
       {
         float center = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm;
         center = max((center - .1f),0.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm = center;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereCenterParm = center;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }
       break;
     }
@@ -703,18 +804,23 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       if(m_SSAO_cone_infoMethod != "InitDist")
       {
         float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
         overlap = max((overlap - .01f),0.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }else
       {
         float radius = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm;
         radius = max((radius - .01f),0.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm = radius;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereRadiusParm = radius;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }
       break;
     }
@@ -727,18 +833,23 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       if(m_SSAO_cone_infoMethod != "InitDist")
       {
         float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
         overlap = min((overlap*1.25f),1.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }else
       {
         float center = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm;
         center = min((center + .1f),10.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereCenterParm = center;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereCenterParm = center;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }
       break;
     }
@@ -749,18 +860,23 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       if(m_SSAO_cone_infoMethod != "InitDist")
       {
         float overlap = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap;
         overlap = min((overlap + .01f),1.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radDistParms.sphereOverlap = overlap;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radDistParms.sphereOverlap = overlap;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }else
       {
         float radius = m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm;
         radius = min((radius + .01f),5.0f);
         m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->radProgParms.sphereRadiusParm = radius;
         m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+        m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereRadiusParm = radius;
+        m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       }
       break;
     }
@@ -773,8 +889,11 @@ void App::listenKeyboard( int key )
     default:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       m_kernelSSAO_Vox_ConeTracing->getSphereInfo()->nextCalcMethod();
       m_kernelSSAO_Vox_ConeTracing->reloadShaderInput();
+      m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->nextCalcMethod();
+      m_kernelSSAO_Vox_ConeTracingUniformData->reloadShaderInput();
       break;
     }
     break;
@@ -899,6 +1018,25 @@ void App::listenKeyboardSpecial( int key )
     m_kernelSSAO_Vox_ConeTracing->setContrast(m_SSAO_contrast);
     break;
 
+  case 9: //F9
+    m_renderMode = SSAO_Vox_ConeTracingUniformData;
+
+    if(modifier == GLUT_ACTIVE_SHIFT)
+    {
+      m_SSAO_rfarPercent = .1f;
+      m_SSAO_contrast = 1.28;
+
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(3);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(3);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setConeRevolutionAngle(DEG_TO_RAD(30));
+    }else
+      m_camHandler = m_kernelsCamHandleres[(m_debugrender_on?Debug:0) + m_renderMode];
+
+    m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(m_SSAO_rfarPercent);
+    m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(m_SSAO_contrast);
+    break;
+
   case 10: //F10
     m_wireframe_on = !m_wireframe_on;
 
@@ -919,8 +1057,11 @@ void App::listenKeyboardSpecial( int key )
     else 
       m_SSAO_rfarPercent += .01f;
     
-    if(m_renderMode == SSAO_Vox_ConeTracing)
+    if(m_renderMode == SSAO_Vox_ConeTracing || m_renderMode == SSAO_Vox_ConeTracingUniformData)
+    {
       m_kernelSSAO_Vox_ConeTracing->setRfarPercent(m_SSAO_rfarPercent);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(m_SSAO_rfarPercent);
+    }
     break;
 
   case GLUT_KEY_PAGE_DOWN: //PgDown
@@ -929,8 +1070,11 @@ void App::listenKeyboardSpecial( int key )
     else 
       m_SSAO_rfarPercent = max(m_SSAO_rfarPercent - .01f, .0000001f);
     
-    if(m_renderMode == SSAO_Vox_ConeTracing)
+    if(m_renderMode == SSAO_Vox_ConeTracing || m_renderMode == SSAO_Vox_ConeTracingUniformData)
+    {
       m_kernelSSAO_Vox_ConeTracing->setRfarPercent(m_SSAO_rfarPercent);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(m_SSAO_rfarPercent);
+    }
    
     break;
 
@@ -940,8 +1084,11 @@ void App::listenKeyboardSpecial( int key )
     else 
       m_SSAO_contrast += .05;
     
-    if(m_renderMode == SSAO_Vox_ConeTracing)
+    if(m_renderMode == SSAO_Vox_ConeTracing || m_renderMode == SSAO_Vox_ConeTracingUniformData)
+    {
       m_kernelSSAO_Vox_ConeTracing->setContrast(m_SSAO_contrast);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(m_SSAO_contrast);
+    }
     break;
 
   case GLUT_KEY_END: //END
@@ -950,8 +1097,11 @@ void App::listenKeyboardSpecial( int key )
     else 
       m_SSAO_contrast = max(m_SSAO_contrast - .05f, .01f);
 
-    if(m_renderMode == SSAO_Vox_ConeTracing)
+    if(m_renderMode == SSAO_Vox_ConeTracing || m_renderMode == SSAO_Vox_ConeTracingUniformData)
+    {
       m_kernelSSAO_Vox_ConeTracing->setContrast(m_SSAO_contrast);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(m_SSAO_contrast);
+    }
     break;
   }
 }
@@ -1030,6 +1180,7 @@ void App::loadSceneParameters()
   m_clearColor[0] = sceneClearColor.r;
   m_clearColor[1] = sceneClearColor.g;
   m_clearColor[2] = sceneClearColor.b;
+  PrintGLErrorFunction();
 }
 
 void App::loadScene()
@@ -1062,6 +1213,7 @@ void App::loadScene()
   cout << "Scene Number of Vertices: " << m_rtScene->getNumVertices() <<endl;
   cout << "Scene Number of Triangles: " << m_rtScene->getNumElements()<<endl;
   cout << "==================================="<<endl;
+  PrintGLErrorFunction();
 }
 
 void App::loadKernels()
@@ -1093,7 +1245,6 @@ void App::loadKernels()
     ,m_kernelVoxDepth->getTexIdEyePos()
     );
 
-
   m_kernelSSAO_SphereApproximation = new KernelSSAO_SphereApproximation((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelDeferred_Peeling->getTexIdPosition(0)
     ,m_kernelDeferred_Peeling->getTexIdNormal(0)
@@ -1105,6 +1256,7 @@ void App::loadKernels()
   m_kernelSSAO_HorizonSplit = new KernelSSAO_HorizonSplit((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelDeferred_Peeling->getTexIdNormal(0)
     );
+
 
   m_kernelSSAO_Vox_RayMarch = new KernelSSAO_Vox_RayMarch((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
     ,m_kernelVoxDepth->getTexIdEyePos()
@@ -1127,6 +1279,7 @@ void App::loadKernels()
     ,m_kernelVoxelization->getTexIdGridInvFunc()
     );
 
+
   m_kernelSSAO_Vox_ConeTracing->setJitterEnabled(m_SSAO_jitter);
   if(m_SSAO_cone_infoMethod != "InitDist")
   {
@@ -1141,6 +1294,28 @@ void App::loadKernels()
   m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(m_SSAO_cone_numSpamplers);
   m_kernelSSAO_Vox_ConeTracing->setRfarPercent(m_SSAO_rfarPercent);
   m_kernelSSAO_Vox_ConeTracing->setContrast(m_SSAO_contrast);
+  m_kernelSSAO_Vox_ConeTracingUniformData = new KernelSSAO_Vox_ConeTracingUniformData((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelVoxDepth->getTexIdEyePos()
+    ,m_kernelVoxDepth->getTexIdNormalDepth()
+    ,m_kernelVoxelization->getTexIdGrid0()
+    ,m_kernelVoxelization->getTexIdGridInvFunc()
+    );
+
+  m_kernelSSAO_Vox_ConeTracingUniformData->setJitterEnabled(m_SSAO_jitter);
+  if(m_SSAO_cone_infoMethod != "InitDist")
+  {
+    m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->nextCalcMethod();
+    m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereCenterParm = m_SSAO_cone_infoCenterParm;
+    m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereRadiusParm = m_SSAO_cone_infoRadiusParm;
+  }else m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radDistParms.sphereOverlap = m_SSAO_cone_infoSphereOverlap;
+
+  m_kernelSSAO_Vox_ConeTracingUniformData->setConeRevolutionAngle(m_SSAO_cone_angle);
+  m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(m_SSAO_cone_numCones);
+  m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(m_SSAO_cone_numSpheres);
+  m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(m_SSAO_cone_numSpamplers);
+  m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(m_SSAO_rfarPercent);
+  m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(m_SSAO_contrast);
+
 
   GLfloat *lDif, *lPos;
   lDif = m_rtScene->getLightAt(0)->getLightStruct()->diffuse;
@@ -1157,9 +1332,9 @@ void App::loadKernels()
     ,m_kernelSSAO_SphereApproximation->getColorTexId()
     );
 
-
   m_occlusionQuery = new GLOcclusionQuery();
   m_occlusionQuery->init();
+  PrintGLErrorFunction();
 }
 
 void App::loadCameras()
@@ -1184,6 +1359,7 @@ void App::loadCameras()
   m_kernelsCamHandleres.push_back(cam3D); //SSAO_Vox_RayMarch
   m_kernelsCamHandleres.push_back(cam3D); //SSAO_Vox_TanSphereVolume
   m_kernelsCamHandleres.push_back(cam3D); //SSAO_Vox_ConeTracing
+  m_kernelsCamHandleres.push_back(cam3D); //SSAO_Vox_ConeTracingUniformData
   m_kernelsCamHandleres.push_back(cam3D); //Voxelization
   //Debug
   m_kernelsCamHandleres.push_back(cam3D); //NoShader
@@ -1192,6 +1368,7 @@ void App::loadCameras()
   m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_RayMarch
   m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_TanSphereVolume
   m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_ConeTracing
+  m_kernelsCamHandleres.push_back(samplersDebug); //SSAO_Vox_ConeTracingUniformData
   m_kernelsCamHandleres.push_back(voxDebug); //Voxelization
 
   for(int i = 1; i < m_rtScene->getNumCameras(); ++i)
@@ -1375,6 +1552,7 @@ void App::renderGUI()
     case SSAO_Vox_TanSphereVolume:
       break;
     case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
       if(m_menu_on)
       {
         sprintf(a,"(X) Diffuse: %s", m_diffuseEnabled? "On":"Off");
@@ -1450,6 +1628,7 @@ void App::renderGUI()
 
   m_fontRender->endText();
   glPopAttrib();
+  PrintGLErrorFunction();
 }
 
 void App::renderNoShader()
@@ -1474,6 +1653,7 @@ void App::renderNoShader()
     glPopMatrix();
     glMatrixMode (GL_MODELVIEW);
   }
+  PrintGLErrorFunction();
 }
 
 
@@ -1524,6 +1704,7 @@ void App::renderSSAOSphereAproximation()
   //RENDER RESULT
   m_kernelCombine->renderOutput(0);
   //m_kernelSSAO_SphereApproximation->renderOutput(0);
+  PrintGLErrorFunction();
 }
 
 void App::renderSSAOHorizonSplit()
@@ -1568,7 +1749,9 @@ void App::renderSSAOHorizonSplit()
 
   //RENDER RESULT
   m_kernelCombine->renderOutput(0);
+  PrintGLErrorFunction();
 }
+
 void App::renderVoxelization()
 {
   if(m_updateVoxelgrid)
@@ -1609,7 +1792,9 @@ void App::renderVoxelization()
     glPopMatrix();
     glMatrixMode (GL_MODELVIEW);
   }
+  PrintGLErrorFunction();
 }
+
 void App::renderSSAOVoxRayMarch()
 {
   voxelize();
@@ -1624,8 +1809,8 @@ void App::renderSSAOVoxRayMarch()
   //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Voxelization->getOutputTexture(0));
   //GLfloat* f = t2.read2DTextureFloatData();
   glPopAttrib();
+  PrintGLErrorFunction();
 }
-
 
 void App::renderSSAOVoxTanSphereVolume()
 {
@@ -1642,16 +1827,16 @@ void App::renderSSAOVoxTanSphereVolume()
   //GLfloat* f = t2.read2DTextureFloatData();
 
   glPopAttrib();
+  PrintGLErrorFunction();
 }
-
 
 void App::renderSSAOVoxConeTracing()
 {
   voxelize();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
-  m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix);
+  
+   m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix);
 
   //BLURR PASS
   if(m_blurr_on)
@@ -1663,6 +1848,7 @@ void App::renderSSAOVoxConeTracing()
   {
     m_rtScene->setMaterialActive(true, 1);
 
+    m_kernelDeferredLighting->setAmbientInputTexId(m_kernelSSAO_Vox_ConeTracing->getTexIdSSAO());
     if(m_occlusionQueryEnabled)
     {
       m_occlusionQuery->begin();
@@ -1688,6 +1874,57 @@ void App::renderSSAOVoxConeTracing()
   //GLuint* i = (GLuint*)t2.read2DTextureFloatData();
 
   glPopAttrib();
+  PrintGLErrorFunction();
+}
+
+
+void App::renderSSAOVoxConeTracingUniformData()
+{
+  PrintGLError();
+  voxelize();
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+  
+   m_kernelSSAO_Vox_ConeTracingUniformData->step(m_voxProjectionMatrix);
+
+  //BLURR PASS
+  if(m_blurr_on)
+  {
+    m_kernelBlur->setInputTexId(m_kernelSSAO_Vox_ConeTracingUniformData->getTexIdSSAO());
+    m_kernelBlur->step(1);
+    m_kernelBlur->renderOutput(0);
+  }else
+  {
+    m_rtScene->setMaterialActive(true, 1);
+
+    m_kernelDeferredLighting->setAmbientInputTexId(m_kernelSSAO_Vox_ConeTracingUniformData->getTexIdSSAO());
+    if(m_occlusionQueryEnabled)
+    {
+      m_occlusionQuery->begin();
+      m_kernelDeferredLighting->stepShaderOnly((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.2, .2, .2));
+      m_occlusionQuery->end();
+    }else 
+      m_kernelDeferredLighting->step((int)m_aoEnabled, (int)m_diffuseEnabled, Vector3(.35, .35, .35));
+
+    m_rtScene->setMaterialActive(false, 1);
+
+    if(!m_occlusionQueryEnabled)
+      m_kernelDeferredLighting->renderOutput(0);
+    
+
+    
+    //m_kernelSSAO_Vox_ConeTracingUniformData->renderOutput(KernelSSAO_Vox_ConeTracingUniformData::SSAO);
+  }
+
+
+  //GLTextureObject texObj = GLTextureObject(m_kernelVoxelization->getTexIdGrid0());
+  //GLuint* i = texObj.read2DTextureUIntData();
+  //GLTextureObject t2 = GLTextureObject(m_kernelSSAO_Vox_ConeTracingUniformData->getOutputTexture(0));
+  //GLfloat* f = t2.read2DTextureFloatData();
+  //GLuint* i = (GLuint*)t2.read2DTextureFloatData();
+
+  glPopAttrib();
+  PrintGLErrorFunction();
 }
 
 

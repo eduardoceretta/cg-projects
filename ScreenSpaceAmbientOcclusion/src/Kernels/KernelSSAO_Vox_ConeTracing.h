@@ -183,6 +183,11 @@ private:
   void generateSphereSamplerTexture();
   void generateSphereInfoTexture();
   void generateBitCount16Texture();
+
+  /**
+   *	Create Uniform Data Array
+   */
+  void generateUniformDataArray();
  
   /**
    * Grid Dimensions	
@@ -234,6 +239,12 @@ private:
   GLfloat* m_sphereSamplers;
 
   SphereInfo *m_sphereInfo;
+
+  /**
+   *	Uniform Data Samplers
+   */
+  GLfloat* m_uniformData;
+  int m_uniformDataSize;
 
   /**
    * Render Samplers Objects
