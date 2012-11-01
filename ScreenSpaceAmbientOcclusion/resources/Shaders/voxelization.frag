@@ -13,7 +13,7 @@
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
 #define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
-#define LIMITED_FAR .2          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
+//#define LIMITED_FAR .2          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
  
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
