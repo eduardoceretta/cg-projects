@@ -25,4 +25,9 @@ void main()
   
   //Output
   gl_FragData[0] = color*ssao;
+  ////gl_FragData[0] = color;//*ssao;
+  //gl_FragData[0] = vec4(1) - ((vec4(1)-ssao)+(vec4(1)-color));
+  //gl_FragData[0] = ssao;
+  //gl_FragData[0] = color;
+  
 }

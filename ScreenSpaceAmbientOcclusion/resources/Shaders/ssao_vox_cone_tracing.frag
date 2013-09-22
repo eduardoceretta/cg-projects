@@ -27,9 +27,10 @@
 //#define JITTER                /**< Enable pixel sampler Jitter*/
 
 #define TEXTURE_SPHERE_SAMPLERS /**< Uses texture to access the sphere samplers*/
-//#define TEXTURE_BIT_COUNT     /**< Uses texture to count the number of bits 1 in a integer*/
+/**< Uses texture to count the number of bits 1 in a integer*/
+#define TEXTURE_BIT_COUNT_ENABLED  $REPLACE$   
 
-#ifndef TEXTURE_BIT_COUNT
+#if !TEXTURE_BIT_COUNT_ENABLED
   #define BIT_EXTRACTION        /**< Uses glsl bitextract function instead of own function*/
 #endif
 
@@ -54,11 +55,11 @@ uniform sampler1D coneDirSamplers;    /**< Cone directions Samplers Texture*/
 uniform sampler1D sphereInfo;          /**< Sphere Info Texture*/
 uniform int sphereInfoWidth;           /**< Sphere Info Texture Width*/
 
-#ifdef TEXTURE_BIT_COUNT
+#if TEXTURE_BIT_COUNT_ENABLED
 uniform int bitCount16Height;         /**< BitCount Texture Height*/
 uniform int bitCount16Width;          /**< BitCount Texture Width*/
 uniform sampler2D bitCount16;         /**< Number of bits counter Texture(Max 16 bits)*/
-#endif // TEXTURE_BIT_COUNT
+#endif // TEXTURE_BIT_COUNT_ENABLED
 
 //uniform mat4 projInv;
 
@@ -351,6 +352,7 @@ void main()
   /**/
   float rfar = rfarPercent*far;
   float ao = 0.0;
+  float sumdot = 0.0;
   
   mat3 rotMat = getHemisphereRotationMatrix(normal);
   
@@ -386,10 +388,14 @@ void main()
     }
     //coneAo = normalizeConeAo(coneAo, numSpheresByCone);
 
-    ao += coneAo;
+    //ao += coneAo;
+    float dt = dot(normalize(normal),normalize(coneDir));
+    sumdot += dt;
+    ao += coneAo*dt;
   }
 
-  ao = normalizeAo(ao, numCones);
+  //ao = normalizeAo(ao, numCones);
+  ao = ao/sumdot;
   ao = clamp(ao*contrast, 0.0, 1.0); 
 
   gl_FragData[0] = WHITE*(1.0 - ao);
@@ -565,7 +571,7 @@ unsigned int countFullVoxelsInRange(unsigned int voxelContent, unsigned int inde
   voxelContent = voxelContent & (4294967295u >> indexStart);
   voxelContent = voxelContent >> (31u -  indexEnd);
   unsigned int count = 0u;
-#ifdef TEXTURE_BIT_COUNT  
+#if TEXTURE_BIT_COUNT_ENABLED  
   unsigned int i = 0u;
   vec2 bitCountSize = vec2(bitCount16Width, bitCount16Height);
   while(i <= indexEnd - indexStart)
