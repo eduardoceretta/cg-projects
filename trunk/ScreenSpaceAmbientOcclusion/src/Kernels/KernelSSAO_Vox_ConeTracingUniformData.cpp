@@ -21,10 +21,15 @@
 #include "GLUtils/GLError.h"
 #include "MathUtils/UniformPoissonDiskSampler.h"
 #include "Kernels/KernelSSAO_Vox_ConeTracing.h"
+#include "Kernels/KernelVoxelization.h"
 
 #define str(s) #s
 
 #define STATIC_RAND 456
+
+#define VAR_SPHERES
+#define VAR_SAMPLERS
+#define STATIC_SAMPLING 
 
 static const int MAX_SPHERE_SAMPLERS = 20;
 static const int SPHERE_SAMPLERS_DISTRIBUTIONS = 12;
@@ -77,11 +82,19 @@ KernelSSAO_Vox_ConeTracingUniformData::KernelSSAO_Vox_ConeTracingUniformData(cha
 ,m_uniformSphereSamplerData(NULL)
 ,m_uniformSphereSamplerDataSize(0)
 {
+  const GLubyte *shader_version_str = glGetString(GL_SHADING_LANGUAGE_VERSION);
+  float shader_vertsion;
+  sscanf((char*)shader_version_str, "%f", &shader_vertsion);
+
   m_shader = new GLShader();
   m_shader->addReplaceDefine(str(MAX_SPHERE_SAMPLERS), MAX_SPHERE_SAMPLERS);
   m_shader->addReplaceDefine(str(SPHERE_SAMPLERS_DISTRIBUTIONS), SPHERE_SAMPLERS_DISTRIBUTIONS);
   m_shader->addReplaceDefine(str(SPHERE_SAMPLER_DATA_SIZE), SPHERE_SAMPLER_DATA_SIZE);
   m_shader->addReplaceDefine(str(SAMPLING_DATA_SIZE), SAMPLING_DATA_SIZE);
+  m_shader->addReplaceDefine(str(EYE_NEAREST_ENABLED), EYE_NEAREST_ENABLED);
+  m_shader->addReplaceDefine(str(LIMITED_FAR_ENABLED), LIMITED_FAR_ENABLED);
+  m_shader->addReplaceDefine(str(LIMITED_FAR_PERCENT), LIMITED_FAR_PERCENT);
+  m_shader->addReplaceDefine(str(TEXTURE_BIT_COUNT_ENABLED), shader_vertsion < 4.0f);
   string v = string(path) + "ssao_vox_cone_tracing_uniform.vert";
   string f = string(path) + "ssao_vox_cone_tracing_uniform.frag";
   m_shader->setShaderFiles((char*)v.c_str(), (char*)f.c_str());
@@ -384,51 +397,82 @@ void KernelSSAO_Vox_ConeTracingUniformData::generateBitCount16Texture()
 
 void KernelSSAO_Vox_ConeTracingUniformData::generateConeSamplerTexture()
 {
-  int numSamplersBeta = ceil(sqrt(float(m_numCones)));            //Longitude  (|||)
-  int numSamplersAlpha = ceil(float(m_numCones)/numSamplersBeta); //Latitude   (===)
-
-  m_numCones = numSamplersAlpha*numSamplersBeta;
-
-  m_coneDirSamplersWidth = m_numSamplersDistributions * numSamplersAlpha * numSamplersBeta;
-  GLfloat* texData = new GLfloat[m_coneDirSamplersWidth*4];
-
-  for(int k = 0; k < m_numSamplersDistributions; ++k)
+  GLfloat* texData;
+  if(m_numCones == 9)
   {
-    float soma = 0;
-    GLfloat *d = &texData[k*numSamplersBeta*numSamplersAlpha*4];
-    for(int i = numSamplersAlpha-1; i >= 0; i--)
+    m_coneDirSamplersWidth = m_numSamplersDistributions * 9;
+    texData = new GLfloat[m_coneDirSamplersWidth*4];
+    
+    Vector3 dirs[9];
+    dirs[0] = Vector3(0,1,0);
+    for(int i = 0; i < 4; ++i)
     {
-      float decPar = numSamplersAlpha%2==0 && (numSamplersAlpha/2) - i <=0;
-      float step = 1.0f/(numSamplersAlpha);
-      float value = 1 + ((numSamplersAlpha/2) - i - decPar)*step;
-      //printf("%d %d %f %f\n", i,m_numSamplersAlpha,  value, (i > 0)? floor(m_numSamplersBeta*value): m_numSamplersBeta*m_numSamplersAlpha - soma );
-      int betaSize = int((i > 0)? floor(numSamplersBeta*value): numSamplersBeta*numSamplersAlpha - soma );
-      soma += float(betaSize);
-      for(int j = 0; j < betaSize; ++j)
-      {
-        float r = 1.0f;
-
-        if(k > 0)
-          r = (1.0f + float(rand()%10)/100 - .05f);
-
-        float coneAngle = atan(sqrt(2.0f/(m_numCones)));
-        float angleBeta = (((PI/2 - coneAngle)*(numSamplersAlpha-i-1)/(numSamplersAlpha-1)))*r; //Latitude
-
-        if(k > 0)
-          r = (1.0f + float(rand()%10)/100 - .05f);
-
-        float  angleAlpha = ((j)*(2*PI)/(betaSize) + ((i%2))*(2*PI)/(2*betaSize))*r ;
-
-        Vector3 dir = Vector3(sin(angleBeta)*sin(angleAlpha), cos(angleBeta), sin(angleBeta)*cos(angleAlpha)); //Longitude
-        d[int(soma-betaSize)*4 + j*4 + 0] = dir.x;
-        d[int(soma-betaSize)*4 + j*4 + 1] = dir.y;
-        d[int(soma-betaSize)*4 + j*4 + 2] = dir.z;
-        d[int(soma-betaSize)*4 + j*4 + 3] = (float)m_numSpheresByCone;
-      }
+      float angleBeta = DEG_TO_RAD(50.0f);
+      float angleAlpha = DEG_TO_RAD(i*360.0f/4.0f);
+      dirs[i+1] = Vector3(sin(angleBeta)*sin(angleAlpha), cos(angleBeta), sin(angleBeta)*cos(angleAlpha));
     }
-    //printf("%f %d %f!!!!!!!!!!!\n\n", soma, m_numSamplersBeta*m_numSamplersAlpha, soma/(m_numSamplersBeta*m_numSamplersAlpha));
-  }
 
+    for(int i = 0; i < 4; ++i)
+    {
+      float angleBeta = DEG_TO_RAD(75.0f);
+      float angleAlpha = DEG_TO_RAD(45.0f + i*360.0f/4.0f);
+      dirs[i+5] = Vector3(sin(angleBeta)*sin(angleAlpha), cos(angleBeta), sin(angleBeta)*cos(angleAlpha));
+    }
+    for(int i = 0; i < 9; ++i)
+    {
+      texData[i*4 + 0] = dirs[i].x;
+      texData[i*4 + 1] = dirs[i].y;
+      texData[i*4 + 2] = dirs[i].z;
+      texData[i*4 + 3] = (float)m_numSpheresByCone;
+    }
+  }else {
+    int numSamplersBeta = ceil(sqrt(float(m_numCones)));            //Longitude  (|||)
+    int numSamplersAlpha = ceil(float(m_numCones)/numSamplersBeta); //Latitude   (===)
+
+    m_numCones = numSamplersAlpha*numSamplersBeta;
+
+    m_coneDirSamplersWidth = m_numSamplersDistributions * numSamplersAlpha * numSamplersBeta;
+    texData = new GLfloat[m_coneDirSamplersWidth*4];
+
+    for(int k = 0; k < m_numSamplersDistributions; ++k)
+    {
+      float soma = 0;
+      GLfloat *d = &texData[k*numSamplersBeta*numSamplersAlpha*4];
+      for(int i = numSamplersAlpha-1; i >= 0; i--)
+      {
+        float decPar = numSamplersAlpha%2==0 && (numSamplersAlpha/2) - i <=0;
+        float step = 1.0f/(numSamplersAlpha);
+        float value = 1 + ((numSamplersAlpha/2) - i - decPar)*step;
+        //printf("%d %d %f %f\n", i,m_numSamplersAlpha,  value, (i > 0)? floor(m_numSamplersBeta*value): m_numSamplersBeta*m_numSamplersAlpha - soma );
+        int betaSize = int((i > 0)? floor(numSamplersBeta*value): numSamplersBeta*numSamplersAlpha - soma );
+        soma += float(betaSize);
+        for(int j = 0; j < betaSize; ++j)
+        {
+          float r = 1.0f;
+
+          if(k > 0)
+            r = (1.0f + float(rand()%10)/100 - .05f);
+
+          float coneAngle = atan(sqrt(2.0f/(m_numCones)));
+          float angleBeta = (((PI/2 - coneAngle)*(numSamplersAlpha-i-1)/(numSamplersAlpha-1)))*r; //Latitude
+
+          if(k > 0)
+            r = (1.0f + float(rand()%10)/100 - .05f);
+
+          float  angleAlpha = ((j)*(2*PI)/(betaSize) + ((i%2))*(2*PI)/(2*betaSize))*r ;
+          if(i==1)
+            angleAlpha+=1.05;
+
+          Vector3 dir = Vector3(sin(angleBeta)*sin(angleAlpha), cos(angleBeta), sin(angleBeta)*cos(angleAlpha)); //Longitude
+          d[int(soma-betaSize)*4 + j*4 + 0] = dir.x;
+          d[int(soma-betaSize)*4 + j*4 + 1] = dir.y;
+          d[int(soma-betaSize)*4 + j*4 + 2] = dir.z;
+          d[int(soma-betaSize)*4 + j*4 + 3] = (float)m_numSpheresByCone;
+        }
+      }
+      //printf("%f %d %f!!!!!!!!!!!\n\n", soma, m_numSamplersBeta*m_numSamplersAlpha, soma/(m_numSamplersBeta*m_numSamplersAlpha));
+    }
+  }
   GLTextureObject t;
   if(!m_texIdConeDirSamplers)
     m_texIdConeDirSamplers = t.createTexture1D(m_coneDirSamplersWidth, GL_RGBA32F_ARB, GL_RGBA, GL_FLOAT, texData);
@@ -439,6 +483,7 @@ void KernelSSAO_Vox_ConeTracingUniformData::generateConeSamplerTexture()
   t.setWraps(GL_CLAMP_TO_EDGE);
 
   delete [] texData;
+
 }
 
 
@@ -455,25 +500,103 @@ static inline Vector3 getConeDir(int i, GLfloat* coneData)
   return dir;
 }
 
-static inline int getNumberOfSpheres(int numMin, int numMax, Vector3 coneDir)
+static inline int getNumberOfSpheres(int numMin, int numMax, Vector3 coneDir, int coneIndex, int numCones)
 {
-  int range = numMax - numMin;
-  float dot = coneDir*Vector3(0,1,0);
-  //return numMin + (int) floorf(dot*range + 0.5f);
+#ifdef VAR_SPHERES
+  #ifdef STATIC_SAMPLING
+    if(numCones == 9 && numMax == 7) // HIGH
+    {
+      int numSphereHighStatic[9] = {7,6,6,6,6,5,5,5,5}; 
+      return numSphereHighStatic[coneIndex];
+    }
+    if(numCones == 9 && numMax == 5) // Medium
+    {
+      int numSphereMediumStatic[9] = {5,4,4,4,4,2,2,2,2};
+      return numSphereMediumStatic[coneIndex];
+    }
+    if(numCones == 6 && numMax == 4) //Low
+    {
+      int numSphereLowStatic[6] = {4,3,3,3,3,3}; 
+      return numSphereLowStatic[coneIndex];
+    }
+
+    int range = numMax - numMin;
+    float dot = coneDir*Vector3(0,1,0);
+    return numMin + (int) floorf(dot*range + 0.5f);
+  #else
+    int range = numMax - numMin;
+    float dot = coneDir*Vector3(0,1,0);
+    return numMin + (int) floorf(dot*range + 0.5f);
+  #endif // STATIC_SAMPLING
+#else
   return numMax;
+#endif // VAR_SPHERES
 }
 
-static inline int getNumberOfSamplers(int numMin, int numMax, float dist) 
+static inline int getNumberOfSamplers(int numMin, int numMax, float dist, int coneIndex, int sphereIndex, int numCones) 
 { 
+#ifdef VAR_SAMPLERS
+  #ifdef STATIC_SAMPLING
+  if(numCones == 9 && numMax == 12) // HIGH
+  {
+    int numSamplerHighStatic[9][7] = {
+      {7,7,7,7,7,7,7},
+      {4,4,4,4,4,4,4},
+      {4,4,4,4,4,4,4},
+      {4,4,4,4,4,4,4},
+      {4,4,4,4,4,4,4},
+      {2,2,2,2,2,2,2},
+      {2,2,2,2,2,2,2},
+      {2,2,2,2,2,2,2},
+      {2,2,2,2,2,2,2},
+    };
+    return numSamplerHighStatic[coneIndex][sphereIndex];
+  }
+  if(numCones == 9 && numMax == 6) // Medium
+  {
+    int numSamplerMedimumStatic[9][7] = {
+      {5,5,5,5,5,5,5},
+      {4,4,4,4,4,4,4},
+      {4,4,4,4,4,4,4},
+      {4,4,4,4,4,4,4},
+      {4,4,4,4,4,4,4},
+      {2,2,2,2,2,2,2},
+      {2,2,2,2,2,2,2},
+      {2,2,2,2,2,2,2},
+      {2,2,2,2,2,2,2},
+    };
+    return numSamplerMedimumStatic[coneIndex][sphereIndex];
+  }
+  if(numCones == 6 && numMax == 4) //Low
+  {
+    int numSamplerLowStatic[6][5] = {
+      {3,3,3,3,3},
+      {2,2,2,2,2},
+      {2,2,2,2,2},
+      {2,2,2,2,2},
+      {2,2,2,2,2},
+      {2,2,2,2,2},
+    };
+    return numSamplerLowStatic[coneIndex][sphereIndex];
+  }
   int range = numMax - numMin;
-  dist = dist*dist; // Quadratic
-  //return numMin + (int) floorf(dist*range + 0.5f);
+  dist = clamp(dist, 0.0f, 1.0f);
+  dist = (1.0f - dist); //Closer Spheres should have more samplers
+  return numMin + (int) floorf(dist*range + 0.5f);
+  #else
+    int range = numMax - numMin;
+    dist = clamp(dist, 0.0f, 1.0f);
+    dist = (1.0f - dist); //Closer Spheres should have more samplers
+    return numMin + (int) floorf(dist*range + 0.5f);
+  #endif // STATIC_SAMPLING
+#else
   return numMax;
+#endif // VAR_SAMPLERS
 }
 
-static inline void getSphereInformation(SphereInfo* info, float coneRevolutionAngle, int numSpheresByCone, int numCones, int i, float *out_center, float *out_radius)
+static inline void getSphereInformation(SphereInfo* info, float coneRevolutionAngle, int numCones, int numSpheresByCone, int numSamplersBySphere, int i, float *out_center, float *out_radius)
 {
-  info->setParameters(coneRevolutionAngle, numSpheresByCone, numCones);
+  info->setParameters(coneRevolutionAngle, numCones, numSpheresByCone, numSamplersBySphere);
   info->getSphereInfo(i, out_center, out_radius);
 }
 
@@ -518,23 +641,26 @@ void KernelSSAO_Vox_ConeTracingUniformData::generateUniformDataArray ()
   m_uniformData = new GLfloat[memorySize];
 
   m_uniformData[size++] = numCones;
+  printf("\nNumCones: %d\n", numCones);
   for(int i = 0; i < numCones; ++i)
   {
     Vector3 coneDir = getConeDir(i, coneDirData);
-    int numSpheres = getNumberOfSpheres(numSpheres_min, numSpheres_max, coneDir);
+    int numSpheres = getNumberOfSpheres(numSpheres_min, numSpheres_max, coneDir, i, numCones);
     m_uniformData[size++] = coneDir.x;
     m_uniformData[size++] = coneDir.y;
     m_uniformData[size++] = coneDir.z;
     m_uniformData[size++] = (GLfloat)numSpheres;
+    printf("  NumSpheres: %d\n", numSpheres);
     for(int j = 0; j < numSpheres; ++j)
     {
       float r, d;
-      getSphereInformation(m_sphereInfo, m_coneRevolutionAngle, numSpheres, m_numCones, j, &d, &r);
+      getSphereInformation(m_sphereInfo, m_coneRevolutionAngle, m_numCones, numSpheres, m_numSphereSamplers, j, &d, &r);
       
-      int numSamplers = getNumberOfSamplers(numSamplers_min, numSamplers_max, d);
+      int numSamplers = getNumberOfSamplers(numSamplers_min, numSamplers_max, d, i, j, numCones);
       m_uniformData[size++] = r;
       m_uniformData[size++] = d;
       m_uniformData[size++] = (GLfloat)numSamplers;
+      printf("    NumSamplers: %d\n", numSamplers);
     }
   }
   m_uniformDataSize = size;
@@ -562,20 +688,11 @@ void KernelSSAO_Vox_ConeTracingUniformData::generateUniformDataArray ()
   MyAssert("Max Uniform Sphere Sampling Array Size Reached", m_uniformSphereSamplerDataSize <= SPHERE_SAMPLER_DATA_SIZE);
 }
 
-/*
+
 void KernelSSAO_Vox_ConeTracingUniformData::renderConeDistribution(int distribution)
 {
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glPushMatrix();
-
-  int numSamplersBeta = ceil(sqrt(float(m_numCones)));            //Longitude  (|||)
-  int numSamplersAlpha = ceil(float(m_numCones)/numSamplersBeta); //Latitude   (===)
-
-  GLTextureObject t(m_texIdConeDirSamplers, GL_TEXTURE_1D);
-  GLfloat *texData =  &t.read1DTextureFloatData(GL_RGB)[distribution*numSamplersAlpha*numSamplersBeta*3];
-
-  GLTextureObject t2(m_texIdSphereInfo, GL_TEXTURE_1D);
-  GLfloat *texDataInfo =  &t2.read1DTextureFloatData(GL_LUMINANCE_ALPHA)[distribution*m_numSpheresByCone *2];
 
   glPushMatrix();
   glScalef(2.0f,1.0f,2.0f);
@@ -592,78 +709,90 @@ void KernelSSAO_Vox_ConeTracingUniformData::renderConeDistribution(int distribut
   m_pointLight.configure();
   static float f = 0;
   glPushMatrix();
-  glRotated(f+=3, 0,1,0);
+  //glRotated(f+=3, 0,1,0);
   glTranslated(2,0,0);
   m_pointLight.render();
   glPopMatrix();
 
 
   glEnable(GL_NORMALIZE);
-  for(int i = 0; i < numSamplersAlpha; ++i)
+
+  //int numSpheres_min = (int) floorf(m_numSpheresByCone*0.2f + 0.5f);
+  //int numSpheres_max = m_numSpheresByCone;
+
+  //int numSamplers_min = (int) floorf(m_numSphereSamplers*.2f + 0.5f);
+  //int numSamplers_max = m_numSphereSamplers;
+
+  int pos = 0;
+  int numCones = m_uniformData[pos++];
+  for(int i = 0; i < numCones; ++i)
   {
-    for(int j = 0; j < numSamplersBeta; ++j)
+    Vector3 coneDir(m_uniformData[pos++], m_uniformData[pos++], m_uniformData[pos++]);
+    int numSpheres = (int) m_uniformData[pos++];
+
+    glPushMatrix();
+
+    coneDir = coneDir.unitary();
+    
+    float angle = coneDir.angle(Vector3(0,1,0));
+    Vector3 axis = coneDir^Vector3(0,1,0);
+    if(!(axis == Vector3(0,0,0)))
     {
-      glPushMatrix();
-      Vector3 dir(
-        texData[i*numSamplersBeta*3 + j*3 + 0],
-        texData[i*numSamplersBeta*3 + j*3 + 1],
-        texData[i*numSamplersBeta*3 + j*3 + 2]);
-      dir = dir.unitary();
-      float angle = dir.angle(Vector3(0,1,0));
-      Vector3 axis = dir^Vector3(0,1,0);
-      if(!(axis == Vector3(0,0,0)))
-      {
-        axis = axis.unitary();
-        glRotated(-angle, axis.x, axis.y, axis.z);
-      }
-
-      //SPHERES
-      //SPHERES
-      //SPHERES
-      GLfloat color2[4] = {0,1,1,1};
-      glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT,  color2);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,  color2);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color2);
-
-      for(int i = 0; i < m_numSpheresByCone; ++i)
-      {
-        glPushMatrix();
-
-        Vector3 center = getSphereCenter(Vector3(0,0,0), Vector3(0,1,0), 1, texDataInfo[i*2 + 0]);
-        float radius = getSphereRadius(1, texDataInfo[i*2 + 1]);
-
-        //glTranslatef(center.x, center.y, center.z);
-        //glutSolidSphere(radius, 30, 30);
-        //glPopMatrix();
-      }
-
-      //CONES
-      //CONES
-      //CONES
-      
-      glRotated(90,1,0,0);
-      glTranslatef(0,0,-1);
-      float coneHeight = 1.0f;
-      float coneAngle = m_coneRevolutionAngle;
-      //float coneAngle = atan(sqrt(2.0f/(m_numCones)));
-      float coneRadius = coneHeight*tan(coneAngle);
-
-      GLfloat color[4] = {1,1,0,1};
-      glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT,  color);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,  color);
-      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
-
-      glutWireCone(coneRadius, coneHeight, 50, 50);
-      
-      glPopMatrix();
-
+      axis = axis.unitary();
+      glRotated(-angle, axis.x, axis.y, axis.z);
     }
+
+    //SPHERES
+    //SPHERES
+    //SPHERES
+    for(int j = 0; j < numSpheres; ++j)
+    {
+      float r = m_uniformData[pos++];
+      float d = m_uniformData[pos++];
+      int numSamplers = m_uniformData[pos++];
+
+      Vector3 center = getSphereCenter(Vector3(0,0,0), Vector3(0,1,0), 1, d);
+      float radius = getSphereRadius(1, r);
+      GLfloat color3[4] = {0,1,1,1};
+      color3[0] = ((float)((j*453+89)%255))/255;
+      color3[1] = ((float)((j*876+8)%255))/255;
+      color3[2] = ((float)((j*537+254)%255))/255;
+
+      glPushMatrix();
+      glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,  color3);
+      glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT,  color3);
+      glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color3);
+
+      glTranslatef(center.x, center.y, center.z);
+      glutSolidSphere(radius/2, 30, 30);
+      glPopMatrix();
+    }
+
+    //CONES
+    //CONES
+    //CONES
+    glRotated(90,1,0,0);
+    glTranslatef(0,0,-1);
+    float coneHeight = 1.0f;
+    float coneAngle = m_coneRevolutionAngle;
+    //float coneAngle = atan(sqrt(2.0f/(numCones)));
+    float coneRadius = coneHeight*tan(coneAngle);
+
+    GLfloat color[4] = {1,1,0,1};
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT,  color);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE,  color);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, color);
+
+    //glutWireCone(coneRadius/2, coneHeight, 50, 50);
+
+    glPopMatrix();
   }
+
   glPopMatrix();
   glPopAttrib();
 }
 
-
+/*
 void KernelSSAO_Vox_ConeTracingUniformData::renderSphereSamplerDistribution(int distribution, int sphereIndex)
 {
   int numSphereSamplers = getNumSphereSamplers(sphereIndex);

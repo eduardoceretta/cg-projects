@@ -18,6 +18,7 @@
 #include "GLUtils/GLTextureObject.h"
 #include "MathUtils/UniformPoissonDiskSampler.h"
 
+#define str(s) #s
 
 #define STATIC_RAND 456
 #define CALC_NUM_SPHERES_BASED_ON_RFAR(rfar) \
@@ -71,11 +72,12 @@
 
 
 
-void SphereInfo::setParameters(float coneRevolutionAngle, int numSpheresByCone, int numCones )
+void SphereInfo::setParameters(float coneRevolutionAngle, int numCones, int numSpheresByCone, int numSamplersBySphere)
 {
   m_coneRevolutionAngle = coneRevolutionAngle;
-  m_numSpheresByCone = numSpheresByCone;
   m_numCones = numCones;
+  m_numSpheresByCone = numSpheresByCone;
+  m_numSamplersBySphere = numSamplersBySphere;
 
   switch(currCalcMethod)
   {
@@ -99,13 +101,126 @@ void SphereInfo::getSphereInfo( int k, float* center, float* radius )
   case RadiusProgression:
     *center = RadProg_GetSphereCenterMultiplier(k, m_numSpheresByCone);
     *radius = RadProg_GetSphereRadiusMultiplier(k, m_numSpheresByCone, m_numCones, m_coneRevolutionAngle);
+    printf("RadiusProgression %d %d %f %f \n", m_numSpheresByCone, k, *center, *radius);
     break;
   case  RadiusInitDistance:
+    {
     int index = floor(  ((m_numSpheresByCone>1)? (radDistParms.numMaxSpheres - 1) *  pow(float(k+1)/(m_numSpheresByCone ), float(m_numSpheresByCone)/radDistParms.numMaxSpheres) : radDistParms.numMaxSpheres - 2 )   );
     float initDist = RadDist_GetInitDist(radDistParms.xo, index, m_coneRevolutionAngle);
     float rad = RadDist_GetRadius(initDist, m_coneRevolutionAngle);
     *center = (initDist + rad);
     *radius = rad;
+    printf("RadiusInitDistance %d %d %f %f \n", m_numSpheresByCone, k, *center, *radius);
+    }
+    break;
+  case  StaticDistribution:
+    if(m_numCones == 9 && m_numSamplersBySphere == 12) // HIGH
+    {
+      float radiusStaticArray[9][7] = {
+        //{0.08, 0.135, 0.19, 0.245, 0.3, 0.355, 0.41},
+        //{0.03, 0.076, 0.123, 0.17, 0.216, 0.263, 0.31}, 
+        //{0.03,0.09,0.15,0.22,0.28,0.34,0.41},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+        {0.057735,0.106066,0.163299,0.228218,0.300000,0.378043,0.461880},
+      };
+      float centerStaticArray[9][7] = {
+        //{0.13f, 0.25f,  0.36f, 0.47f, 0.58f, 0.69f, 0.8f},
+        //{0.08, 0.156, 0.28, 0.45, 0.666, 0.93, 1.24},
+        //{0.1,0.21,0.33,0.45,0.56,0.68,0.8},
+        //{0.08,0.38,0.50,0.60,0.68,0.75,0.82},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+        {0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500 ,0.535937 ,0.800000},
+      };  
+      
+      *center = centerStaticArray[m_numSpheresByCone][k];
+      *radius = radiusStaticArray[m_numSpheresByCone][k];
+    }else if(m_numCones == 9 && m_numSamplersBySphere == 6) // MEDIUM
+    {
+      float radiusStaticArray[9][5] = {
+        //{0.08, 0.135, 0.19, 0.245, 0.3, 0.355, 0.41},
+        //{0.03, 0.076, 0.123, 0.17, 0.216, 0.263, 0.31}, 
+        //{0.03,0.09,0.15,0.22,0.28,0.34,0.41},
+        //{0.057735,0.106066,0.163299,0.228218,0.300000},
+        {0.088889,  0.251416, 0.351364, 0.461880,0.0},
+        {0.088889,  0.251416, 0.351364, 0.461880,0.0},
+        {0.088889,  0.251416, 0.351364, 0.461880,0.0},
+        {0.088889, 0.163299, 0.251416, 0.351364, 0.461880},
+        {0.088889, 0.163299, 0.251416, 0.351364, 0.461880},
+        {0.088889, 0.163299, 0.251416, 0.351364, 0.461880},
+        {0.088889, 0.163299, 0.251416, 0.351364, 0.461880},
+        {0.088889, 0.163299, 0.251416, 0.351364, 0.461880},
+        {0.088889, 0.163299, 0.251416, 0.351364, 0.461880},
+
+      };
+      float centerStaticArray[9][5] = {
+        //{0.13f, 0.25f,  0.36f, 0.47f, 0.58f, 0.69f, 0.8f},
+        //{0.08, 0.156, 0.28, 0.45, 0.666, 0.93, 1.24},
+        //{0.1,0.21,0.33,0.45,0.56,0.68,0.8},
+        //{0.08,0.38,0.50,0.60,0.68,0.75,0.82},
+        //{0.012500 ,0.042188 ,0.100000 ,0.195313 ,0.337500},
+        {0.029630,0.237037,0.462963,0.800000,0.0},
+        {0.029630,0.237037,0.462963,0.800000,0.0},
+        {0.029630,0.237037,0.462963,0.800000,0.0},
+        {0.029630,0.100000,0.237037,0.462963,0.800000},
+        {0.029630,0.100000,0.237037,0.462963,0.800000},
+        {0.029630,0.100000,0.237037,0.462963,0.800000},
+        {0.029630,0.100000,0.237037,0.462963,0.800000},
+        {0.029630,0.100000,0.237037,0.462963,0.800000},
+        {0.029630,0.100000,0.237037,0.462963,0.800000},
+      };  
+
+      *center = centerStaticArray[m_numSpheresByCone][k];
+      *radius = radiusStaticArray[m_numSpheresByCone][k];
+    }else if(m_numCones == 6 && m_numSamplersBySphere == 4) // LOW
+    {
+      float radiusStaticArray[6][4] = {
+        //{0.08, 0.135, 0.19, 0.245, 0.3, 0.355, 0.41},
+        //{0.03, 0.076, 0.123, 0.17, 0.216, 0.263, 0.31}, 
+        //{0.03,0.09,0.15,0.22,0.28,0.34,0.41},
+        //{0.057735,0.106066,0.163299,0.228218},
+        {0.116847,0.214663,0.330495,0.461880},
+        {0.116847,0.214663,0.330495,0.461880},
+        {0.116847,0.214663,0.330495,0.461880},
+        {0.116847,0.214663,0.330495,0.461880},
+        {0.116847,0.214663,0.330495,0.461880},
+        {0.116847,0.214663,0.330495,0.461880},
+      };
+      float centerStaticArray[6][4] = {
+        //{0.13f, 0.25f,  0.36f, 0.47f, 0.58f, 0.69f, 0.8f},
+        //{0.08, 0.156, 0.28, 0.45, 0.666, 0.93, 1.24},
+        //{0.1,0.21,0.33,0.45,0.56,0.68,0.8},
+        //{0.08,0.38,0.50,0.60,0.68,0.75,0.82},
+        //{0.012500 ,0.042188 ,0.100000 ,0.195313},
+        {0.051200 ,0.172800 ,0.409600 ,0.800000 },
+        {0.051200 ,0.172800 ,0.409600 ,0.800000 },
+        {0.051200 ,0.172800 ,0.409600 ,0.800000 },
+        {0.051200 ,0.172800 ,0.409600 ,0.800000 },
+        {0.051200 ,0.172800 ,0.409600 ,0.800000 },
+        {0.051200 ,0.172800 ,0.409600 ,0.800000 },
+      };  
+
+      *center = centerStaticArray[m_numSpheresByCone][k];
+      *radius = radiusStaticArray[m_numSpheresByCone][k];
+    }else {
+      *center = RadProg_GetSphereCenterMultiplier(k, m_numSpheresByCone);
+      *radius = RadProg_GetSphereRadiusMultiplier(k, m_numSpheresByCone, m_numCones, m_coneRevolutionAngle);
+    }
+
+    //printf("StaticDistribution %d %d %f %f \n", m_numSpheresByCone, k, *center, *radius);
     break;
   }
 }
@@ -157,7 +272,7 @@ float SphereInfo::RadProg_GetSphereCenterMultiplier( int i, int numSpheresByCone
 KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, int height, 
                                                  GLuint texIdEyePos, GLuint texIdNormalDepth, 
                                                  GLuint texIdVoxelGrid, GLuint texIdGridInvFunction)
-: KernelBase(path, "ssao_vox_cone_tracing.vert", "ssao_vox_cone_tracing.frag", width, height)
+: KernelBase(NULL, NULL, width, height)//KernelBase(path, "ssao_vox_cone_tracing.vert", "ssao_vox_cone_tracing.frag", width, height)
 ,m_width(width)
 ,m_height(height)
 ,m_coneDirSamplersWidth(0)
@@ -181,6 +296,16 @@ KernelSSAO_Vox_ConeTracing::KernelSSAO_Vox_ConeTracing(char* path, int width, in
 ,m_texIdBitCount16(0)
 {
   //m_numSpheresByCone = CALC_NUM_SPHERES_BASED_ON_RFAR(m_rfarPercent);
+
+  const GLubyte *shader_version_str = glGetString(GL_SHADING_LANGUAGE_VERSION);
+  float shader_vertsion;
+  sscanf((char*)shader_version_str, "%f", &shader_vertsion);
+
+  m_shader = new GLShader();
+  m_shader->addReplaceDefine(str(TEXTURE_BIT_COUNT_ENABLED), shader_vertsion < 4.0f);
+  string v = string(path) + "ssao_vox_cone_tracing.vert";
+  string f = string(path) + "ssao_vox_cone_tracing.frag";
+  m_shader->setShaderFiles((char*)v.c_str(), (char*)f.c_str());
   
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
@@ -644,7 +769,7 @@ void KernelSSAO_Vox_ConeTracing::generateSphereInfoTexture()
     {
       GLfloat *d = &texData[l*m_numSpheresByCone*m_numCones*2 + j*m_numSpheresByCone*2];
       
-      m_sphereInfo->setParameters(m_coneRevolutionAngle, m_numSpheresByCone, m_numCones);
+      m_sphereInfo->setParameters(m_coneRevolutionAngle, m_numCones, m_numSpheresByCone, m_numSphereSamplers);
       for(int k = 0; k < m_numSpheresByCone; ++k)
       {
         float r = 1.0;

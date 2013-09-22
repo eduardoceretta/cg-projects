@@ -15,6 +15,12 @@
 #include "GLUtils/GLProjectionMatrix.h"
 #include <vector>
 
+#define EYE_NEAREST_ENABLED 1
+
+#define LIMITED_FAR_ENABLED 0
+#define LIMITED_FAR_PERCENT .3f         /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
+
+
 using namespace std;
 
 class KernelVoxelization : public KernelBase {
@@ -87,6 +93,11 @@ public:
   void renderVoxelization();
 
   /**
+   * Render the voxelization done by the algorithm on a .pos file.
+   */
+  void writeVoxelizationPosFile();
+
+  /**
    * Changes the Grid Function
    */
   void reloadGridFuncTextures(float power);
@@ -124,6 +135,7 @@ private:
    */
   Vector3 getGridCellCenter(int x, int y, int z, float zNear);
   Vector3 getGridCellSize(int x, int y, int z, float zNear);
+ 
   /**
    * Grid Dimensions	
    */

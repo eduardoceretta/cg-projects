@@ -53,6 +53,8 @@ class KernelVoxelization;
 class KernelSSAO_SphereApproximation;
 class KernelSSAO_Vox_RayMarch;
 class KernelSSAO_Vox_ConeTracing;
+class KernelSSAO_Vox_ConeTracingUniformData;
+class KernelSSAO_SSAO_Combiner;
 
 class TimeTest;
 class ScreenShotTest;
@@ -110,6 +112,8 @@ class TestApp
   KernelSSAO_SphereApproximation* m_kernelSSAO_SphereApproximation;
   KernelSSAO_Vox_RayMarch* m_kernelSSAO_Vox_RayMarch;
   KernelSSAO_Vox_ConeTracing * m_kernelSSAO_Vox_ConeTracing;
+  KernelSSAO_Vox_ConeTracingUniformData * m_kernelSSAO_Vox_ConeTracingUniformData;
+  KernelSSAO_SSAO_Combiner * m_kernelSSAO_SSAO_Combiner;
 
   /**
    * Voxelization Algorithm Parameters
@@ -158,6 +162,23 @@ class TestApp
   string m_ConeTracing_sphereInfoMethod;
   float m_ConeTracing_sphereInfoSphereOverlap;
 
+  bool m_ConeTracingUniform_enabled;
+  bool m_ConeTracingUniform_jitter;
+  bool m_ConeTracingUniform_diffuse_enabled;
+  bool m_ConeTracingUniform_ao_enabled;
+  float m_ConeTracingUniform_rfarPercent;
+  float m_ConeTracingUniform_contrast;
+  float m_ConeTracingUniform_coneAngle;
+  int m_ConeTracingUniform_numCones;
+  int m_ConeTracingUniform_numSpheres;
+  int m_ConeTracingUniform_numSpamplers;
+  string m_ConeTracingUniform_sphereInfoMethod;
+  float m_ConeTracingUniform_sphereInfoSphereOverlap;
+  bool m_ConeTracingUniform_SSAOCombine_enabled;
+  float m_ConeTracingUniform_SSAOCombine_contrast;
+  float m_ConeTracingUniform_SSAOCombine_offsetSize;
+  float m_ConeTracingUniform_SSAOCombine_rfarPercent;
+
   /**
    * Render Mode
    */
@@ -166,6 +187,7 @@ class TestApp
                  ,RayMarch
                  ,ConeTracing
                  ,ConeTracing_Diffuse
+                 ,ConeTracing_Uniform
                  ,Debug
                  ,CustomCameras = 2*Debug};
 
@@ -264,6 +286,8 @@ private:
   static void rayMarch(TestApp* );
   static void coneTracing(TestApp* );
   static void coneTracingDiffuse(TestApp* );
+  static void coneTracingUniform(TestApp* );
+  static void coneTracingUniformSSAOCombiner(TestApp* );
   static void noShader(TestApp* );
   
 };

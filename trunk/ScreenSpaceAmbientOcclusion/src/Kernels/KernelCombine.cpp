@@ -38,3 +38,13 @@ void KernelCombine::step(GLuint ssaoTexId)
   m_shader->setActive(false);
   KernelBase::step();
 }
+
+
+void KernelCombine::step(GLuint t0, GLuint t1)
+{
+  m_shader->setActive(true);
+  setInputTexture(GL_TEXTURE_2D, "colorTex", t0, 0);
+  setInputTexture(GL_TEXTURE_2D, "ssaoTex", t1, 1);
+  m_shader->setActive(false);
+  KernelBase::step();
+}

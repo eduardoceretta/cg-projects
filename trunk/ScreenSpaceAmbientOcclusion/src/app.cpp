@@ -44,6 +44,7 @@
 #include "Kernels/KernelSSAO_Vox_TanSphereVolume.h"
 #include "Kernels/KernelSSAO_Vox_ConeTracing.h"
 #include "Kernels/KernelSSAO_Vox_ConeTracingUniformData.h"
+#include "Kernels/KernelSSAO_SSAO_Combiner.h"
 
 #include "GLUtils/GLTextureObject.h"
 #include "GLUtils/GLOcclusionQuery.h"
@@ -97,6 +98,7 @@ App::App()
 ,m_kernelSSAO_Vox_TanSphereVolume(NULL)
 ,m_kernelSSAO_Vox_ConeTracing(NULL)
 ,m_kernelSSAO_Vox_ConeTracingUniformData(NULL)
+,m_kernelSSAO_SSAO_Combiner(NULL)
 ,m_menu_on(false)
 ,m_lights_on(false)
 ,m_minerLight_on(false)
@@ -107,10 +109,13 @@ App::App()
 ,m_aoEnabled(true)
 ,m_blurr_on(false)
 ,m_orthographicProjection_on(false)
-,m_SSAO_rfarPercent(.1f)
+,m_SSAO_rfarPercent(.07f)
 ,m_SSAO_pixelmaskSize(.8f)
 ,m_SSAO_offsetSize(5.0f)
-,m_SSAO_contrast(1.28f)
+,m_SSAO_contrast(1.48f)
+,m_SSAO_combiner_enabled(true)
+,m_SSAO_combiner_offsetSize(2.0f)
+,m_SSAO_combiner_contrast(9.5f)
 ,m_SSAO_jitter(false)
 ,m_SSAO_numPeelings(3)
 ,m_SSAO_cone_angle(DEG_TO_RAD(30.0f))
@@ -123,7 +128,7 @@ App::App()
 ,m_SSAO_cone_numSpheres(5)
 ,m_SSAO_cone_numSpamplers(6)
 //HIGH
-//,m_SSAO_cone_numCones(6)
+//,m_SSAO_cone_numCones(9)
 //,m_SSAO_cone_numSpheres(7)
 //,m_SSAO_cone_numSpamplers(12)
 //,m_SSAO_cone_numCones(6)
@@ -135,7 +140,7 @@ App::App()
 ,m_SSAO_cone_infoRadiusParm(0.5f)
 ,m_voxProjectionMatrix(new GLProjectionMatrix())
 ,m_updateVoxelgrid(true)
-,m_renderMode(SSAO_Vox_ConeTracing)
+,m_renderMode(SSAO_Vox_ConeTracingUniformData)
 ,m_occlusionQuery(NULL)
 ,m_occlusionQueryEnabled(false)
 {
@@ -201,6 +206,7 @@ App::~App()
   delete m_kernelSSAO_Vox_TanSphereVolume;
   delete m_kernelSSAO_Vox_ConeTracing;
   delete m_kernelSSAO_Vox_ConeTracingUniformData;
+  delete m_kernelSSAO_SSAO_Combiner;
 
   delete m_voxProjectionMatrix;
 }
@@ -210,7 +216,6 @@ void App::initGL(int *argc, char *argv[])
 {
   glutInit(argc, argv);
   glewInit();	
-
   glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
   glutInitWindowSize(m_appWidth, m_appHeight);
   glutInitWindowPosition(100, 100);
@@ -237,6 +242,12 @@ void App::initGL(int *argc, char *argv[])
 
   //Disables cursor
   //glutSetCursor(GLUT_CURSOR_NONE);
+
+  m_shader_version_str = glGetString(GL_SHADING_LANGUAGE_VERSION);
+  sscanf((char*)m_shader_version_str, "%f", &m_shader_version);
+  cout << "GLSL Version: " <<  string((char*)m_shader_version_str)<<endl;
+
+  PrintGLErrorFunction();
 }
 
 void App::loadParameters(int argc, char *argv[])
@@ -251,6 +262,7 @@ void App::loadResources()
   loadKernels();
   loadCameras();
   listenReshape(m_appWidth, m_appHeight);
+  PrintGLErrorFunction();
 }
 
 
@@ -292,7 +304,7 @@ void App::render()
     case SSAO_Vox_ConeTracingUniformData:
       //m_kernelSSAO_Vox_ConeTracingUniformData->renderSphereInfoDistribution(((ccounter)/200)%5);
       //m_kernelSSAO_Vox_ConeTracingUniformData->renderSphereInfoDistribution(0);
-      //m_kernelSSAO_Vox_ConeTracingUniformData->renderConeDistribution(0);
+      m_kernelSSAO_Vox_ConeTracingUniformData->renderConeDistribution(0);
       //m_kernelSSAO_Vox_ConeTracingUniformData->renderSphereSamplerDistribution(((++ccounter)/200)%5, ((ccounter)/1000)%3);
       break;
     case Voxelization:
@@ -352,6 +364,71 @@ void App::listenReshape( int w, int h )
   glMatrixMode (GL_MODELVIEW);
 }
 
+/*************************************KeyBoard Help*************************************\
+        ESC   F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 - - - - 
+        - 1 2 3 - 5 6 7 8 9 0 _ +        - Home PgUp 
+        - q w e r - y u i o p - - -      - End  PgDn
+        - a s d - g h j k l - - - -
+        - z x c - b n m - - - - - -
+
+  ESC: Quit
+  Home: Increments Contrast
+  End: Decrements Contrast
+  PgDown: Decrements Rfar
+  PgUp: Increments Rfar
+  *: Reset Camera Initial Position
+  +: On SSAO Sphere increments the number of peelings
+  -: On SSAO Sphere decrements the number of peelings
+  0: On ConeTracing\ConeTracingUniform increments sphere overlap 
+  1: On Voxelization increments (<shift> decrements) X axis resolution
+  2: On Voxelization increments (<shift> decrements) Y axis resolution
+  3: On Voxelization increments (<shift> decrements) Z axis resolution
+  5: On ConeTracingUniform decrements the ssao combine contrast
+  6: On ConeTracingUniform increments the ssao combine contrast
+  7: On ConeTracing\ConeTracingUniform decrements the cone aperture
+  8: On ConeTracing\ConeTracingUniform increments the cone aperture
+  9: On ConeTracing\ConeTracingUniform decrements sphere overlap 
+
+  F3: Set SSAO Sphere Render
+  F4: Set SSAO HorizonSplit Render
+  F5: Set Voxelization Render
+  F6: Set VSAO Ray March Render
+  F7: Set VSAO Tangent Sphere Render
+  F8: Set VSAO Cone Tracing Render
+  F9: Set VSAO Cone Tracing Uniform Render
+  F10: Toggle Wire frame
+  F11: Set Regular (No Shader) Render
+  F1: Toggle Menu Open
+
+  a: Print Camera Info
+  b: Toggle blur
+  c: Change Between Camera Poses
+  d: Toggle Debug Render Mode
+  e: On ConeTracing\ConeTracingUniform setup high quality setting
+  g: On ConeTracing\ConeTracingUniform decrements the number of samplers
+  h: On ConeTracing\ConeTracingUniform increments the number of samplers
+  i: On SSAO Sphere increments pixel mask size      
+     On ConeTracing\ConeTracingUniform increments the number of cones
+  j: On SSAO Sphere decrements offset size     
+     On ConeTracing\ConeTracingUniform decrements the number of spheres by cone
+  k: On SSAO Sphere increments offset size     
+     On ConeTracing\ConeTracingUniform increments the number of spheres by cone
+  l: Toggle Point Light
+  m: Toggle Miner Light
+  n: Toggle Jitter on ConeTracing\ConeTracingUniform
+  o: Toggle Orthographic Projection
+  p: On ConeTracing\ConeTracingUniform changes the sphere info calculation method
+  q: On ConeTracing\ConeTracingUniform setup low quality setting
+  r: Reload All Shaders
+  s: Toggle Occlusion Query
+  u: On SSAO Sphere decrements pixel mask size     
+     On ConeTracing\ConeTracingUniform decrements the number of cones
+  w: On ConeTracing\ConeTracingUniform setup medium quality setting
+  x: Toggle Diffuse Illumination
+  y: On ConeTracingUniform Toggle SSAO Combination
+  z: Toggle AO
+\***************************************************************************************/
+
 void App::listenKeyboard( int key )
 {
   int modifier = glutGetModifiers();
@@ -397,6 +474,25 @@ void App::listenKeyboard( int key )
     break;
 
   case 'Q':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setRfarPercent(0.1f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(0.06f);
+      m_kernelSSAO_Vox_ConeTracing->setContrast(1.4f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.23f);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(4);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(4);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(4);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(4);
+      break;
+    }
+    break;
   case 'q':
     // Low
     switch(m_renderMode)
@@ -405,8 +501,10 @@ void App::listenKeyboard( int key )
       break;
     case SSAO_Vox_ConeTracing:
     case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setRfarPercent(0.1f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(0.06f);
       m_kernelSSAO_Vox_ConeTracing->setContrast(1.4f);
-      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.4f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.43f);
       m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(3);
@@ -418,6 +516,26 @@ void App::listenKeyboard( int key )
     break;
 
   case 'W':
+    // Medium
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setRfarPercent(0.1f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(0.07f);
+      m_kernelSSAO_Vox_ConeTracing->setContrast(1.15f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.43f);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(9);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(9);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(5);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(5);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(6);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(6);
+      break;
+    }
+    break;
   case 'w':
     // Medium
     switch(m_renderMode)
@@ -426,8 +544,10 @@ void App::listenKeyboard( int key )
       break;
     case SSAO_Vox_ConeTracing:
     case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setRfarPercent(0.1f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(0.07f);
       m_kernelSSAO_Vox_ConeTracing->setContrast(1.15f);
-      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.15f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.48f);
       m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(5);
@@ -439,6 +559,26 @@ void App::listenKeyboard( int key )
     break;
 
   case 'E':
+    // High
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracing:
+    case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setRfarPercent(0.1f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(0.08f);
+      m_kernelSSAO_Vox_ConeTracing->setContrast(1.05f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.18f);
+      m_kernelSSAO_Vox_ConeTracing->setNumCones(9);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(9);
+      m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(7);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(7);
+      m_kernelSSAO_Vox_ConeTracing->setNumSphereSamplers(12);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(12);
+      break;
+    }
+    break;
   case 'e':
     // High
     switch(m_renderMode)
@@ -447,8 +587,10 @@ void App::listenKeyboard( int key )
       break;
     case SSAO_Vox_ConeTracing:
     case SSAO_Vox_ConeTracingUniformData:
+      m_kernelSSAO_Vox_ConeTracing->setRfarPercent(0.1f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(0.08f);
       m_kernelSSAO_Vox_ConeTracing->setContrast(1.05f);
-      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.05f);
+      m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(1.33f);
       m_kernelSSAO_Vox_ConeTracing->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(6);
       m_kernelSSAO_Vox_ConeTracing->setNumSpheresByCone(7);
@@ -479,6 +621,11 @@ void App::listenKeyboard( int key )
   case 'B':
   case 'b':
     m_blurr_on = !m_blurr_on;
+    break;
+
+  case 'Y':
+  case 'y':
+    m_SSAO_combiner_enabled = !m_SSAO_combiner_enabled;
     break;
 
   case 'Z':
@@ -738,6 +885,47 @@ void App::listenKeyboard( int key )
     }
     break;
 
+  case '6':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracingUniformData:
+      m_SSAO_combiner_contrast *= 1.1f;
+    break;
+    }
+    break;
+  case 168://'¨'
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracingUniformData:
+      m_SSAO_combiner_contrast += .05;
+      break;
+    }
+    break;
+
+  case '5':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracingUniformData:
+      m_SSAO_combiner_contrast= max(m_SSAO_combiner_contrast*.9f, .01f);
+      break;
+    }
+    break;
+  case '%':
+    switch(m_renderMode)
+    {
+    default:
+      break;
+    case SSAO_Vox_ConeTracingUniformData:
+      m_SSAO_combiner_contrast = max(m_SSAO_combiner_contrast - .05f, .01f);
+      break;
+    }
+    break;
 
   case '8':
     switch(m_renderMode)
@@ -944,7 +1132,6 @@ void App::listenKeyboard( int key )
 void App::listenKeyboardSpecial( int key )
 {
   m_camHandler->listenSpecialKeyboard(key);
-
   int modifier = glutGetModifiers();
 
   switch(key)
@@ -1180,7 +1367,6 @@ void App::loadSceneParameters()
   m_clearColor[0] = sceneClearColor.r;
   m_clearColor[1] = sceneClearColor.g;
   m_clearColor[2] = sceneClearColor.b;
-  PrintGLErrorFunction();
 }
 
 void App::loadScene()
@@ -1317,6 +1503,11 @@ void App::loadKernels()
   m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(m_SSAO_contrast);
 
 
+  m_kernelSSAO_SSAO_Combiner = new KernelSSAO_SSAO_Combiner((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    ,m_kernelVoxDepth->getTexIdNormalDepth()
+    ,m_kernelSSAO_Vox_ConeTracingUniformData->getOutputTexture(0));
+
+
   GLfloat *lDif, *lPos;
   lDif = m_rtScene->getLightAt(0)->getLightStruct()->diffuse;
   lPos = m_rtScene->getLightAt(0)->getLightStruct()->pos;
@@ -1409,6 +1600,7 @@ void App::loadCameras()
   minerLight->setDiffuseColor(Color(0.8, 0.8, 0.8));
   minerLight->setSpecularColor(Color(1.0, 1.0, 1.0));
   minerLight->setPosition(Vector3(0, 100, 0));
+  PrintGLErrorFunction();
 }
 
 void App::drawScene()
@@ -1836,7 +2028,7 @@ void App::renderSSAOVoxConeTracing()
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
   
-   m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix);
+  m_kernelSSAO_Vox_ConeTracing->step(m_voxProjectionMatrix);
 
   //BLURR PASS
   if(m_blurr_on)
@@ -1884,20 +2076,27 @@ void App::renderSSAOVoxConeTracingUniformData()
   voxelize();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-  
-   m_kernelSSAO_Vox_ConeTracingUniformData->step(m_voxProjectionMatrix);
+  GLuint texId;
 
+  m_kernelSSAO_Vox_ConeTracingUniformData->step(m_voxProjectionMatrix);
+
+  if(m_SSAO_combiner_enabled)
+  {
+    m_kernelSSAO_SSAO_Combiner->step(m_voxProjectionMatrix, m_SSAO_rfarPercent, m_SSAO_combiner_offsetSize, m_SSAO_combiner_contrast);
+    texId = m_kernelSSAO_SSAO_Combiner->getOutputTexture(0);
+  }else texId = m_kernelSSAO_Vox_ConeTracingUniformData->getTexIdSSAO();
+   
   //BLURR PASS
   if(m_blurr_on)
   {
-    m_kernelBlur->setInputTexId(m_kernelSSAO_Vox_ConeTracingUniformData->getTexIdSSAO());
+    m_kernelBlur->setInputTexId(texId);
     m_kernelBlur->step(1);
     m_kernelBlur->renderOutput(0);
   }else
   {
     m_rtScene->setMaterialActive(true, 1);
 
-    m_kernelDeferredLighting->setAmbientInputTexId(m_kernelSSAO_Vox_ConeTracingUniformData->getTexIdSSAO());
+    m_kernelDeferredLighting->setAmbientInputTexId(texId);
     if(m_occlusionQueryEnabled)
     {
       m_occlusionQuery->begin();
@@ -1910,8 +2109,6 @@ void App::renderSSAOVoxConeTracingUniformData()
 
     if(!m_occlusionQueryEnabled)
       m_kernelDeferredLighting->renderOutput(0);
-    
-
     
     //m_kernelSSAO_Vox_ConeTracingUniformData->renderOutput(KernelSSAO_Vox_ConeTracingUniformData::SSAO);
   }
