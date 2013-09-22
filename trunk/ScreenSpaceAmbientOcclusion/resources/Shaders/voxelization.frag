@@ -12,8 +12,12 @@
 /* Shader Controls.                                                                     */
 /*  Each define specificates if a behaviour will affect the shader                      */
 /****************************************************************************************/
-#define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
-//#define LIMITED_FAR .2          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
+//#define EYE_NEAREST          /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
+//#define LIMITED_FAR_PERCENT .2          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
+
+#define EYE_NEAREST_ENABLED $REPLACE$         /**< Uses the information in the eyePos texture to get the nearest eye position of the fragment*/
+#define LIMITED_FAR_ENABLED $REPLACE$          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
+#define LIMITED_FAR_PERCENT $REPLACE$          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
  
 /****************************************************************************************/
 /* Shader Begin.                                                                        */
@@ -34,7 +38,7 @@ uniform sampler2D eyePosTex;          /**< EyePosition Nearest Eye Fragment Text
 uniform float screenWidth;
 uniform float screenHeight;
 uniform float far;
-#ifndef EYE_NEAREST
+#if !EYE_NEAREST_ENABLED
   uniform float near;
 #endif
 
@@ -59,7 +63,7 @@ void main()
   float dist = -eyePos.z;
   //float dist = length(eyePos);
   
-#ifdef EYE_NEAREST
+#if EYE_NEAREST_ENABLED
   float eyeNear = texture2D(eyePosTex, gl_FragCoord.xy/vec2(screenWidth, screenHeight)).a;
   if(eyeNear <= 0.0)
     discard;
@@ -68,11 +72,11 @@ void main()
   float fragNear = near;
 #endif  
 
-#ifdef LIMITED_FAR  
-  float distNorm = min((dist - fragNear)/(LIMITED_FAR*far), 1.0);
+#if LIMITED_FAR_ENABLED
+  float distNorm = min((dist - fragNear)/(LIMITED_FAR_PERCENT*(far - fragNear)), 1.0);
 #else
-  float distNorm = (dist - fragNear)/far;
-#endif  
+  float distNorm = (dist - fragNear)/(far - fragNear);
+#endif
   float gridIndex = texture1D(gridInvFunction, distNorm).a;
   vec4 bitMask = texture2D(gridBitMap, vec2(gridIndex, .5));
   

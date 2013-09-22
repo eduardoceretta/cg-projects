@@ -26,6 +26,10 @@ logFilePath = "resources/Tests/Logs/"
 -- logFileName = ""
 screenShotsPath = "resources/Tests/ScreenShots/MainTest/"
 
+--ConeTracing Type
+coneTracingUniformTypeEnabled = true
+coneTracingUniformCombineEnabled = true
+
 --Enabled Tests
 activeTests = {
   -- algorithmCompare = true,
@@ -36,7 +40,7 @@ activeTests = {
   -- diffuseScreenshotQuality = true,
   -- timeTable = true,
   timeTableScalability = true,
-  -- timeTableGeometryScalability = true,
+  timeTableGeometryScalability = true,
 }
 
 --Program Aceptable Parameters
@@ -54,6 +58,7 @@ parameters = {
   sphereEnabled = "-alg:Sphere",
   rayMarchEnabled = "-alg:RayMarch",
   coneTracingEnabled = "-alg:ConeTracing",
+  coneTracingUniformEnabled = "-alg:ConeTracingUniform",
 
   sphere_rfar = "-parm:Sphere:rfar",
   sphere_offset = "-parm:Sphere:offset",
@@ -70,7 +75,23 @@ parameters = {
   coneTracing_coneAngle = "-parm:ConeTracing:coneAngle",
   coneTracing_numCones = "-parm:ConeTracing:numCones",
   coneTracing_numSpheres = "-parm:ConeTracing:numSpheres",
-  coneTracing_numSamplers = "-parm:ConeTracing:numSamplers",
+  coneTracing_numSamplers = "-parm:ConeTracing:numSamplers",  
+  
+  coneTracingUniform_jitter = "-parm:ConeTracingUniform:jitter",
+  coneTracingUniform_diffuseEnabled = "-parm:ConeTracingUniform:diffuse_enabled",
+  coneTracingUniform_aoEnabled = "-parm:ConeTracingUniform:ao_enabled",
+  coneTracingUniform_rfar = "-parm:ConeTracingUniform:rfar",
+  coneTracingUniform_contrast = "-parm:ConeTracingUniform:contrast",
+  coneTracingUniform_coneAngle = "-parm:ConeTracingUniform:coneAngle",
+  coneTracingUniform_numCones = "-parm:ConeTracingUniform:numCones",
+  coneTracingUniform_numSpheres = "-parm:ConeTracingUniform:numSpheres",
+  coneTracingUniform_numSamplers = "-parm:ConeTracingUniform:numSamplers",
+  
+  coneTracingUniform_SSAOCombine_enabled = "-parm:ConeTracingUniform:SSAO_Combine_enabled",
+  coneTracingUniform_SSAOCombine_contrast = "-parm:ConeTracingUniform:SSAO_Combine_contrast",
+  coneTracingUniform_SSAOCombine_rfarPercent = "-parm:ConeTracingUniform:SSAO_Combine_rfar",
+  coneTracingUniform_SSAOCombine_pixelmaskSize = "-parm:ConeTracingUniform:SSAO_Combine_pixelmask",
+  coneTracingUniform_SSAOCombine_offsetSize = "-parm:ConeTracingUniform:SSAO_Combine_offset",
 }
 
 -- Models Used in Tests. Sorted by importance. Not all will be used.
@@ -372,6 +393,12 @@ function algorithmCompareTest(resolution, models, parms)
       {parameters.coneTracing_jitter, false,},
       {parameters.coneTracing_numSpheres, 5,},
       {parameters.coneTracing_numSamplers, 6,},
+      --Media
+      {parameters.coneTracingUniform_rfar, 0.07,},
+      {parameters.coneTracingUniform_contrast, 1.48,},
+      {parameters.coneTracingUniform_jitter, false,},
+      {parameters.coneTracingUniform_numSpheres, 5,},
+      {parameters.coneTracingUniform_numSamplers, 6,},
     }
   
   local tests = {
@@ -382,6 +409,7 @@ function algorithmCompareTest(resolution, models, parms)
     parameters.sphereEnabled,
     parameters.rayMarchEnabled,
     parameters.coneTracingEnabled,
+    parameters.coneTracingUniformEnabled,
   }
     
   local sceneFullPath = workingDir..scenePath
@@ -415,7 +443,8 @@ function parameterVariationTest(resolution, models)
       {parameters.coneTracing_numSamplers, 6,},
       },
       {parameters.coneTracing_jitter, {false, true},}
-    },
+    }
+    ,    
   }
     
   local sceneFullPath = workingDir..scenePath
@@ -451,13 +480,25 @@ function scalabilityTest(models, parms)
         {parameters.coneTracing_jitter, false,},
         {parameters.coneTracing_numSpheres, 5,},
         {parameters.coneTracing_numSamplers, 6,},
+      -- }      
+      -- { --Média
+        {parameters.coneTracingUniform_rfar, 0.07,},
+        {parameters.coneTracingUniform_contrast, 1.48,},
+        {parameters.coneTracingUniform_jitter, false,},
+        {parameters.coneTracingUniform_numSpheres, 5,},
+        {parameters.coneTracingUniform_numSamplers, 6,},
+        {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+        {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+        {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+        {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+        {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
       }
 
   local tests = {
     parameters.timeTestEnabled,
   }
   local algorithms = {
-    parameters.coneTracingEnabled,
+    coneTracingUniformTypeEnabled and parameters.coneTracingUniformEnabled or parameters.coneTracingEnabled,
   }
   
   local resolutions = {
@@ -502,6 +543,18 @@ function geometryScalabilityTest(models, parms)
       {parameters.coneTracing_jitter, false,},
       {parameters.coneTracing_numSpheres, 5,},
       {parameters.coneTracing_numSamplers, 6,},
+    -- }    
+    -- { --Média
+      {parameters.coneTracingUniform_rfar, 0.07,},
+      {parameters.coneTracingUniform_contrast, 1.48,},
+      {parameters.coneTracingUniform_jitter, false,},
+      {parameters.coneTracingUniform_numSpheres, 5,},
+      {parameters.coneTracingUniform_numSamplers, 6,},
+      {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+      {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+      {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+      {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+      {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
     }
 
   local tests = {
@@ -509,7 +562,7 @@ function geometryScalabilityTest(models, parms)
     parameters.screenShotTestEnabled,
   }
   local algorithms = {
-    parameters.coneTracingEnabled,
+    coneTracingUniformTypeEnabled and parameters.coneTracingUniformEnabled or parameters.coneTracingEnabled,
   }
   
   local sceneFullPath = workingDir..scenePath
@@ -528,16 +581,16 @@ end
 function screenshotQualityTest(resolution, models)
   resolution = resolution and resolution or {640, 480}
   models = models and models or {path = testModels.path, 
-    testModels[4],
+    -- testModels[4], --dragon
     -- testModels[12],
     -- testModels[13],
-    testModels[14],
-    testModels[15],
+    -- testModels[14], --brain
+    testModels[15], --buddha15M
     -- testModels[16],
-    testModels[17],
-    testModels[18],
-    testModels[19],
-    testModels[20],
+    -- testModels[17], --hand
+    -- testModels[18], --happyvrip
+    testModels[19], --jsyrlin
+    testModels[20], --karburator
   }
     
     
@@ -546,31 +599,104 @@ function screenshotQualityTest(resolution, models)
     parameters.screenShotTestEnabled,
   }
   local algorithms = {
-    parameters.coneTracingEnabled,
+    coneTracingUniformTypeEnabled and parameters.coneTracingUniformEnabled or parameters.coneTracingEnabled,
   }
-  local varyingParms = {
+  local varyingParms = 
+    coneTracingUniformTypeEnabled 
+    and
+    { 
+      {
+        name = "Baixa", 
+        {parameters.coneTracingUniform_rfar, 0.06,},
+        {parameters.coneTracingUniform_contrast, 1.53,},
+        {parameters.coneTracingUniform_jitter, false,},
+        {parameters.coneTracingUniform_numSpheres, 3,},
+        {parameters.coneTracingUniform_numSamplers, 3,},
+        {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+        {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+        {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+        {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+        {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
+      },    
+      {
+        name = "Media",
+        {parameters.coneTracingUniform_rfar, 0.07,},
+        {parameters.coneTracingUniform_contrast, 1.48,},
+        {parameters.coneTracingUniform_jitter, false,},
+        {parameters.coneTracingUniform_numSpheres, 5,},
+        {parameters.coneTracingUniform_numSamplers, 6,},
+        {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+        {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+        {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+        {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+        {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
+      },    
+      {
+        name = "Alta",
+        {parameters.coneTracingUniform_rfar, 0.08,},
+        {parameters.coneTracingUniform_contrast, 1.33,},
+        {parameters.coneTracingUniform_jitter, false,},
+        {parameters.coneTracingUniform_numSpheres, 7,},
+        {parameters.coneTracingUniform_numSamplers, 12,},
+        {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+        {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+        {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+        {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+        {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
+      },
+      {
+        name = "Ultra Alta",
+        {parameters.coneTracingUniform_rfar, 0.09,},
+        {parameters.coneTracingUniform_contrast, 1.11,},
+        {parameters.coneTracingUniform_jitter, false,},
+        {parameters.coneTracingUniform_numSpheres, 10,},
+        {parameters.coneTracingUniform_numSamplers, 14,},
+        {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+        {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+        {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+        {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+        {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
+      },      
+      {
+        name = "Ultra Alta Jit",
+        {parameters.coneTracingUniform_rfar, 0.09,},
+        {parameters.coneTracingUniform_contrast, 1.31,},
+        {parameters.coneTracingUniform_jitter, true,},
+        {parameters.coneTracingUniform_numSpheres, 8,},
+        {parameters.coneTracingUniform_numSamplers, 20,},
+        {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+        {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+        {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+        {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+        {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
+      },
+    }
+    or
     {
-      name = "Baixa", 
-      {parameters.coneTracing_contrast, 1.4,},
-      {parameters.coneTracing_jitter, false,},
-      {parameters.coneTracing_numSpheres, 3,},
-      {parameters.coneTracing_numSamplers, 3,},
-    },    
-    {
-      name = "Media",
-      {parameters.coneTracing_contrast, 1.15,},
-      {parameters.coneTracing_jitter, false,},
-      {parameters.coneTracing_numSpheres, 5,},
-      {parameters.coneTracing_numSamplers, 6,},
-    },    
-    {
-      name = "Alta",
-      {parameters.coneTracing_contrast, 1.05,},
-      {parameters.coneTracing_jitter, false,},
-      {parameters.coneTracing_numSpheres, 7,},
-      {parameters.coneTracing_numSamplers, 12,},
-    },
-  }
+      {
+        name = "Baixa", 
+        {parameters.coneTracing_contrast, 1.4,},
+        {parameters.coneTracing_jitter, false,},
+        {parameters.coneTracing_numSpheres, 3,},
+        {parameters.coneTracing_numSamplers, 3,},
+      },    
+      {
+        name = "Media",
+        {parameters.coneTracing_contrast, 1.15,},
+        {parameters.coneTracing_jitter, false,},
+        {parameters.coneTracing_numSpheres, 5,},
+        {parameters.coneTracing_numSamplers, 6,},
+      },    
+      {
+        name = "Alta",
+        {parameters.coneTracing_contrast, 1.05,},
+        {parameters.coneTracing_jitter, false,},
+        {parameters.coneTracing_numSpheres, 7,},
+        {parameters.coneTracing_numSamplers, 12,},
+      },
+    }
+    
+
     
   local sceneFullPath = workingDir..scenePath
   local logfileName = "ScreenshotQualityTest_"
@@ -649,6 +775,18 @@ function timeTableTest(resolution, models, parms)
       {parameters.coneTracing_jitter, false,},
       {parameters.coneTracing_numSpheres, 5,},
       {parameters.coneTracing_numSamplers, 6,},
+    -- }   
+    -- {
+      {parameters.coneTracingUniform_rfar, 0.07,},
+      {parameters.coneTracingUniform_contrast, 1.48,},
+      {parameters.coneTracingUniform_jitter, false,},
+      {parameters.coneTracingUniform_numSpheres, 5,},
+      {parameters.coneTracingUniform_numSamplers, 6,},
+      {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+      {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+      {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+      {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+      {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
     }
   
   
@@ -657,7 +795,7 @@ function timeTableTest(resolution, models, parms)
     -- parameters.screenShotTestEnabled,
   }
   local algorithms = {
-    parameters.coneTracingEnabled,
+    coneTracingUniformTypeEnabled and parameters.coneTracingUniformEnabled or parameters.coneTracingEnabled,
   }
   local sceneFullPath = workingDir..scenePath
   local logfileName = "TimeTableTest_"
@@ -688,6 +826,18 @@ function timeTableGeometryScalabilityTest(resolution, models, parms)
       {parameters.coneTracing_jitter, false,},
       {parameters.coneTracing_numSpheres, 5,},
       {parameters.coneTracing_numSamplers, 6,},
+    -- }    
+    -- { --Média
+      {parameters.coneTracingUniform_rfar, 0.07,},
+      {parameters.coneTracingUniform_contrast, 1.48,},
+      {parameters.coneTracingUniform_jitter, false,},
+      {parameters.coneTracingUniform_numSpheres, 5,},
+      {parameters.coneTracingUniform_numSamplers, 6,},
+      {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+      {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+      {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+      {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+      {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},
     }
 
   local tests = {
@@ -695,7 +845,7 @@ function timeTableGeometryScalabilityTest(resolution, models, parms)
     -- parameters.screenShotTestEnabled,
   }
   local algorithms = {
-    parameters.coneTracingEnabled,
+    coneTracingUniformTypeEnabled and parameters.coneTracingUniformEnabled or parameters.coneTracingEnabled,
   }
   
   local sceneFullPath = workingDir..scenePath
@@ -719,13 +869,25 @@ function timeTableScalabilityTest(resolution, models, parms)
         {parameters.coneTracing_jitter, false,},
         {parameters.coneTracing_numSpheres, 5,},
         {parameters.coneTracing_numSamplers, 6,},
+      -- }      
+      -- { --Média
+        {parameters.coneTracingUniform_rfar, 0.07,},
+        {parameters.coneTracingUniform_contrast, 1.48,},
+        {parameters.coneTracingUniform_jitter, false,},
+        {parameters.coneTracingUniform_numSpheres, 5,},
+        {parameters.coneTracingUniform_numSamplers, 6,},
+        {parameters.coneTracingUniform_SSAOCombine_enabled, coneTracingUniformCombineEnabled},
+        {parameters.coneTracingUniform_SSAOCombine_contrast, 50.0},
+        {parameters.coneTracingUniform_SSAOCombine_offsetSize, 5.0},
+        {parameters.coneTracingUniform_SSAOCombine_pixelmaskSize, 0.8},
+        {parameters.coneTracingUniform_SSAOCombine_rfarPercent, 0.1},        
       }
 
   local tests = {
     parameters.timeTestEnabled,
   }
   local algorithms = {
-    parameters.coneTracingEnabled,
+    coneTracingUniformTypeEnabled and parameters.coneTracingUniformEnabled or parameters.coneTracingEnabled,
   }
   
   local resolutions = {
@@ -753,6 +915,9 @@ function timeTableScalabilityTest(resolution, models, parms)
 end
 
 
+-- Test Log Analiser
+-- Test Log Analiser
+-- Test Log Analiser
 -- Test Log Analiser
 function algorithmCompareLogAnaliser(logFileName)
   local testName = "AlgorithmCompare"
@@ -1245,7 +1410,7 @@ end
 function screenshotQualityLogAnaliser(logFileNameList)
   local testName = "ScreenshotQuality"
   local timeMetric = "Mean" -- {"Mean" | "Single"}
-  local nameLines = {"Baixa", "Média", "Alta"}
+  local nameLines = {"Baixa", "Média", "Alta", "Ultra", "UltraJit"}
   
   local tests = {
     timeTest = true,

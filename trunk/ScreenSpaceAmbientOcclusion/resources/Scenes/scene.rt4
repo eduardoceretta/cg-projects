@@ -1,6 +1,7 @@
 RT 4.0
 //SCENE (clear)r g b    (ambient) r g b  width  height 
 SCENE 0.341 0.549 0.85    0.2 0.2 0.2     640    480
+// SCENE 1 1 1    0.2 0.2 0.2     640    480
 
 //If using SphereCamera Handler only considers the fov and scene's width and heigh
 //CAMERA  (pos)x y z (at)x y z (up)x y z  fov  near  far  
@@ -32,9 +33,9 @@ LIGHT  400 100 10   1 1 1   0 0 0
 ////////////////////////MSH MSH MSH MSH//////////////////////////
 ////////////////////////MSH MSH MSH MSH//////////////////////////
 ////////////////////////MSH MSH MSH MSH//////////////////////////
-//MESH 1  4 8 6     10 10 3  resources/Models/MSH/cube.msh
-//MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/MSH/cube_C.msh
-//MESH 1  -4. 0. 0.     10 10 10  resources/Models/MSH/cube_L_closed.msh
+// MESH 1  4 8 6     10 10 3  resources/Models/MSH/cube.msh
+// MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/MSH/cube_C.msh
+// MESH 1  -4. 0. 0.     10 10 10  resources/Models/MSH/cube_L_closed.msh
 //MESH 1  0. 0. 0.     .5 .5 .5  resources/Models/MSH/cube_L.msh
 //MESH 1  0. 0. 0.     1. 1. 1.  resources/Models/MSH/box.msh
 
@@ -42,8 +43,8 @@ LIGHT  400 100 10   1 1 1   0 0 0
 ////////////////////////PLY PLY PLY PLY//////////////////////////
 ////////////////////////PLY PLY PLY PLY//////////////////////////
 ////////////////////////PLY PLY PLY PLY//////////////////////////
-//MESH 1  0 0 0   1 1 5 resources/Models/Stanford/reservoir.msb
-//MESH 1  0 0 0   1 1 1 resources/Models/Stanford/reservoir.sep1.scale7.2.ply
+// MESH 1  0 0 0   1 1 5 resources/Models/Stanford/reservoir.ply
+//MESH 1  0 0 0   1 1 7.2 resources/Models/Stanford/reservoir.sep1.scale7.2.ply
 //MESH 1  0 0 0   1 1 7.2 resources/Models/Stanford/reservoir.sep2.scale7.2.msb
 
 //MESH 1  .18 -.25 0.     3. 3. 3. resources/Models/Stanford/bun_zipper_res2.msb
@@ -57,7 +58,7 @@ LIGHT  400 100 10   1 1 1   0 0 0
 ////////////////////////3DS 3DS 3DS 3DS//////////////////////////
 ////////////////////////3DS 3DS 3DS 3DS//////////////////////////
 ////////////////////////3DS 3DS 3DS 3DS//////////////////////////
-//MESH 1  -4.5 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statue.3ds
+// MESH 1  -4.5 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statue.3ds
  //MESH 1  -4.5 0 0  .0003 .0003 .0003  resources/Models/3DS/65aphrodite-statuHigh.3ds
  //MESH 1  0 10 0     .01 .01 .01  resources/Models/3DS/TableSinger.msb
  //MESH 1  0 -1 0     8.16846e-6 -8.16846e-6 8.16846e-6  resources/Models/3DS/CarToyotaCrown.msb
@@ -87,7 +88,7 @@ LIGHT  400 100 10   1 1 1   0 0 0
 //MESH 1 0 0 0 1 1 1 resources/Models/obj/toyplane.msb                //NON-WATERTIGHT  
 //MESH 1 0 0 0 1 1 1 resources/Models/obj/wateringcan.msb             //NON-WATERTIGHT  
 //MESH 1 0 0 0 1 1 1 resources/Models/obj/ak47.msb    //284k Vertex  112k Triangles                                                            
-//CAMERA    -13.5074 4.4051 28.7633        0.000577153 -2.86696 -6.66222        0.0441255 0.981801 -0.184716    30       5      1000
+// CAMERA    -13.5074 4.4051 28.7633        0.000577153 -2.86696 -6.66222        0.0441255 0.981801 -0.184716    30       5      1000
 //CAMERA    -77.4268 7.27157 -20.6568      0.000579942 -2.86696 -6.66223        0.151554 0.980064 -0.128479     30       5      1000
 //CAMERA    17.3225 -0.40348 42.9144       0.000582064 -2.86697 -6.66224        0.186761 0.975799 -0.113742     30       5      1000
 //
@@ -119,8 +120,8 @@ LIGHT  400 100 10   1 1 1   0 0 0
 ////////////////////////TEC TEC TEC TEC//////////////////////////
 ////////////////////////TEC TEC TEC TEC//////////////////////////
 ////////////////////////TEC TEC TEC TEC//////////////////////////
-//MESH 1  0. 0. 0.     .1 .1 .1  resources/Models/TecGraf/16metros_30graus.p3b
-//MESH 1  0. 0. 0.     .1 .1 .1  resources/Models/TecGraf/roda.p3b
+// MESH 1  0. 0. 0.     .1 .1 .1  resources/Models/TecGraf/16metros_30graus.p3b
+// MESH 1  0. 0. 0.     .1 .1 .1  resources/Models/TecGraf/roda.p3b
 
 
 ////////////////////////////OPTIX COMPARE////////////////////////////////
@@ -128,10 +129,10 @@ LIGHT  400 100 10   1 1 1   0 0 0
 ////////////////////////////OPTIX COMPARE////////////////////////////////
 //OBJ
 //OBJ
-//MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/city.msb          //WATERTIGHT 15k Vertex     7k Triangles                                                                
-//CAMERA    0.615725 0.236336 2.21997      0.615725 0.236336 -0.579334          0 1 0                           30       5      1000
-//CAMERA    -2.41815 1.60309 0.720007      0.615725 0.236336 -0.579334          0.351855 0.923911 -0.150287     30       5      1000
-//CAMERA    1.27591 0.72413 -2.41955       0.615725 0.236336 -0.579334          0.0543153 0.960192 0.274009     30       5      1000
+// MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/city.msb          //WATERTIGHT 15k Vertex     7k Triangles                                                                
+// CAMERA    0.615725 0.236336 2.21997      0.615725 0.236336 -0.579334          0 1 0                           30       5      1000
+// CAMERA    -2.41815 1.60309 0.720007      0.615725 0.236336 -0.579334          0.351855 0.923911 -0.150287     30       5      1000
+// CAMERA    1.27591 0.72413 -2.41955       0.615725 0.236336 -0.579334          0.0543153 0.960192 0.274009     30       5      1000
 
 //MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/cutter.msb              //WATERTIGHT 130k Vertex        65k Triangles                                                        
 //CAMERA    4.1874 7.09915 151.792         4.1874 7.09915 -0.7609               0 1 0                           30       5      1000
@@ -141,9 +142,11 @@ LIGHT  400 100 10   1 1 1   0 0 0
 //MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/DW-Ormesh-02.msb        //WATERTIGHT 143k Vertex  71k Triangles                                                    
 //CAMERA    26.4077 180.487 1009.17        26.4077 180.487 -178.905             0 1 0                           30       5      1000
 
-//MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/dragonPlane.msb          //WATERTIGHT 300k Vertex    100k Triangles
-//CAMERA -25.4965  5.18368  0.75211  -0.603346  4.17719  0.463936  0.0402624  0.999122  -0.0116153 30 5 1000
-//CAMERA 25.1587  5.34227  5.50658 -0.603347  4.17718  0.463934 -0.0422935  0.998996  -0.0147438 30 5 1000
+// MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/dragonPlane.obj          //WATERTIGHT 300k Vertex    100k Triangles
+// CAMERA -25.829  6.66198  -0.244091 1.65701e-007  4.61995  -3.60815e-007 0.0790352  0.996519  -0.0265367 30 5 1000
+// CAMERA 25.1587  5.34227  5.50658 -0.603347  4.17718  0.463934 -0.0422935  0.998996  -0.0147438 30 5 1000
+
+// CAMERA -25.4965  5.18368  0.75211  -0.603346  4.17719  0.463936  0.0402624  0.999122  -0.0116153 30 5 1000
 
 //CAMERA -15.4498   0.879684   -12.315  -2.53061e-006   4.71994   1.13048e-006  -0.0748817   0.974821   -0.21004 30       5      1000
 //CAMERA 34.3196   3.08033   12.8054  0.27665   4.63417   -0.615212  0.0159964   0.997065   0.0748635 30       5      1000
@@ -151,9 +154,12 @@ LIGHT  400 100 10   1 1 1   0 0 0
 //CAMERA -24.4297  5.85208  0.236916 0.174393  5.33022  1.40325 0.0189543  0.998714 0.0470215 30 5 100
 
 
-//MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/dragon.msb          //WATERTIGHT 300k Vertex    100k Triangles
-//CAMERA -21.5185  7.61081  18.0132  -8.46725e-008  4.96995  5.65807e-008  0.0502917  0.995042  -0.0858016 30 5 1000
-//CAMERA -12.9671  5.87109  -25.0109  -1.43579e-006  4.96995  -2.42542e-007  0.271954 0.956395  -0.106538  30 5 1000
+// MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/dragon.msb          //WATERTIGHT 300k Vertex    100k Triangles
+// CAMERA -25.4965  5.18368  0.75211  -0.603346  4.17719  0.463936  0.0402624  0.999122  -0.0116153 30 5 1000
+// CAMERA 25.1587  5.34227  5.50658 -0.603347  4.17718  0.463934 -0.0422935  0.998996  -0.0147438 30 5 1000
+
+// CAMERA -21.5185  7.61081  18.0132  -8.46725e-008  4.96995  5.65807e-008  0.0502917  0.995042  -0.0858016 30 5 1000
+// CAMERA -12.9671  5.87109  -25.0109  -1.43579e-006  4.96995  -2.42542e-007  0.271954 0.956395  -0.106538  30 5 1000
 
 //CAMERA   -28.1103  5.09934  -2.07215      -6.61092e-008  4.96995  -4.15856e-009    0.00135533  0.999031  0.043997     30    5     1000
 //CAMERA   27.7427  1.57225  -3.64703       3.3931e-007  4.96995  7.40699e-007       0.110213  0.990331  -0.084241      30    5     1000
@@ -162,80 +168,82 @@ LIGHT  400 100 10   1 1 1   0 0 0
 //CAMERA   0.434503  32.6008  -5.55447      8.12403e-007  4.96995  7.57458e-007      -0.0748029 0.197659  0.977413      30    5     1000
 //CAMERA   3.24169  -23.0011  1.27389       8.93577e-007  4.96995  1.06895e-006      0.0368047  -0.041208  -0.998473    30    5     1000
 
-//MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/ateneam.msb                 //WATERTIGHT   45k V    15k T       OPTIX
-//CAMERA  2012.83  163.739  -1269.32      -1148.92  1750.66  316.511      0.368892  0.912364  -0.177512  30  5  1000
-//CAMERA  9395.73  1031.21  6815.89      -1311.34  873.505  25.674      -0.0161194  0.999868  0.00219707  30  5  1000
+// MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/ateneam.msb                 //WATERTIGHT   45k V    15k T       OPTIX
+// CAMERA  2012.83  163.739  -1269.32      -1148.92  1750.66  316.511      0.368892  0.912364  -0.177512  30  5  1000
+// CAMERA  9395.73  1031.21  6815.89      -1311.34  873.505  25.674      -0.0161194  0.999868  0.00219707  30  5  1000
 
 //MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/ducky.msb                   //WATERTIGHT  28k V    14k T        OPTIX
 //CAMERA  423.386  154.749  440.803      6.99708e-005  52.8394  -41.1333      -0.0947344  0.987548  -0.1256  30  5  1000
 //CAMERA  -77.3621  148.57  190.565      45.8546  101.377  -32.59      0.031042  0.981222  -0.190369  30  5  1000
 //
-//MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/venusm.msb                  //WATERTIGHT   130k V    43k T      OPTIX
-//CAMERA  0.62915  1434.35  8945.67      0.62915  1434.35  -186.891      0  1  0  30  5  1000
-//CAMERA  555.918  3948.94  944.666      32.0453  2893.19  47.401      -0.930649  0.203139  0.304345  30  5  1000
+// MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/venusm.msb                  //WATERTIGHT   130k V    43k T      OPTIX
+// CAMERA  0.62915  1434.35  8945.67      0.62915  1434.35  -186.891      0  1  0  30  5  1000
+// CAMERA  555.918  3948.94  944.666      32.0453  2893.19  47.401      -0.930649  0.203139  0.304345  30  5  1000
 //
-//MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/elepham.msb                 //+-WATERTIGHT   117k V    39k T    OPTIX
-//CAMERA  -1642.09  296.865  1036.14      187.186  467.413  110.326      -0.0938503  0.995584  -0.00203468  30  5  1000
-//CAMERA  357.454  670.061  700.947      12.4391  497.878  226.295      -0.303574  0.944949  -0.122126  30  5  1000
+// MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/elepham.msb                 //+-WATERTIGHT   117k V    39k T    OPTIX
+// CAMERA  -1642.09  296.865  1036.14      187.186  467.413  110.326      -0.0938503  0.995584  -0.00203468  30  5  1000
+// CAMERA  357.454  670.061  700.947      12.4391  497.878  226.295      -0.303574  0.944949  -0.122126  30  5  1000
 //
 //MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/ladybird.msb                //+-WATERTIGHT   93k V    46k T     OPTIX
 //CAMERA  1261.85  144.762  -508.307      0.42215  186.778  16.8873      0.00439427  0.997589  -0.0692558  30  5  1000
 //CAMERA  83.9651  -275.241  -256.601      41.5013  -15.0654  -129.425      -0.00770198  0.438123  -0.898882  30  5  1000
 //
-//MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/mba1.msb                    //+-WATERTIGHT   251k V    84k T    OPTIX
+// MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/mba1.msb                    //+-WATERTIGHT   251k V    84k T    OPTIX
 //CAMERA  -9.30467  64.0636  416.061      -9.30467  64.0636  0.0113792      0  1  0  30  5  1000
 //CAMERA  96.3126  89.7726  141.142      11.4312  68.186  -22.31      -0.0831427  0.992652  -0.0879209  30  5  1000
 
 
 //3DS
 //3DS
-//MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/brain.msb
-//CAMERA 1.92317  13.7947  0.0336796 -0.153472  1.11954  -1.61502e-005 -0.986607  0.161582  0.0223143 30 5 1000
-//CAMERA 8.31161  -0.0913365  3.99986  -1.99576  2.78985  -1.3377  0.218641  0.970497  0.101648 30 5 1000
+// MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/brain.msb
+// CAMERA 1.92317  13.7947  0.0336796 -0.153472  1.11954  -1.61502e-005 -0.986607  0.161582  0.0223143 30 5 1000
+// CAMERA 8.31161  -0.0913365  3.99986  -1.99576  2.78985  -1.3377  0.218641  0.970497  0.101648 30 5 1000
 
 
 //PLY
 //PLY
-//MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/bareliefply.msb
- //CAMERA  13.3632  30.5817  3618.09     13.3632  30.5817  -138.15     0  1  0  30  5  1000
- //CAMERA  3108.06  -377.201  1951.35     13.3632  30.5817  -138.151     -0.557155  0.0248511  0.830036  30  5  1000
+// MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/bareliefply.msb
+ // CAMERA  13.3632  30.5817  3618.09     13.3632  30.5817  -138.15     0  1  0  30  5  1000
+ // CAMERA  3108.06  -377.201  1951.35     13.3632  30.5817  -138.151     -0.557155  0.0248511  0.830036  30  5  1000
 
  // MESH  1  50    80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
  // MESH  1  -50   80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
  //MESH  1  50   -80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
  //MESH  1  -50  -80  0  1  1  1  resources/Models/optixCompare/buddha15M.msb
-   //MESH  1  0 0 0  1  1  1  resources/Models/optixCompare/buddha15M.msb
- //CAMERA  0.445269  71.0018  318.843     0.445269  71.0018  -0.418875     0  1  0  30  5  1000
- //CAMERA  -318.154  61.3621  17.7902     0.445272  71.0016  -0.418897     -0.0328169  0.998419  -0.045643  30  5  1000
+MESH  1  0 0 0  1  1  1  resources/Models/optixCompare/buddha15M.msb
+CAMERA  0.445269  71.0018  318.843     0.445269  71.0018  -0.418875     0  1  0  30  5  1000
+CAMERA  -318.154  61.3621  17.7902     0.445272  71.0016  -0.418897     -0.0328169  0.998419  -0.045643  30  5  1000
 
-//MESH  1  0.  0.  0.  1  1  1  resources/Models/optixCompare/bunzipper.msb  
+// MESH  1  0.  0.  0.  1  1  1  resources/Models/optixCompare/bunzipper.msb  
 // CAMERA  -0.0168405  0.110154  0.343843     -0.0168405  0.110154  -0.001537     0  1  0  30  5  1000
 // CAMERA  0.21772  0.276571  -0.192781     -0.0168405  0.110154  -0.00153703     -0.312391  0.872381  0.375983  30  5  1000
 
-//MESH  1  0 0 0  1 1 1  resources/Models/optixCompare/hand.msb
+// MESH  1  0 0 0  1 1 1  resources/Models/optixCompare/hand.msb
 // CAMERA  5.34015  15.595  2.36007     3.40754  2.50787  1.54347     -0.229032  0.094274  -0.968843  30  5  1000
 // CAMERA  -7.99303  -0.740623  -4.38534     3.40754  2.50787  1.54347     -0.117636  0.948667  -0.293587  30  5  1000
  
 
- //MESH  1  0 0 0  1 1 1 resources/Models/optixCompare/happyvrip.msb
- //CAMERA  -0.005439  0.148768  0.389356     -0.005439  0.148768  -0.00669     0  1  0  30  5  1000
- //CAMERA 0.18973  -0.0942517  0.0593348  -0.00623493  0.139666  -0.0290227  0.222726  0.502208  0.835572 30 5 1000
+ // MESH  1  0 0 0  1 1 1 resources/Models/optixCompare/happyvrip.msb
+ // CAMERA  -0.005439  0.148768  0.389356     -0.005439  0.148768  -0.00669     0  1  0  30  5  1000
+ // CAMERA 0.18973  -0.0942517  0.0593348  -0.00623493  0.139666  -0.0290227  0.222726  0.502208  0.835572 30 5 1000
 
- //MESH  1  0 0 0  1 1 1  resources/Models/optixCompare/jsyrlin.msb
- //CAMERA  56.3024  163.078  525.436     56.3024  163.078  -627.096     0  1  0  30  5  1000
- //CAMERA  671.41  946.681  -47.4913     56.3024  163.078  -627.096     -0.296544  0.707371  -0.641629  30  5  1000
+ // MESH  1  0 0 0  1 1 1  resources/Models/optixCompare/jsyrlin.msb
+ // CAMERA  56.3024  163.078  525.436     56.3024  163.078  -627.096     0  1  0  30  5  1000
+ // CAMERA  671.41  946.681  -47.4913     56.3024  163.078  -627.096     -0.296544  0.707371  -0.641629  30  5  1000
 
  // MESH  1  0  0  200  1  1  1  resources/Models/optixCompare/karburator-500k.msb
- // MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/karburator-500k.msb
-  CAMERA  208.383  -186.606  32.5288     -8.8237  -25.8593  -223.298     -0.0037459  0.845283  0.534306  30  5  1000
-  CAMERA  -109.554  -315.481  -500.879     -8.8237  -25.8593  -223.298     0.354766  -0.708301  0.610287  30  5  1000
+  // MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/karburator-500k.msb
+  // CAMERA 180.948  -210.824  39.0366   -8.8237  -25.8594  -223.298   -0.0148237  0.812109  0.583318 30 5 1000
+  // CAMERA -120.02  -301.207  -514.717   -8.8237  -25.8593  -223.298   0.411913  -0.73557  0.537833 30 5 1000
+   // CAMERA  208.383  -186.606  32.5288     -8.8237  -25.8593  -223.298     -0.0037459  0.845283  0.534306  30  5  1000
+   // CAMERA  -109.554  -315.481  -500.879     -8.8237  -25.8593  -223.298     0.354766  -0.708301  0.610287  30  5  1000
 
 // MESH 1 0 0 0 1 1 1 resources/Models/optixCompare/cornellbox.msb
-//CAMERA    2.39071  2.76953  6.49835    2.54724  2.37149  -2.66228    -0.0133787  0.998958  -0.0436348          30       5      1000
+// CAMERA    2.39071  2.76953  6.49835    2.54724  2.37149  -2.66228    -0.0133787  0.998958  -0.0436348          30       5      1000
 
 
 //SPECIFIC SCECES
- MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/karburator-500k.msb
+ // MESH  1  0  0  0  1  1  1  resources/Models/optixCompare/karburator-500k.msb
  // MESH  1  0  0  200  1  1  1  resources/Models/optixCompare/karburator-500k.msb
  // MESH 1  -100 150 200    100 300 800  resources/Models/MSH/cube2.msh
 
