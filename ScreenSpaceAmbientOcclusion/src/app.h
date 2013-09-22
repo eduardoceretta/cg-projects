@@ -56,6 +56,7 @@ class KernelSSAO_Vox_RayMarch;
 class KernelSSAO_Vox_TanSphereVolume;
 class KernelSSAO_Vox_ConeTracing;
 class KernelSSAO_Vox_ConeTracingUniformData;
+class KernelSSAO_SSAO_Combiner;
 
 using namespace std;
 
@@ -83,6 +84,8 @@ class App
   float m_fov;
   GLfloat m_clearColor[4];
   GLfloat m_ambientColor[4];
+  const GLubyte* m_shader_version_str;
+  float m_shader_version;
 
   /**
    * Render Objects
@@ -119,6 +122,7 @@ class App
   KernelSSAO_Vox_TanSphereVolume * m_kernelSSAO_Vox_TanSphereVolume;
   KernelSSAO_Vox_ConeTracing * m_kernelSSAO_Vox_ConeTracing;
   KernelSSAO_Vox_ConeTracingUniformData * m_kernelSSAO_Vox_ConeTracingUniformData;
+  KernelSSAO_SSAO_Combiner * m_kernelSSAO_SSAO_Combiner;
 
   /**
    * Interface control
@@ -148,6 +152,16 @@ class App
   float m_SSAO_pixelmaskSize;
   float m_SSAO_offsetSize;
   int m_SSAO_numPeelings;
+  
+  /**
+   * SSAO Combiner Algorithm Parameters
+   */
+  float m_SSAO_combiner_enabled;
+  float m_SSAO_combiner_offsetSize;
+  float m_SSAO_combiner_contrast;
+
+
+
 
   /**
    * Voxelization Algorithm Parameters

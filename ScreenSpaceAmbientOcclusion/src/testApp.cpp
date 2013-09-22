@@ -36,6 +36,8 @@
 #include "Kernels/KernelSSAO_SphereApproximation.h"
 #include "Kernels/KernelSSAO_Vox_RayMarch.h"
 #include "Kernels/KernelSSAO_Vox_ConeTracing.h"
+#include "Kernels/KernelSSAO_Vox_ConeTracingUniformData.h"
+#include "Kernels/KernelSSAO_SSAO_Combiner.h"
 
 #include "GLUtils/GLTextureObject.h"
 
@@ -51,7 +53,9 @@ string TestApp::s_renderModeStr[] = {
   ,STR(Sphere)
   ,STR(RayMarch)
   ,STR(ConeTracing)
-  ,STR(Voxelization)
+  ,STR(ConeTracing_Diffuse)
+  ,STR(ConeTracing_Uniform)
+  //,STR(Voxelization)
   ,STR(Debug)
 };
 
@@ -84,6 +88,8 @@ TestApp::TestApp()
 ,m_kernelSSAO_SphereApproximation(NULL)
 ,m_kernelSSAO_Vox_RayMarch(NULL)
 ,m_kernelSSAO_Vox_ConeTracing(NULL)
+,m_kernelSSAO_Vox_ConeTracingUniformData(NULL)
+,m_kernelSSAO_SSAO_Combiner(NULL)
 
 ,m_logPath(APP_DEFAULT_LOG_PATH)
 ,m_logFileName("")
@@ -120,6 +126,23 @@ TestApp::TestApp()
 ,m_ConeTracing_sphereInfoMethod("InitDist")
 ,m_ConeTracing_sphereInfoSphereOverlap(0.0f)
 
+,m_ConeTracingUniform_enabled(false)
+,m_ConeTracingUniform_jitter(true)
+,m_ConeTracingUniform_diffuse_enabled(false)
+,m_ConeTracingUniform_ao_enabled(true)
+,m_ConeTracingUniform_rfarPercent(0.1f)
+,m_ConeTracingUniform_contrast(1.28f)
+,m_ConeTracingUniform_coneAngle(DEG_TO_RAD(30.0f))
+,m_ConeTracingUniform_numCones(6)
+,m_ConeTracingUniform_numSpheres(3)
+,m_ConeTracingUniform_numSpamplers(3)
+,m_ConeTracingUniform_sphereInfoMethod("InitDist")
+,m_ConeTracingUniform_sphereInfoSphereOverlap(0.0f)
+,m_ConeTracingUniform_SSAOCombine_enabled(false)
+,m_ConeTracingUniform_SSAOCombine_contrast(9.5)
+,m_ConeTracingUniform_SSAOCombine_rfarPercent(0.1f)
+,m_ConeTracingUniform_SSAOCombine_offsetSize(2.0f)
+
 ,m_voxProjectionMatrix(new GLProjectionMatrix())
 ,m_renderMode(ConeTracing)
 {
@@ -147,6 +170,7 @@ TestApp::TestApp()
   m_acceptedArgsBool["-alg:Sphere"] = &m_Sphere_enabled;
   m_acceptedArgsBool["-alg:RayMarch"] = &m_RayMarch_enabled;
   m_acceptedArgsBool["-alg:ConeTracing"] = &m_ConeTracing_enabled;
+  m_acceptedArgsBool["-alg:ConeTracingUniform"] = &m_ConeTracingUniform_enabled;
 
   m_acceptedArgsFloat["-parm:Sphere:rfar"] = &m_Sphere_rfarPercent;
   m_acceptedArgsFloat["-parm:Sphere:offset"] = &m_Sphere_offsetSize;
@@ -166,6 +190,22 @@ TestApp::TestApp()
   m_acceptedArgsInt["-parm:ConeTracing:numSamplers"] = &m_ConeTracing_numSpamplers;
   m_acceptedArgsString["-parm:ConeTracing:sphereInfoMethod"] = &m_ConeTracing_sphereInfoMethod;
   m_acceptedArgsFloat["-parm:ConeTracing:sphereInfoSphereOverlap"] = &m_ConeTracing_sphereInfoSphereOverlap;
+
+  m_acceptedArgsBool["-parm:ConeTracingUniform:jitter"] = &m_ConeTracingUniform_jitter;
+  m_acceptedArgsBool["-parm:ConeTracingUniform:diffuse_enabled"] = &m_ConeTracingUniform_diffuse_enabled;
+  m_acceptedArgsBool["-parm:ConeTracingUniform:ao_enabled"] = &m_ConeTracingUniform_ao_enabled;
+  m_acceptedArgsFloat["-parm:ConeTracingUniform:rfar"] = &m_ConeTracingUniform_rfarPercent;
+  m_acceptedArgsFloat["-parm:ConeTracingUniform:contrast"] = &m_ConeTracingUniform_contrast;
+  m_acceptedArgsFloat["-parm:ConeTracingUniform:coneAngle"] = &m_ConeTracingUniform_coneAngle;
+  m_acceptedArgsInt["-parm:ConeTracingUniform:numCones"] = &m_ConeTracingUniform_numCones;
+  m_acceptedArgsInt["-parm:ConeTracingUniform:numSpheres"] = &m_ConeTracingUniform_numSpheres;
+  m_acceptedArgsInt["-parm:ConeTracingUniform:numSamplers"] = &m_ConeTracingUniform_numSpamplers;
+  m_acceptedArgsString["-parm:ConeTracingUniform:sphereInfoMethod"] = &m_ConeTracingUniform_sphereInfoMethod;
+  m_acceptedArgsFloat["-parm:ConeTracingUniform:sphereInfoSphereOverlap"] = &m_ConeTracingUniform_sphereInfoSphereOverlap;
+  m_acceptedArgsBool["-parm:ConeTracingUniform:SSAO_Combine_enabled"] = &m_ConeTracingUniform_SSAOCombine_enabled;
+  m_acceptedArgsFloat["-parm:ConeTracingUniform:SSAO_Combine_contrast"] = &m_ConeTracingUniform_SSAOCombine_contrast;
+  m_acceptedArgsFloat["-parm:ConeTracingUniform:SSAO_Combine_rfar"] = &m_ConeTracingUniform_SSAOCombine_rfarPercent;
+  m_acceptedArgsFloat["-parm:ConeTracingUniform:SSAO_Combine_offset"] = &m_ConeTracingUniform_SSAOCombine_offsetSize;
 }
 
 TestApp::~TestApp()
@@ -180,42 +220,22 @@ TestApp::~TestApp()
   //  }
   //}
   
-  if(m_rtScene)
-    delete m_rtScene;
+  delete m_rtScene;
+  delete m_p3bMesh;
 
-  if(m_p3bMesh)
-    delete m_p3bMesh;
+  delete m_kernelDeferred_Peeling;
+  delete m_kernelColor;
+  delete m_kernelBlur;
+  delete m_kernelCombine;
+  delete m_kernelDeferredLighting;
+  delete m_kernelVoxelization;
+  delete m_kernelSSAO_SphereApproximation;
+  delete m_kernelSSAO_Vox_RayMarch;
+  delete m_kernelSSAO_Vox_ConeTracing;
+  delete m_kernelSSAO_Vox_ConeTracingUniformData;
+  delete m_kernelSSAO_SSAO_Combiner;
 
-  if(m_kernelDeferred_Peeling)
-    delete m_kernelDeferred_Peeling;
-
-  if(m_kernelColor)
-    delete m_kernelColor;
-
-  if(m_kernelBlur)
-    delete m_kernelBlur;
-
-  if(m_kernelCombine)
-    delete m_kernelCombine;
-
-  if(m_kernelDeferredLighting)
-    delete m_kernelDeferredLighting;
-
-  if(m_kernelVoxelization)
-    delete m_kernelVoxelization;
-
-  if(m_kernelSSAO_SphereApproximation)
-    delete m_kernelSSAO_SphereApproximation;
-
-  if(m_kernelSSAO_Vox_RayMarch)
-    delete m_kernelSSAO_Vox_RayMarch;
-
-  if(m_kernelSSAO_Vox_ConeTracing)
-    delete m_kernelSSAO_Vox_ConeTracing;
-
-  if(m_voxProjectionMatrix)
-    delete m_voxProjectionMatrix;
-
+  delete m_voxProjectionMatrix;
 }
 
 
@@ -327,6 +347,18 @@ void TestApp::render()
           else m_timeTest->pushBackStep("coneTracing", coneTracing, this);
           m_timeTest->timeProfile();
           break;
+        case ConeTracing_Uniform:
+          m_timeTest->clearProfiler();
+          //m_timeTest->pushBackStep("noShader", noShader, this);
+          m_timeTest->pushBackStep("deferredShading", deferredShading, this);
+          m_timeTest->pushBackStep("voxelize", voxelize, this);
+          //if(m_ConeTracing_diffuse_enabled)
+          //  m_timeTest->pushBackStep("coneTracingDiffuse", coneTracingDiffuse, this);
+          //else 
+            m_timeTest->pushBackStep("coneTracingUniform", coneTracingUniform, this);
+            m_timeTest->pushBackStep("coneTracingUniformSSAOCombiner", coneTracingUniformSSAOCombiner, this);
+            m_timeTest->timeProfile();
+          break;
       }
 
 #ifdef LOG_TESTS
@@ -370,6 +402,31 @@ void TestApp::render()
         {
           screenShotFileName = m_screenShotTest->save(coneTracing, this, m_kernelSSAO_Vox_ConeTracing->getOutputTexture(KernelSSAO_Vox_ConeTracing::SSAO), m_screenShotsPath);
           m_kernelSSAO_Vox_ConeTracing->renderOutput(KernelSSAO_Vox_ConeTracing::SSAO);
+        }
+        break;
+      case ConeTracing_Uniform:
+        deferredShading(this);
+        voxelize(this);
+        //if(m_ConeTracingUniform_diffuse_enabled)
+        //{
+        //  screenShotFileName = m_screenShotTest->save(coneTracingUniformDiffuse, this, m_kernelDeferredLighting->getOutputTexture(0), m_screenShotsPath);
+        //  m_kernelDeferredLighting->renderOutput(0);
+        //}else 
+        {
+          GLuint texId;
+          if(m_ConeTracingUniform_SSAOCombine_enabled)
+          {
+            coneTracingUniform(this);
+            texId = m_kernelSSAO_SSAO_Combiner->getOutputTexture(0);
+            screenShotFileName = m_screenShotTest->save(coneTracingUniformSSAOCombiner, this, texId, m_screenShotsPath);
+            m_kernelSSAO_SSAO_Combiner->renderOutput(0);
+          }
+          else 
+          {
+            texId =  m_kernelSSAO_Vox_ConeTracingUniformData->getOutputTexture(KernelSSAO_Vox_ConeTracingUniformData::SSAO);
+            screenShotFileName = m_screenShotTest->save(coneTracingUniform, this, texId, m_screenShotsPath);
+            m_kernelSSAO_Vox_ConeTracingUniformData->renderOutput(KernelSSAO_Vox_ConeTracingUniformData::SSAO);
+          }
         }
         break;
       }
@@ -607,7 +664,7 @@ void TestApp::loadKernels()
   }
 
 
-  if(m_RayMarch_enabled || m_ConeTracing_enabled)
+  if(m_RayMarch_enabled || m_ConeTracing_enabled || m_ConeTracingUniform_enabled)
   {
     m_kernelVoxDepth = new KernelVoxDepth((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight);
 
@@ -663,6 +720,48 @@ void TestApp::loadKernels()
       );
   }
 
+  if(m_ConeTracingUniform_enabled)
+  {
+    m_kernelSSAO_Vox_ConeTracingUniformData = new KernelSSAO_Vox_ConeTracingUniformData((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+      ,m_kernelVoxDepth->getTexIdEyePos()
+      ,m_kernelVoxDepth->getTexIdNormalDepth()
+      ,m_kernelVoxelization->getTexIdGrid0()
+      ,m_kernelVoxelization->getTexIdGridInvFunc()
+      );
+
+    m_kernelSSAO_Vox_ConeTracingUniformData->setJitterEnabled(m_ConeTracingUniform_jitter);
+    if(m_ConeTracing_sphereInfoMethod != "InitDist")
+    {
+      m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->nextCalcMethod();
+      m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereCenterParm = 2.5f;
+      m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radProgParms.sphereRadiusParm = .5f;
+    }else m_kernelSSAO_Vox_ConeTracingUniformData->getSphereInfo()->radDistParms.sphereOverlap = m_ConeTracingUniform_sphereInfoSphereOverlap;
+
+    m_kernelSSAO_Vox_ConeTracingUniformData->setConeRevolutionAngle(m_ConeTracingUniform_coneAngle);
+    m_kernelSSAO_Vox_ConeTracingUniformData->setNumCones(m_ConeTracingUniform_numCones);
+    m_kernelSSAO_Vox_ConeTracingUniformData->setNumSpheresByCone(m_ConeTracingUniform_numSpheres);
+    m_kernelSSAO_Vox_ConeTracingUniformData->setNumSphereSamplers(m_ConeTracingUniform_numSpamplers);
+    m_kernelSSAO_Vox_ConeTracingUniformData->setRfarPercent(m_ConeTracingUniform_rfarPercent);
+    m_kernelSSAO_Vox_ConeTracingUniformData->setContrast(m_ConeTracingUniform_contrast);
+
+    if(m_ConeTracingUniform_SSAOCombine_enabled)
+    {
+      m_kernelSSAO_SSAO_Combiner = new KernelSSAO_SSAO_Combiner((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+        ,m_kernelVoxDepth->getTexIdNormalDepth()
+        ,m_kernelSSAO_Vox_ConeTracingUniformData->getOutputTexture(0));
+    }
+
+    //GLfloat *lDif, *lPos;
+    //lDif = m_rtScene->getLightAt(0)->getLightStruct()->diffuse;
+    //lPos = m_rtScene->getLightAt(0)->getLightStruct()->pos;
+    //m_kernelDeferredLighting = new KernelDeferredLighting((char*)m_shaderPath.c_str(), m_appWidth, m_appHeight
+    //  ,m_kernelVoxDepth->getTexIdNormalDepth()
+    //  ,m_kernelVoxDepth->getTexIdEyePos()
+    //  ,m_kernelSSAO_Vox_ConeTracingUniformData->getOutputTexture(0)
+    //  ,Vector3(lPos[0], lPos[1], lPos[2])
+    //  ,Vector3(lDif[0], lDif[1], lDif[2])
+    //  );
+  }
 
   if(m_Sphere_enabled || m_ConeTracing_enabled)
   {
@@ -717,6 +816,23 @@ void TestApp::loadTests()
     ss << "    {\"numCones\", " << m_ConeTracing_numCones << "}," <<endl;
     ss << "    {\"numSpheres\", " << m_ConeTracing_numSpheres << "}," <<endl;
     ss << "    {\"numSamplers\", " << m_ConeTracing_numSpamplers << "}," <<endl;
+    ss << "  }," << endl;
+#endif // LOG_TESTS
+  }
+
+  if(m_ConeTracingUniform_enabled)
+  {
+    m_algorithms.push_back(ConeTracing_Uniform);
+#ifdef LOG_TESTS
+    ss << "  {" << endl;
+    ss << "    [\"name\"] = \"" << s_renderModeStr[ConeTracing_Uniform] << "\", " << endl;
+    ss << "    {\"rfar\", " << m_ConeTracingUniform_rfarPercent << "}," <<endl;
+    ss << "    {\"contrast\", " << m_ConeTracingUniform_contrast << "}," <<endl;
+    ss << "    {\"jitter\", " << m_ConeTracingUniform_jitter << "}," <<endl;
+    ss << "    {\"coneAngle\", " << m_ConeTracingUniform_coneAngle << "}," <<endl;
+    ss << "    {\"numCones\", " << m_ConeTracingUniform_numCones << "}," <<endl;
+    ss << "    {\"numSpheres\", " << m_ConeTracingUniform_numSpheres << "}," <<endl;
+    ss << "    {\"numSamplers\", " << m_ConeTracingUniform_numSpamplers << "}," <<endl;
     ss << "  }," << endl;
 #endif // LOG_TESTS
   }
@@ -901,6 +1017,30 @@ void TestApp::coneTracingDiffuse(TestApp* thisPtr)
   thisPtr->m_rtScene->setMaterialActive(true, 0);
   thisPtr->m_kernelDeferredLighting->step((int)thisPtr->m_ConeTracing_ao_enabled, (int)thisPtr->m_ConeTracing_diffuse_enabled, Vector3(.5, .5, .5));
   thisPtr->m_rtScene->setMaterialActive(false, 0);
+  glPopAttrib();
+}
+
+void TestApp::coneTracingUniform(TestApp* thisPtr)
+{
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+  thisPtr->m_kernelSSAO_Vox_ConeTracingUniformData->step(thisPtr->m_voxProjectionMatrix);
+
+  glPopAttrib();
+}
+
+void TestApp::coneTracingUniformSSAOCombiner(TestApp* thisPtr)
+{
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+  if(thisPtr->m_ConeTracingUniform_SSAOCombine_enabled)
+    thisPtr->m_kernelSSAO_SSAO_Combiner->step(thisPtr->m_voxProjectionMatrix, 
+      thisPtr->m_ConeTracingUniform_rfarPercent, 
+      thisPtr->m_ConeTracingUniform_SSAOCombine_offsetSize, 
+      thisPtr->m_ConeTracingUniform_SSAOCombine_contrast);
+
   glPopAttrib();
 }
 

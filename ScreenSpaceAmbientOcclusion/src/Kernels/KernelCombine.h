@@ -36,6 +36,7 @@ public:
    *  The texture passed id the texture to be combined
    */
   void step(GLuint ssaoTexId);
+  void step(GLuint t0, GLuint t1);
 
 private:
   /**

@@ -18,7 +18,6 @@
 App ssaoApp;
 
 int main(int argc, char *argv[]){
-
   ssaoApp.loadParameters(argc, argv);
   ssaoApp.initGL(&argc, argv);
   ssaoApp.loadResources();
@@ -26,7 +25,6 @@ int main(int argc, char *argv[]){
   setGlutCallbacks();
   glutMainLoop();
 }
-
 
 
 void setGlutCallbacks(){
@@ -70,5 +68,4 @@ void display()
 
   glutSwapBuffers();
 }
-
-
+/**/

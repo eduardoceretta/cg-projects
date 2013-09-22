@@ -17,8 +17,6 @@
 #include "GLUtils/GLProjectionMatrix.h"
 #include "GLLights/GLPointLight.h"
 
-
-
 #define SPHERECENTER_PARM 2.5 // 3
 #define SPHERERADIUS_PARM 0.5  // 1.5
 
@@ -123,7 +121,7 @@ public:
   /**
    * Render the specific sampler distribution directions.
    */
-  //void renderConeDistribution(int distribution);
+  void renderConeDistribution(int distribution);
   //void renderSphereSamplerDistribution(int distribution, int sphereIndex);
   //void renderSphereInfoDistribution(int distribution);
 private:

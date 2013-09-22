@@ -505,8 +505,7 @@ void GLShader::replaceDefines (char* shaderText)
             char* replace = strstr(ptr, WildCardStr);
             if(replace != NULL)
             {
-              printf("%s = %s\n", name, val);
-              printf("%s = %s\n\n", name, defIt->second.c_str());
+              printf("Define Replace: %s = %s\n", name, defIt->second.c_str());
 
               memset(replace, ' ', sizeof(WildCardStr)-1);
               memcpy(replace, defIt->second.c_str(), std::min(sizeof(WildCardStr)-1, defIt->second.length()));
@@ -518,4 +517,5 @@ void GLShader::replaceDefines (char* shaderText)
       ptr++;
     }
   }
+  printf("\n");
 }

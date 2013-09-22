@@ -33,11 +33,12 @@ using namespace std;
 class SphereInfo
 {
   float m_coneRevolutionAngle;
+  int m_numSamplersBySphere;
   int m_numSpheresByCone;
   int m_numCones;
 
 public:
-  enum CalcMethods{RadiusProgression = 0, RadiusInitDistance, EndEnum};
+  enum CalcMethods{RadiusProgression = 0, RadiusInitDistance, StaticDistribution, EndEnum};
   CalcMethods currCalcMethod;
 
   struct RadDistParms{
@@ -58,12 +59,17 @@ public:
       ,sphereRadiusParm(1.5f){}
   }radProgParms;
 
+  struct StaticDist
+  {
+    StaticDist(){};
+  }staticDist;
+
 
   SphereInfo()
-    :currCalcMethod(RadiusProgression)
+    :currCalcMethod(StaticDistribution)
   {}
 
-  void setParameters(float coneRevolutionAngle, int numSpheresByCone, int numCones);
+  void setParameters(float coneRevolutionAngle, int numCones, int numSpheresByCone, int numSamplersBySphere);
 
   void nextCalcMethod();
 

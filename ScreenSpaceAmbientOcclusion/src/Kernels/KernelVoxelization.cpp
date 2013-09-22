@@ -16,10 +16,12 @@
 #include "MathUtils/Vector4.h"
 #include "MathUtils/Bit.h"
 #include "GLUtils/GLProjectionMatrix.h"
+#include "defines.h"
 
+#define str(s) #s
 
 #define VOXELIZATION_BITMAP_FULLONE 
-#define EYE_NEAREST
+
 //#define GRID_BBOX
 //#define FULL_GRID 1
 #ifdef FULL_GRID
@@ -32,13 +34,6 @@
 //#define FUNC_POW
 //#define FUNC_EXP
 //#define FUNC_ASIN
-
-//#define LIMITED_FAR .5          /**< Uses a limited far disatance. The grid will not go to the far plane. Resulting in a greater resolution in the front voxels*/
-
-
-
-
-
 
 #define _FUNC_ONE(x, y) (x)
 #define _FUNC_POW(x, y) (pow((x),(y)))
@@ -70,7 +65,7 @@
 #endif
 
 KernelVoxelization::KernelVoxelization(char* path, int width, int height, int size, GLuint texIdEyePos)
-: KernelBase(path, "voxelization.vert", "voxelization.frag", width, height)
+: KernelBase(NULL, NULL, width, height)
 ,m_width(width)
 ,m_height(height)
 ,m_depth(size*UINT_BIT_SIZE)
@@ -101,6 +96,14 @@ KernelVoxelization::KernelVoxelization(char* path, int width, int height, int si
 ,m_endZ(128)
 ,m_texIdEyePos(texIdEyePos)
 {
+  m_shader = new GLShader();
+  m_shader->addReplaceDefine(str(EYE_NEAREST_ENABLED), EYE_NEAREST_ENABLED);
+  m_shader->addReplaceDefine(str(LIMITED_FAR_ENABLED), LIMITED_FAR_ENABLED);
+  m_shader->addReplaceDefine(str(LIMITED_FAR_PERCENT), LIMITED_FAR_PERCENT);
+  string v = string(path) + "voxelization.vert";
+  string f = string(path) + "voxelization.frag";
+  m_shader->setShaderFiles((char*)v.c_str(), (char*)f.c_str());
+
   m_fbo->attachToDepthBuffer(GL_FBOBufferType::RenderBufferObject);
 
   createGridBitMapTexture();
@@ -178,9 +181,9 @@ void KernelVoxelization::setActive(bool op)
     m_top = m_projectionMatrix.getTop();
 
     m_shader->setActive(true);
-#ifndef EYE_NEAREST
+#if !EYE_NEAREST_ENABLED
     addInputFloat("near", m_near);
-#endif // EYE_NEAREST
+#endif // EYE_NEAREST_ENABLED
     addInputFloat("far", m_far);
     //addInputFloat("right", m_right);
     //addInputFloat("top", m_top);
@@ -220,9 +223,9 @@ void KernelVoxelization::setActiveShaderOnly( bool op)
     m_top = m_projectionMatrix.getTop();
 
     m_shader->setActive(true);
-#ifndef EYE_NEAREST
+#if !EYE_NEAREST_ENABLED
     addInputFloat("near", m_near);
-#endif // EYE_NEAREST
+#endif // EYE_NEAREST_ENABLED
     addInputFloat("far", m_far);
     //addInputFloat("right", m_right);
     //addInputFloat("top", m_top);
@@ -247,7 +250,6 @@ void KernelVoxelization::setActiveShaderOnly( bool op)
     glLogicOp(GL_XOR);
   }
 }
-
 
 void KernelVoxelization::createGridBitMapTexture()
 {
@@ -307,7 +309,6 @@ void KernelVoxelization::createGridBitMapTexture()
 
 void KernelVoxelization::createGridFuncTextures(float power)
 {
-  
   m_funcData = NULL;
   GLint max_tex_size;
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex_size);
@@ -445,7 +446,7 @@ void KernelVoxelization::renderVoxelization()
   glDisable(GL_DEPTH_CLAMP_NV);
   
   
-  //renderFrustum();
+  renderFrustum();
   
   int numZ = 0;
   int maxZ = 0;
@@ -484,13 +485,13 @@ void KernelVoxelization::renderVoxelization()
       for(int x = m_initX; x < m_endX; x+=m_stepX)
       {
 
-        #ifdef EYE_NEAREST
+        #if EYE_NEAREST_ENABLED
           float zNear = m_eyeNearestData[y*m_width*4 + x*4 + 3];
           if(zNear < 0)
             continue;
         #else
           float zNear = m_near;
-        #endif // EYE_NEAREST
+        #endif // EYE_NEAREST_ENABLED
 
         unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
         numZ = 0;
@@ -566,7 +567,202 @@ printf("%d\n", maxZ);
 
   glPopAttrib();
   glPopMatrix();
+  static int jjj = 0;
+  if(jjj == 0)
+    writeVoxelizationPosFile();
+  jjj++;
 }
+
+void KernelVoxelization::writeVoxelizationPosFile()
+{
+  updateData();
+
+  int numZ = 0;
+  int maxZ = 0;
+
+  int x = 0;
+  int y = 0;
+  int z = 0;
+
+  vector<Vector3> cellNodeArray;
+  
+  struct elem
+  {
+    int nodes[8];
+    int material;
+  };
+  vector<struct elem> cellElementArray;
+
+  int step_x = 1;
+  int step_y = 1;
+  int step_z = 10;
+
+  for(int y = 0; y < m_endY; y += step_y)
+  {
+    for(int x = 0; x < m_endX; x += step_x)
+    {
+#if EYE_NEAREST_ENABLED
+      float zNear = m_eyeNearestData[y*m_width*4 + x*4 + 3];
+      if(zNear < 0)
+        continue;
+#else
+      float zNear = m_near;
+#endif // EYE_NEAREST_ENABLED
+
+      unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
+      numZ = 0;
+
+      int nodes[4];
+
+      Vector3 size = getGridCellSize(0, 0, 0, zNear);
+      size.x *= step_x;
+      size.y *= step_y;
+      size.z *= step_z;
+      Vector3 halfSize = size*.5f;
+      Vector3 cellCenter = getGridCellCenter(x, y, 0, zNear);
+      cellCenter.z = -cellCenter.z;
+
+      //GetInitialTopNodes
+      Vector3 topNodes[4];
+      topNodes[0] = cellCenter + Vector3(halfSize.x, -halfSize.y, -halfSize.z);
+      topNodes[1] = cellCenter + Vector3(halfSize.x, halfSize.y, -halfSize.z);
+      topNodes[2] = cellCenter + Vector3(-halfSize.x, -halfSize.y, -halfSize.z); //4
+      topNodes[3] = cellCenter + Vector3(-halfSize.x, halfSize.y, -halfSize.z);  //5
+
+      //AddNodes
+      int* topNodeIndexes = &nodes[0];
+      for(int i = 0; i<4; ++i)
+      {
+        cellNodeArray.push_back(topNodes[i]);
+        topNodeIndexes[i] = cellNodeArray.size();
+      }
+
+      for(int z = 0; z < m_endZ; z += step_z)
+      {
+        unsigned int pp = *(p + z/UINT_BIT_SIZE);
+        bool active = Bit::isBitActiveLeftToRight(pp, z%UINT_BIT_SIZE);
+
+        //AddElement Part 1
+        struct elem element;
+        element.nodes[0] = topNodeIndexes[0];
+        element.nodes[1] = topNodeIndexes[1];
+        element.nodes[4] = topNodeIndexes[2];
+        element.nodes[5] = topNodeIndexes[3];
+        
+        for(int i = 0; i < 4; ++i)
+          element.nodes[i] = topNodeIndexes[i];
+        
+        //GetBottonlNodes
+        Vector3 bottonNodes[4];
+        bottonNodes[0] = cellCenter + Vector3(halfSize.x, -halfSize.y, halfSize.z); //3
+        bottonNodes[1] = cellCenter + Vector3(halfSize.x, halfSize.y, halfSize.z);  //2
+        bottonNodes[2] = cellCenter + Vector3(-halfSize.x, -halfSize.y, halfSize.z); //7
+        bottonNodes[3] = cellCenter + Vector3(-halfSize.x, halfSize.y, halfSize.z);  //6
+
+        //AddNodes
+        int* bottonNodeIndexes = &nodes[0];
+        for(int i = 0; i<4; ++i)
+        {
+          cellNodeArray.push_back(bottonNodes[i]);
+          bottonNodeIndexes[i] = cellNodeArray.size();
+        }
+
+        //AddElement Part 2
+        element.nodes[3] = bottonNodeIndexes[0];
+        element.nodes[2] = bottonNodeIndexes[1];
+        element.nodes[7] = bottonNodeIndexes[2];
+        element.nodes[6] = bottonNodeIndexes[3];
+        
+        element.material = active == true? 1 : 2;
+        cellElementArray.push_back(element);
+
+        cellCenter.z = cellCenter.z + size.z;
+      }
+    }
+  }
+
+  // WRITE FILE
+  FILE* fp;
+  fp = fopen("debug_voxelization.pos", "w");
+  MyAssert("Could Not Create File debug_voxelization.pos", fp);
+
+  //WriteHeader
+  fprintf(fp, "%%HEADER\n");
+  fprintf(fp, "Neutral file created by VSAO VOXELIZATION DEBUG program\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "%%HEADER.VERSION\n");
+  fprintf(fp, "0-005 - Oct/93\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "%%HEADER.VERSION\n");
+  fprintf(fp, "1.00\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "%HEADER.TITLE\n");
+  fprintf(fp, "\'untitled\'\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "%%HEADER.ANALYSIS\n");
+  fprintf(fp, "\'solid\'\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "\n");
+  
+  //Writematerials
+  fprintf(fp, "%%MATERIAL\n");
+  fprintf(fp, "2\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "%%MATERIAL.LABEL\n");
+  fprintf(fp, "2\n");
+  fprintf(fp, "1   \'full\'   \n");
+  fprintf(fp, "2   \'empty\'   \n");
+  fprintf(fp, "\n");
+  fprintf(fp, "\n");
+
+  //WriteNodes
+  fprintf(fp, "%%NODE\n");
+  fprintf(fp, "%d\n", cellNodeArray.size());
+  fprintf(fp, "\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "%%NODE.COORD\n");
+  fprintf(fp, "%d\n", cellNodeArray.size());
+  for(unsigned int i = 0; i < cellNodeArray.size(); ++i)
+  {
+    fprintf(fp, "%d\t%f\t%f\t%f\n", i + 1, cellNodeArray[i].x, cellNodeArray[i].y, cellNodeArray[i].z);
+  }
+  fprintf(fp, "\n");
+  fprintf(fp, "\n");
+
+  //WriteElements
+  fprintf(fp, "%%ELEMENT\n");
+  fprintf(fp, "%d\n", cellElementArray.size());
+  fprintf(fp, "\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "%%ELEMENT.BRICK8\n");
+  fprintf(fp, "%d\n", cellElementArray.size());
+  for(unsigned int i = 0; i < cellElementArray.size(); ++i)
+  {
+    fprintf(fp, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", i + 1, 
+      cellElementArray[i].material, 1, 
+      cellElementArray[i].nodes[0],
+      cellElementArray[i].nodes[1],
+      cellElementArray[i].nodes[2],
+      cellElementArray[i].nodes[3],
+      cellElementArray[i].nodes[4],
+      cellElementArray[i].nodes[5],
+      cellElementArray[i].nodes[6],
+      cellElementArray[i].nodes[7]
+      );
+  }
+  fprintf(fp, "\n");
+  fprintf(fp, "\n");
+
+  //Write Footer
+  fprintf(fp, "%%END\n");
+  fclose(fp);
+}
+
+
+
+
+
+
 
 Vector3 KernelVoxelization::getGridCellCenter(int x, int y, int z, float zNear)
 {
@@ -588,19 +784,19 @@ Vector3 KernelVoxelization::getGridCellCenter(int x, int y, int z, float zNear)
   float xe = xm*float(x + .5);
   float ye = ym*float(y + .5);
 
-#ifdef EYE_NEAREST
+#if EYE_NEAREST_ENABLED
   //float zm = (m_far - 0.0);
   //float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm + zNear ;
-  #ifdef LIMITED_FAR
-    float zm = (m_far*LIMITED_FAR)/128.0;
+  #if LIMITED_FAR_ENABLED
+    float zm = (m_far*LIMITED_FAR_PERCENT)/128.0;
   #else
     float zm = (m_far - zNear)/128.0;
-  #endif // LIMITED_FAR
+  #endif // LIMITED_FAR_ENABLED
   float ze = zm*float(z + .5) + zNear;
 #else
   float zm = (m_far);
   float ze = m_funcData[(int)floor((float(z + 0.5)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]*zm;
-#endif //EYE_NEAREST
+#endif //EYE_NEAREST_ENABLED
 
   return Vector3(xe, ye, -ze);
 }
@@ -620,16 +816,16 @@ Vector3 KernelVoxelization::getGridCellSize(int x, int y, int z, float zNear)
     ym = (m_top*(m_far - m_near)/(2.0f*m_near))/m_height;//Half Frustum Height 
   }
 
-#ifdef EYE_NEAREST
+#if EYE_NEAREST_ENABLED
   //float zm = (m_far - 0.0);
-  #ifdef LIMITED_FAR
-    float zm = (m_far*LIMITED_FAR)/128.0;
+  #if LIMITED_FAR_ENABLED
+    float zm = (m_far*LIMITED_FAR_PERCENT)/128.0;
   #else
     float zm = (m_far - zNear)/128.0;
-  #endif // LIMITED_FAR
+  #endif // LIMITED_FAR_ENABLED
 #else
   float zm = (m_far);
-#endif //EYE_NEAREST
+#endif //EYE_NEAREST_ENABLED
 
   //return Vector3(xm, ym, zm*(
     //m_funcData[(int)floor((float(z + 1.0f)/(m_gridBitMapHeight*m_gridBitMapWidth))*(m_funcTexSize - 1) + .5f)]-
@@ -694,13 +890,13 @@ void KernelVoxelization::updateBB()
     {
       for(int x = m_initX; x < m_endX; x+=m_stepX)
       {
-        #ifdef EYE_NEAREST
+        #if EYE_NEAREST_ENABLED
           float zNear = m_eyeNearestData[y*m_width*4 + x*4 + 3];
           if(zNear < 0) 
             continue;
         #else
           float zNear = m_near;
-        #endif // EYE_NEAREST
+        #endif // EYE_NEAREST_ENABLED
         
         unsigned int *p = (GLuint*)&m_voxData[y*m_width*4+x*4];
         #ifdef FULL_GRID
